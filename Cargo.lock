@@ -6,6 +6,13 @@ version = 3
 name = "dynosaur"
 version = "0.1.0"
 dependencies = [
+ "dynosaur_derive",
+]
+
+[[package]]
+name = "dynosaur_derive"
+version = "0.1.0"
+dependencies = [
  "proc-macro2",
  "quote",
  "syn",
