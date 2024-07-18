@@ -13,3 +13,10 @@ rust-version = "1.75"
 
 [dependencies]
 dynosaur_derive = { version = "0.1", path = "../dynosaur_derive" }
+
+[dev-dependencies]
+ui_test = "0.24"
+
+[[test]]
+name = "ui"
+harness = false
