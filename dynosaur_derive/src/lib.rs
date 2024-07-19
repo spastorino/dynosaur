@@ -43,10 +43,10 @@ pub fn dynosaur(
     attr: proc_macro::TokenStream,
     item: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
-    let attrs = parse_macro_input!(attr as Attrs);
+    let _attrs = parse_macro_input!(attr as Attrs);
     let item = parse_macro_input!(item as ItemTrait);
 
-    let erased_trait = mk_erased_trait(&attrs, &item);
+    let erased_trait = mk_erased_trait(&item);
 
     quote! {
         #item
@@ -56,9 +56,9 @@ pub fn dynosaur(
     .into()
 }
 
-fn mk_erased_trait(attrs: &Attrs, item: &ItemTrait) -> TokenStream {
+fn mk_erased_trait(item: &ItemTrait) -> TokenStream {
     let erased_trait = ItemTrait {
-        ident: attrs.ident.clone(),
+        ident: Ident::new(&format!("Erased{}", item.ident), Span::call_site()),
         items: item
             .items
             .iter()

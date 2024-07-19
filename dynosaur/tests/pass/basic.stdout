@@ -10,7 +10,7 @@ trait MyTrait {
     async fn foo(&self)
     -> Self::Item;
 }
-trait DynMyTrait {
+trait ErasedMyTrait {
     type Item;
     fn foo(&self)
     -> ::core::pin::Pin<Box<dyn ::core::future::Future<Output = Self::Item>>>;
