@@ -1,20 +1,6 @@
-[package]
-name = "dynosaur"
-version = "0.1.0"
-authors = ["Santiago Pastorino <spastorino@gmail.com>", "Tyler Mandry <tmandry@google.com>", "Niko Matsakis <rust@nikomatsakis.com>"]
-categories = ["asynchronous", "no-std"]
-keywords = ["async", "trait", "impl"]
-description = "Dynamic dispatch for return position impl traits and async in Rust"
-documentation = "https://docs.rs/dynosaur"
-license = "MIT OR Apache-2.0"
-repository = "https://github.com/spastorino/dynosaur"
-edition = "2021"
-rust-version = "1.75"
-
-[lib]
-proc-macro = true
-
-[dependencies]
-proc-macro2 = "1.0"
-quote = "1.0"
-syn = { version = "2.0", features = ["full"] }
+[workspace]
+members = [
+    "dynosaur",
+    "dynosaur_derive",
+]
+resolver = "2"

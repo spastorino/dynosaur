@@ -1,0 +1,19 @@
+#![feature(prelude_import)]
+#[prelude_import]
+use std::prelude::rust_2021::*;
+#[macro_use]
+extern crate std;
+use dynosaur::dynosaur;
+
+trait MyTrait {
+    type Item;
+    async fn foo(&self)
+    -> Self::Item;
+}
+trait DynMyTrait {
+    type Item;
+    fn foo(&self)
+    -> ::core::pin::Pin<Box<dyn ::core::future::Future<Output = Self::Item>>>;
+}
+
+fn main() {}
