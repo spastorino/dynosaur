@@ -2,7 +2,8 @@ use dynosaur::dynosaur;
 
 #[dynosaur(DynMyTrait)]
 trait MyTrait {
-    async fn foo(&self) -> i32;
+    type Item;
+    async fn foo(&self) -> Self::Item;
 }
 
 fn main() {}
