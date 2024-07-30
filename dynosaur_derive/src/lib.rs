@@ -162,28 +162,21 @@ fn mk_erased_trait(item_trait: &ItemTrait) -> TokenStream {
                         }
 
                         for (i, arg) in sig.inputs.iter_mut().enumerate() {
-                            match arg {
-                                FnArg::Receiver(receiver) => {
-                                    if receiver.reference.is_none() {
-                                        receiver.mutability = None;
-                                    }
-                                }
-                                FnArg::Typed(arg) => {
-                                    if match *arg.ty {
-                                        Type::Reference(_) => false,
-                                        _ => true,
-                                    } {
-                                        if let Pat::Ident(pat) = &mut *arg.pat {
-                                            pat.by_ref = None;
-                                            pat.mutability = None;
-                                        } else {
+                            if let FnArg::Typed(arg) = arg {
+                                if match *arg.ty {
+                                    Type::Reference(_) => false,
+                                    _ => true,
+                                } {
+                                    match &*arg.pat {
+                                        Pat::Ident(_) => {}
+                                        _ => {
                                             let positional = positional_arg(i, &arg.pat);
                                             let m = mut_pat(&mut arg.pat);
                                             arg.pat = parse_quote!(#m #positional);
                                         }
                                     }
-                                    AddLifetimeToImplTrait.visit_type_mut(&mut arg.ty);
                                 }
+                                AddLifetimeToImplTrait.visit_type_mut(&mut arg.ty);
                             }
                         }
 
