@@ -22,5 +22,15 @@ trait ErasedMyTrait {
     'life1: 'dynosaur,
     Self: 'dynosaur;
 }
+impl<DYNOSAUR: MyTrait> ErasedMyTrait for DYNOSAUR {
+    type Item = <Self as MyTrait>::Item;
+    fn foo<'life0, 'life1, 'dynosaur, T>(&'life0 self, x: &'life1 T)
+        ->
+            ::core::pin::Pin<Box<dyn ::core::future::Future<Output = i32> +
+            'dynosaur>> where T: 'dynosaur, 'life0: 'dynosaur,
+        'life1: 'dynosaur, Self: 'dynosaur {
+        Box::pin(<Self as MyTrait>::foo(self, x))
+    }
+}
 
 fn main() {}
