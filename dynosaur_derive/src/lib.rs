@@ -65,137 +65,135 @@ pub fn dynosaur(
     .into()
 }
 
-fn mk_erased_trait(item_trait: &ItemTrait) -> TokenStream {
-    let erased_trait =
-        ItemTrait {
-            ident: Ident::new(&format!("Erased{}", item_trait.ident), Span::call_site()),
-            items: item_trait
-                .items
-                .iter()
-                .map(|item| {
-                    if let TraitItem::Fn(
-                        trait_item_fn @ TraitItemFn {
-                            sig:
-                                Signature {
-                                    asyncness: Some(..),
-                                    ..
-                                },
+fn mk_erased_trait(item_trait: &ItemTrait) -> ItemTrait {
+    ItemTrait {
+        ident: Ident::new(&format!("Erased{}", item_trait.ident), Span::call_site()),
+        items: item_trait
+            .items
+            .iter()
+            .map(|item| {
+                if let TraitItem::Fn(
+                    trait_item_fn @ TraitItemFn {
+                        sig:
+                            Signature {
+                                asyncness: Some(..),
+                                ..
+                            },
                             ..
-                        },
-                    ) = item
-                    {
-                        let mut sig = trait_item_fn.sig.clone();
+                    },
+                ) = item
+                {
+                    let mut sig = trait_item_fn.sig.clone();
 
-                        sig.fn_token.span = sig.asyncness.take().unwrap().span;
+                    sig.fn_token.span = sig.asyncness.take().unwrap().span;
 
-                        let (ret_arrow, ret) = match &sig.output {
-                            ReturnType::Default => (Token![->](Span::call_site()), quote!(())),
-                            ReturnType::Type(arrow, ret) => (*arrow, quote!(#ret)),
-                        };
+                    let (ret_arrow, ret) = match &sig.output {
+                        ReturnType::Default => (Token![->](Span::call_site()), quote!(())),
+                        ReturnType::Type(arrow, ret) => (*arrow, quote!(#ret)),
+                    };
 
-                        let mut lifetimes = CollectLifetimes::new();
-                        for arg in &mut sig.inputs {
-                            match arg {
-                                FnArg::Receiver(arg) => lifetimes.visit_receiver_mut(arg),
-                                FnArg::Typed(arg) => lifetimes.visit_type_mut(&mut arg.ty),
-                            }
+                    let mut lifetimes = CollectLifetimes::new();
+                    for arg in &mut sig.inputs {
+                        match arg {
+                            FnArg::Receiver(arg) => lifetimes.visit_receiver_mut(arg),
+                            FnArg::Typed(arg) => lifetimes.visit_type_mut(&mut arg.ty),
                         }
+                    }
 
-                        for param in &mut sig.generics.params {
-                            match param {
-                                GenericParam::Type(param) => {
-                                    let param_name = &param.ident;
-                                    let span = match param.colon_token.take() {
-                                        Some(colon_token) => colon_token.span,
-                                        None => param_name.span(),
-                                    };
-                                    let bounds = mem::replace(&mut param.bounds, Punctuated::new());
-                                    where_clause_or_default(&mut sig.generics.where_clause)
-                                        .predicates
-                                        .push(parse_quote_spanned!(span=> #param_name: 'dynosaur + #bounds));
+                    for param in &mut sig.generics.params {
+                        match param {
+                            GenericParam::Type(param) => {
+                                let param_name = &param.ident;
+                                let span = match param.colon_token.take() {
+                                    Some(colon_token) => colon_token.span,
+                                    None => param_name.span(),
+                                };
+                                let bounds = mem::replace(&mut param.bounds, Punctuated::new());
+                                where_clause_or_default(&mut sig.generics.where_clause)
+                                    .predicates
+                                    .push(parse_quote_spanned!(span=> #param_name: 'dynosaur + #bounds));
                                 }
-                                GenericParam::Lifetime(param) => {
-                                    let param_name = &param.lifetime;
-                                    let span = match param.colon_token.take() {
-                                        Some(colon_token) => colon_token.span,
-                                        None => param_name.span(),
-                                    };
-                                    let bounds = mem::replace(&mut param.bounds, Punctuated::new());
-                                    where_clause_or_default(&mut sig.generics.where_clause)
-                                        .predicates
-                                        .push(parse_quote_spanned!(span=> #param: 'dynosaur + #bounds));
+                            GenericParam::Lifetime(param) => {
+                                let param_name = &param.lifetime;
+                                let span = match param.colon_token.take() {
+                                    Some(colon_token) => colon_token.span,
+                                    None => param_name.span(),
+                                };
+                                let bounds = mem::replace(&mut param.bounds, Punctuated::new());
+                                where_clause_or_default(&mut sig.generics.where_clause)
+                                    .predicates
+                                    .push(parse_quote_spanned!(span=> #param: 'dynosaur + #bounds));
                                 }
-                                GenericParam::Const(_) => {}
-                            }
+                            GenericParam::Const(_) => {}
                         }
+                    }
 
-                        for param in used_lifetimes(&item_trait.generics, &lifetimes.explicit) {
-                            let param = &param.lifetime;
-                            let span = param.span();
-                            where_clause_or_default(&mut sig.generics.where_clause)
-                                .predicates
-                                .push(parse_quote_spanned!(span=> #param: 'dynosaur));
-                        }
+                    for param in used_lifetimes(&item_trait.generics, &lifetimes.explicit) {
+                        let param = &param.lifetime;
+                        let span = param.span();
+                        where_clause_or_default(&mut sig.generics.where_clause)
+                            .predicates
+                            .push(parse_quote_spanned!(span=> #param: 'dynosaur));
+                    }
 
-                        if sig.generics.lt_token.is_none() {
-                            sig.generics.lt_token = Some(Token![<](sig.ident.span()));
-                        }
-                        if sig.generics.gt_token.is_none() {
-                            sig.generics.gt_token = Some(Token![>](sig.paren_token.span.join()));
-                        }
+                    if sig.generics.lt_token.is_none() {
+                        sig.generics.lt_token = Some(Token![<](sig.ident.span()));
+                    }
+                    if sig.generics.gt_token.is_none() {
+                        sig.generics.gt_token = Some(Token![>](sig.paren_token.span.join()));
+                    }
 
-                        for elided in lifetimes.elided {
-                            sig.generics.params.push(parse_quote!(#elided));
-                            where_clause_or_default(&mut sig.generics.where_clause)
-                                .predicates
-                                .push(parse_quote_spanned!(elided.span()=> #elided: 'dynosaur));
-                        }
+                    for elided in lifetimes.elided {
+                        sig.generics.params.push(parse_quote!(#elided));
+                        where_clause_or_default(&mut sig.generics.where_clause)
+                            .predicates
+                            .push(parse_quote_spanned!(elided.span()=> #elided: 'dynosaur));
+                    }
 
-                        sig.generics.params.push(parse_quote!('dynosaur));
+                    sig.generics.params.push(parse_quote!('dynosaur));
 
-                        if has_self_in_sig(&mut sig) {
-                            where_clause_or_default(&mut sig.generics.where_clause)
-                                .predicates
-                                .push(parse_quote! {
-                                    Self: 'dynosaur
-                                });
-                        }
+                    if has_self_in_sig(&mut sig) {
+                        where_clause_or_default(&mut sig.generics.where_clause)
+                            .predicates
+                            .push(parse_quote! {
+                                Self: 'dynosaur
+                            });
+                    }
 
-                        for (i, arg) in sig.inputs.iter_mut().enumerate() {
-                            if let FnArg::Typed(arg) = arg {
-                                if match *arg.ty {
-                                    Type::Reference(_) => false,
-                                    _ => true,
-                                } {
-                                    match &*arg.pat {
-                                        Pat::Ident(_) => {}
-                                        _ => {
-                                            let positional = positional_arg(i, &arg.pat);
-                                            let m = mut_pat(&mut arg.pat);
-                                            arg.pat = parse_quote!(#m #positional);
-                                        }
+                    for (i, arg) in sig.inputs.iter_mut().enumerate() {
+                        if let FnArg::Typed(arg) = arg {
+                            if match *arg.ty {
+                                Type::Reference(_) => false,
+                                _ => true,
+                            } {
+                                match &*arg.pat {
+                                    Pat::Ident(_) => {}
+                                    _ => {
+                                        let positional = positional_arg(i, &arg.pat);
+                                        let m = mut_pat(&mut arg.pat);
+                                        arg.pat = parse_quote!(#m #positional);
                                     }
                                 }
-                                AddLifetimeToImplTrait.visit_type_mut(&mut arg.ty);
                             }
+                            AddLifetimeToImplTrait.visit_type_mut(&mut arg.ty);
                         }
-
-                        sig.output = parse_quote! {
-                            #ret_arrow ::core::pin::Pin<Box<
-                            dyn ::core::future::Future<Output = #ret> + 'dynosaur>>
-                        };
-                        TraitItem::Fn(TraitItemFn {
-                            sig,
-                            ..trait_item_fn.clone()
-                        })
-                    } else {
-                        item.clone()
                     }
-                })
-                .collect(),
-            ..item_trait.clone()
-        };
-    quote! { #erased_trait }
+
+                    sig.output = parse_quote! {
+                        #ret_arrow ::core::pin::Pin<Box<
+                        dyn ::core::future::Future<Output = #ret> + 'dynosaur>>
+                    };
+                    TraitItem::Fn(TraitItemFn {
+                        sig,
+                        ..trait_item_fn.clone()
+                    })
+                } else {
+                    item.clone()
+                }
+            })
+        .collect(),
+        ..item_trait.clone()
+    }
 }
 
 fn used_lifetimes<'a>(
