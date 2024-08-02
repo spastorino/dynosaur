@@ -1,4 +1,4 @@
-use crate::expand::expand_trait;
+use crate::expand::expand_trait_async_fns_to_dyn;
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{
@@ -53,8 +53,8 @@ pub fn dynosaur(
     let attrs = parse_macro_input!(attr as Attrs);
     let item_trait = parse_macro_input!(item as ItemTrait);
 
-    let expanded_trait = expand_trait(&item_trait);
-    let erased_trait = mk_erased_trait(&expanded_trait);
+    let expanded_trait_to_dyn = expand_trait_async_fns_to_dyn(&item_trait);
+    let erased_trait = mk_erased_trait(&expanded_trait_to_dyn);
     let erased_trait_blanket_impl = mk_erased_trait_blanket_impl(&item_trait.ident, &erased_trait);
     let dyn_struct = mk_dyn_struct(&attrs.ident, &erased_trait);
 
