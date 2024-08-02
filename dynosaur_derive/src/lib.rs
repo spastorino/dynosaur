@@ -3,8 +3,10 @@ use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{
     parse::{Parse, ParseStream},
-    parse_macro_input, parse_quote, Error, FnArg, GenericParam, Ident, ItemTrait, Pat, PatType,
-    Result, TraitItem, TraitItemConst, TraitItemFn, TraitItemType, TypeGenerics, TypeParam,
+    parse_macro_input, parse_quote,
+    punctuated::Punctuated,
+    Error, FnArg, GenericParam, Ident, ItemTrait, Pat, PatType, Result, Token, TraitItem,
+    TraitItemConst, TraitItemFn, TraitItemType, TypeGenerics, TypeParam,
 };
 
 mod expand;
@@ -48,18 +50,20 @@ pub fn dynosaur(
     attr: proc_macro::TokenStream,
     item: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
-    let _attrs = parse_macro_input!(attr as Attrs);
+    let attrs = parse_macro_input!(attr as Attrs);
     let item_trait = parse_macro_input!(item as ItemTrait);
 
     let expanded_trait = expand_trait(&item_trait);
     let erased_trait = mk_erased_trait(&expanded_trait);
     let erased_trait_blanket_impl = mk_erased_trait_blanket_impl(&item_trait.ident, &erased_trait);
+    let dyn_struct = mk_dyn_struct(&attrs.ident, &erased_trait);
 
     quote! {
         #item_trait
 
         #erased_trait
         #erased_trait_blanket_impl
+        #dyn_struct
     }
     .into()
 }
@@ -134,5 +138,37 @@ fn blanket_impl_item(
             }
         }
         _ => Error::new_spanned(item, "unsupported item type").into_compile_error(),
+    }
+}
+
+fn mk_dyn_struct(struct_ident: &Ident, erased_trait: &ItemTrait) -> TokenStream {
+    let mut params: Punctuated<_, Token![,]> = Punctuated::new();
+    let mut param_args: Punctuated<_, Token![,]> = Punctuated::new();
+
+    let erased_trait_ident = &erased_trait.ident;
+    params.push(quote! { 'dynosaur });
+    erased_trait.generics.params.iter().for_each(|item| {
+        params.push(quote! { #item });
+        param_args.push(quote! { #item });
+    });
+    erased_trait.items.iter().for_each(|item| match item {
+        TraitItem::Type(TraitItemType { ident, .. }) => {
+            params.push(quote! { #ident });
+            param_args.push(quote! { #ident = #ident });
+        }
+        _ => {}
+    });
+
+    let param_args = if param_args.is_empty() {
+        quote! {}
+    } else {
+        quote! { <#param_args> }
+    };
+
+    quote! {
+        struct #struct_ident <#params> {
+            ptr: *mut (dyn #erased_trait_ident #param_args + 'dynosaur),
+            owned: bool,
+        }
     }
 }

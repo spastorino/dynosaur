@@ -26,5 +26,9 @@ impl<DYNOSAUR: MyTrait> ErasedMyTrait for DYNOSAUR {
         Box::pin(<Self as MyTrait>::foo(self))
     }
 }
+struct DynMyTrait<'dynosaur> {
+    ptr: *mut (dyn ErasedMyTrait + 'dynosaur),
+    owned: bool,
+}
 
 fn main() {}
