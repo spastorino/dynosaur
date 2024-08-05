@@ -154,33 +154,39 @@ fn impl_item(
 }
 
 fn mk_dyn_struct(struct_ident: &Ident, erased_trait: &ItemTrait) -> TokenStream {
-    let mut params: Punctuated<_, Token![,]> = Punctuated::new();
-    let mut param_args: Punctuated<_, Token![,]> = Punctuated::new();
-
     let erased_trait_ident = &erased_trait.ident;
-    params.push(quote! { 'dynosaur });
+    let (struct_params, trait_params) = struct_trait_params(erased_trait);
+
+    quote! {
+        struct #struct_ident #struct_params {
+            ptr: *mut (dyn #erased_trait_ident #trait_params + 'dynosaur),
+            owned: bool,
+        }
+    }
+}
+
+fn struct_trait_params(erased_trait: &ItemTrait) -> (TokenStream, TokenStream) {
+    let mut struct_params: Punctuated<_, Token![,]> = Punctuated::new();
+    let mut trait_params: Punctuated<_, Token![,]> = Punctuated::new();
+
+    struct_params.push(quote! { 'dynosaur });
     erased_trait.generics.params.iter().for_each(|item| {
-        params.push(quote! { #item });
-        param_args.push(quote! { #item });
+        struct_params.push(quote! { #item });
+        trait_params.push(quote! { #item });
     });
     erased_trait.items.iter().for_each(|item| match item {
         TraitItem::Type(TraitItemType { ident, .. }) => {
-            params.push(quote! { #ident });
-            param_args.push(quote! { #ident = #ident });
+            struct_params.push(quote! { #ident });
+            trait_params.push(quote! { #ident = #ident });
         }
         _ => {}
     });
 
-    let param_args = if param_args.is_empty() {
+    let trait_params = if trait_params.is_empty() {
         quote! {}
     } else {
-        quote! { <#param_args> }
+        quote! { <#trait_params> }
     };
 
-    quote! {
-        struct #struct_ident <#params> {
-            ptr: *mut (dyn #erased_trait_ident #param_args + 'dynosaur),
-            owned: bool,
-        }
-    }
+    (quote! { <#struct_params> }, trait_params)
 }
