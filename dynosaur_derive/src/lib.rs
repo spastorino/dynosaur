@@ -81,7 +81,7 @@ fn mk_erased_trait_blanket_impl(trait_ident: &Ident, erased_trait: &ItemTrait) -
     let items = erased_trait
         .items
         .iter()
-        .map(|item| blanket_impl_item(item, trait_ident, trait_generics));
+        .map(|item| impl_item(item, trait_ident, trait_generics));
     let blanket_bound: TypeParam = parse_quote!(DYNOSAUR: #trait_ident #trait_generics);
     let blanket = &blanket_bound.ident.clone();
     let mut blanket_generics = erased_trait.generics.clone();
@@ -97,7 +97,7 @@ fn mk_erased_trait_blanket_impl(trait_ident: &Ident, erased_trait: &ItemTrait) -
     }
 }
 
-fn blanket_impl_item(
+fn impl_item(
     item: &TraitItem,
     trait_ident: &Ident,
     trait_generics: &TypeGenerics<'_>,
