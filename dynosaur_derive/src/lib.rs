@@ -78,10 +78,16 @@ fn mk_erased_trait(item_trait: &ItemTrait) -> ItemTrait {
 fn mk_erased_trait_blanket_impl(trait_ident: &Ident, erased_trait: &ItemTrait) -> TokenStream {
     let erased_trait_ident = &erased_trait.ident;
     let (_, trait_generics, _) = &erased_trait.generics.split_for_impl();
-    let items = erased_trait
-        .items
-        .iter()
-        .map(|item| impl_item(item, trait_ident, trait_generics));
+    let items = erased_trait.items.iter().map(|item| {
+        impl_item(
+            item,
+            trait_ident,
+            trait_generics,
+            |trait_ident, trait_generics, ident, args| {
+                quote! { Box::pin(<Self as #trait_ident #trait_generics>::#ident(#(#args),*)) }
+            },
+        )
+    });
     let blanket_bound: TypeParam = parse_quote!(DYNOSAUR: #trait_ident #trait_generics);
     let blanket = &blanket_bound.ident.clone();
     let mut blanket_generics = erased_trait.generics.clone();
@@ -101,6 +107,7 @@ fn impl_item(
     item: &TraitItem,
     trait_ident: &Ident,
     trait_generics: &TypeGenerics<'_>,
+    fn_body: fn(&Ident, &TypeGenerics<'_>, &Ident, Vec<TokenStream>) -> TokenStream,
 ) -> TokenStream {
     match item {
         TraitItem::Const(TraitItemConst {
@@ -115,17 +122,22 @@ fn impl_item(
         }
         TraitItem::Fn(TraitItemFn { sig, .. }) => {
             let ident = &sig.ident;
-            let args = sig.inputs.iter().map(|arg| match arg {
-                FnArg::Receiver(_) => quote! { self },
-                FnArg::Typed(PatType { pat, .. }) => match &**pat {
-                    Pat::Ident(arg) => quote! { #arg },
-                    _ => Error::new_spanned(pat, "patterns are not supported in arguments")
-                        .to_compile_error(),
-                },
-            });
+            let args: Vec<_> = sig
+                .inputs
+                .iter()
+                .map(|arg| match arg {
+                    FnArg::Receiver(_) => quote! { self },
+                    FnArg::Typed(PatType { pat, .. }) => match &**pat {
+                        Pat::Ident(arg) => quote! { #arg },
+                        _ => Error::new_spanned(pat, "patterns are not supported in arguments")
+                            .to_compile_error(),
+                    },
+                })
+                .collect();
+            let fn_body = fn_body(trait_ident, trait_generics, ident, args);
             quote! {
                 #sig {
-                    Box::pin(<Self as #trait_ident #trait_generics>::#ident(#(#args),*))
+                    #fn_body
                 }
             }
         }
