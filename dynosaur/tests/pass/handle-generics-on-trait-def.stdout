@@ -34,9 +34,15 @@ impl<T, DYNOSAUR: MyTrait<T>> ErasedMyTrait<T> for DYNOSAUR {
         Box::pin(<Self as MyTrait<T>>::foo(self, x))
     }
 }
-struct DynMyTrait<'dynosaur, T, Item> {
-    ptr: *mut (dyn ErasedMyTrait<T, Item = Item> + 'dynosaur),
+struct DynMyTrait<'dynosaur_struct, T, Item> {
+    ptr: *mut (dyn ErasedMyTrait<T, Item = Item> + 'dynosaur_struct),
     owned: bool,
+}
+impl<'dynosaur_struct, T, Item> MyTrait<T> for
+    DynMyTrait<'dynosaur_struct, T, Item> {
+    const N: i32 = <Self as MyTrait<T>>::N;
+    type Item = Item;
+    async fn foo(&self, x: &T) -> i32 { unsafe { &*self.ptr }.foo(x).await }
 }
 
 fn main() {}

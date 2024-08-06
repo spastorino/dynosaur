@@ -1,4 +1,4 @@
-use crate::expand::expand_trait;
+use crate::expand::expand_trait_async_fns_to_dyn;
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{
@@ -6,7 +6,7 @@ use syn::{
     parse_macro_input, parse_quote,
     punctuated::Punctuated,
     Error, FnArg, GenericParam, Ident, ItemTrait, Pat, PatType, Result, Token, TraitItem,
-    TraitItemConst, TraitItemFn, TraitItemType, TypeGenerics, TypeParam,
+    TraitItemConst, TraitItemFn, TraitItemType, TypeParam,
 };
 
 mod expand;
@@ -39,7 +39,7 @@ impl Parse for Attrs {
 ///
 /// The above example causes the trait to be rewritten as:
 ///
-/// ```rust,ignore
+/// ```rust
 /// trait DynMyTrait {
 ///     type Item;
 ///     fn foo(&self) -> ::core::pin::Pin<Box<dyn ::core::future::Future<Output = Self::Item>>>;
@@ -53,10 +53,11 @@ pub fn dynosaur(
     let attrs = parse_macro_input!(attr as Attrs);
     let item_trait = parse_macro_input!(item as ItemTrait);
 
-    let expanded_trait = expand_trait(&item_trait);
-    let erased_trait = mk_erased_trait(&expanded_trait);
+    let expanded_trait_to_dyn = expand_trait_async_fns_to_dyn(&item_trait);
+    let erased_trait = mk_erased_trait(&expanded_trait_to_dyn);
     let erased_trait_blanket_impl = mk_erased_trait_blanket_impl(&item_trait.ident, &erased_trait);
     let dyn_struct = mk_dyn_struct(&attrs.ident, &erased_trait);
+    let dyn_struct_impl_item = mk_dyn_struct_impl_item(&attrs.ident, &item_trait);
 
     quote! {
         #item_trait
@@ -64,6 +65,7 @@ pub fn dynosaur(
         #erased_trait
         #erased_trait_blanket_impl
         #dyn_struct
+        #dyn_struct_impl_item
     }
     .into()
 }
@@ -78,10 +80,12 @@ fn mk_erased_trait(item_trait: &ItemTrait) -> ItemTrait {
 fn mk_erased_trait_blanket_impl(trait_ident: &Ident, erased_trait: &ItemTrait) -> TokenStream {
     let erased_trait_ident = &erased_trait.ident;
     let (_, trait_generics, _) = &erased_trait.generics.split_for_impl();
-    let items = erased_trait
-        .items
-        .iter()
-        .map(|item| blanket_impl_item(item, trait_ident, trait_generics));
+    let ref_ = quote! { <Self as #trait_ident #trait_generics>:: };
+    let items = erased_trait.items.iter().map(|item| {
+        impl_item(item, &ref_, &ref_, |ident, args| {
+            quote! { Box::pin(<Self as #trait_ident #trait_generics>::#ident(#(#args),*)) }
+        })
+    });
     let blanket_bound: TypeParam = parse_quote!(DYNOSAUR: #trait_ident #trait_generics);
     let blanket = &blanket_bound.ident.clone();
     let mut blanket_generics = erased_trait.generics.clone();
@@ -97,10 +101,11 @@ fn mk_erased_trait_blanket_impl(trait_ident: &Ident, erased_trait: &ItemTrait) -
     }
 }
 
-fn blanket_impl_item(
+fn impl_item(
     item: &TraitItem,
-    trait_ident: &Ident,
-    trait_generics: &TypeGenerics<'_>,
+    type_ref: &TokenStream,
+    const_ref: &TokenStream,
+    fn_body: impl Fn(&Ident, Vec<TokenStream>) -> TokenStream,
 ) -> TokenStream {
     match item {
         TraitItem::Const(TraitItemConst {
@@ -110,22 +115,27 @@ fn blanket_impl_item(
             ..
         }) => {
             quote! {
-                const #ident #generics: #ty = <Self as #trait_ident #trait_generics>::#ident;
+                const #ident #generics: #ty = #const_ref #ident;
             }
         }
         TraitItem::Fn(TraitItemFn { sig, .. }) => {
             let ident = &sig.ident;
-            let args = sig.inputs.iter().map(|arg| match arg {
-                FnArg::Receiver(_) => quote! { self },
-                FnArg::Typed(PatType { pat, .. }) => match &**pat {
-                    Pat::Ident(arg) => quote! { #arg },
-                    _ => Error::new_spanned(pat, "patterns are not supported in arguments")
-                        .to_compile_error(),
-                },
-            });
+            let args: Vec<_> = sig
+                .inputs
+                .iter()
+                .map(|arg| match arg {
+                    FnArg::Receiver(_) => quote! { self },
+                    FnArg::Typed(PatType { pat, .. }) => match &**pat {
+                        Pat::Ident(arg) => quote! { #arg },
+                        _ => Error::new_spanned(pat, "patterns are not supported in arguments")
+                            .to_compile_error(),
+                    },
+                })
+                .collect();
+            let fn_body = fn_body(ident, args);
             quote! {
                 #sig {
-                    Box::pin(<Self as #trait_ident #trait_generics>::#ident(#(#args),*))
+                    #fn_body
                 }
             }
         }
@@ -134,7 +144,7 @@ fn blanket_impl_item(
         }) => {
             let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
             quote! {
-                type #ident #impl_generics = <Self as #trait_ident #trait_generics>::#ident #ty_generics #where_clause;
+                type #ident #impl_generics = #type_ref #ident #ty_generics #where_clause;
             }
         }
         _ => Error::new_spanned(item, "unsupported item type").into_compile_error(),
@@ -142,33 +152,74 @@ fn blanket_impl_item(
 }
 
 fn mk_dyn_struct(struct_ident: &Ident, erased_trait: &ItemTrait) -> TokenStream {
-    let mut params: Punctuated<_, Token![,]> = Punctuated::new();
-    let mut param_args: Punctuated<_, Token![,]> = Punctuated::new();
-
     let erased_trait_ident = &erased_trait.ident;
-    params.push(quote! { 'dynosaur });
+    let (struct_params, trait_params) = struct_trait_params(erased_trait);
+
+    quote! {
+        struct #struct_ident #struct_params {
+            ptr: *mut (dyn #erased_trait_ident #trait_params + 'dynosaur_struct),
+            owned: bool,
+        }
+    }
+}
+
+fn struct_trait_params(erased_trait: &ItemTrait) -> (TokenStream, TokenStream) {
+    let mut struct_params: Punctuated<_, Token![,]> = Punctuated::new();
+    let mut trait_params: Punctuated<_, Token![,]> = Punctuated::new();
+
+    struct_params.push(quote! { 'dynosaur_struct });
     erased_trait.generics.params.iter().for_each(|item| {
-        params.push(quote! { #item });
-        param_args.push(quote! { #item });
+        struct_params.push(quote! { #item });
+        trait_params.push(quote! { #item });
     });
     erased_trait.items.iter().for_each(|item| match item {
         TraitItem::Type(TraitItemType { ident, .. }) => {
-            params.push(quote! { #ident });
-            param_args.push(quote! { #ident = #ident });
+            struct_params.push(quote! { #ident });
+            trait_params.push(quote! { #ident = #ident });
         }
         _ => {}
     });
 
-    let param_args = if param_args.is_empty() {
+    let trait_params = if trait_params.is_empty() {
         quote! {}
     } else {
-        quote! { <#param_args> }
+        quote! { <#trait_params> }
     };
 
+    (quote! { <#struct_params> }, trait_params)
+}
+
+fn mk_dyn_struct_impl_item(struct_ident: &Ident, erased_trait: &ItemTrait) -> TokenStream {
+    let erased_trait_ident = &erased_trait.ident;
+    let (_, trait_generics, where_clause) = &erased_trait.generics.split_for_impl();
+
+    let type_ref = quote! {};
+    let const_ref = quote! { <Self as #erased_trait_ident #trait_generics>:: };
+    let items = erased_trait.items.iter().map(|item| {
+        impl_item(item, &type_ref, &const_ref, |ident, args| {
+            let args = match &args[..] {
+                [arg, rest @ ..] => {
+                    if "self" == arg.to_string() {
+                        rest
+                    } else {
+                        &args
+                    }
+                }
+                _ => &args,
+            };
+
+            quote! {
+                unsafe { &*self.ptr }.#ident(#(#args),*).await
+            }
+        })
+    });
+
+    let (struct_params, _) = struct_trait_params(erased_trait);
+
     quote! {
-        struct #struct_ident <#params> {
-            ptr: *mut (dyn #erased_trait_ident #param_args + 'dynosaur),
-            owned: bool,
+        impl #struct_params #erased_trait_ident #trait_generics for #struct_ident #struct_params #where_clause
+        {
+            #(#items)*
         }
     }
 }
