@@ -39,7 +39,7 @@ impl Parse for Attrs {
 ///
 /// The above example causes the trait to be rewritten as:
 ///
-/// ```rust,ignore
+/// ```rust
 /// trait DynMyTrait {
 ///     type Item;
 ///     fn foo(&self) -> ::core::pin::Pin<Box<dyn ::core::future::Future<Output = Self::Item>>>;
