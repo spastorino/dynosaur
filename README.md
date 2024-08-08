@@ -9,7 +9,7 @@ https://rust-lang.github.io/async-fundamentals-initiative/explainer/async_fn_in_
 
 Given a trait like:
 
-```rust
+```rust,ignore
 use dynosaur::dynosaur;
 
 #[dynosaur(DynMyTrait)]
