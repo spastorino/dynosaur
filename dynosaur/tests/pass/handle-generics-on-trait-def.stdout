@@ -11,38 +11,88 @@ trait MyTrait<T> {
     async fn foo(&self, x: &T)
     -> i32;
 }
-trait ErasedMyTrait<T> {
-    const N: i32;
-    type Item;
-    fn foo<'life0, 'life1, 'dynosaur>(&'life0 self, x: &'life1 T)
-    ->
-        ::core::pin::Pin<Box<dyn ::core::future::Future<Output = i32> +
-        'dynosaur>>
-    where
-    'life0: 'dynosaur,
-    'life1: 'dynosaur,
-    Self: 'dynosaur;
-}
-impl<T, DYNOSAUR: MyTrait<T>> ErasedMyTrait<T> for DYNOSAUR {
-    const N: i32 = <Self as MyTrait<T>>::N;
-    type Item = <Self as MyTrait<T>>::Item;
-    fn foo<'life0, 'life1, 'dynosaur>(&'life0 self, x: &'life1 T)
+mod _dynosaur_macro_DynMyTrait {
+    use super::*;
+    trait ErasedMyTrait<T> {
+        const N: i32;
+        type Item;
+        fn foo<'life0, 'life1, 'dynosaur>(&'life0 self, x: &'life1 T)
         ->
             ::core::pin::Pin<Box<dyn ::core::future::Future<Output = i32> +
-            'dynosaur>> where 'life0: 'dynosaur, 'life1: 'dynosaur,
-        Self: 'dynosaur {
-        Box::pin(<Self as MyTrait<T>>::foo(self, x))
+            'dynosaur>>
+        where
+        'life0: 'dynosaur,
+        'life1: 'dynosaur,
+        Self: 'dynosaur;
+    }
+    impl<T, DYNOSAUR: MyTrait<T>> ErasedMyTrait<T> for DYNOSAUR {
+        const N: i32 = <Self as MyTrait<T>>::N;
+        type Item = <Self as MyTrait<T>>::Item;
+        fn foo<'life0, 'life1, 'dynosaur>(&'life0 self, x: &'life1 T)
+            ->
+                ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
+                i32> + 'dynosaur>> where 'life0: 'dynosaur, 'life1: 'dynosaur,
+            Self: 'dynosaur {
+            Box::pin(<Self as MyTrait<T>>::foo(self, x))
+        }
+    }
+    pub struct DynMyTrait<'dynosaur_struct, T, Item> {
+        ptr: *mut (dyn ErasedMyTrait<T, Item = Item> + 'dynosaur_struct),
+        owned: bool,
+    }
+    impl<'dynosaur_struct, T, Item> MyTrait<T> for
+        DynMyTrait<'dynosaur_struct, T, Item> {
+        const N: i32 = <Self as MyTrait<T>>::N;
+        type Item = Item;
+        async fn foo(&self, x: &T) -> i32 {
+            unsafe { &*self.ptr }.foo(x).await
+        }
+    }
+    impl<'dynosaur_struct, T, Item> DynMyTrait<'dynosaur_struct, T, Item> {
+        pub fn new<DYNOSAUR>(value: DYNOSAUR) -> Self where
+            DYNOSAUR: MyTrait<T, Item = Item> + 'dynosaur_struct,
+            T: 'dynosaur_struct, Item: 'dynosaur_struct {
+            let value = Box::new(value);
+            Self {
+                ptr: Box::into_raw(value as
+                            Box<dyn ErasedMyTrait<T, Item = Item> + 'dynosaur_struct>)
+                    as
+                    *mut (dyn ErasedMyTrait<T, Item = Item> + 'dynosaur_struct),
+                owned: true,
+            }
+        }
+        pub fn from_ref<DYNOSAUR>(value: &'dynosaur_struct DYNOSAUR)
+            -> ::dynosaur::macro_lib::Ref<Self> where
+            DYNOSAUR: MyTrait<T, Item = Item> + 'dynosaur_struct,
+            T: 'dynosaur_struct, Item: 'dynosaur_struct {
+            let this =
+                Self {
+                    ptr: value as
+                                &'dynosaur_struct (dyn ErasedMyTrait<T, Item = Item> +
+                                'dynosaur_struct) as
+                            *const (dyn ErasedMyTrait<T, Item = Item> +
+                            'dynosaur_struct) as
+                        *mut (dyn ErasedMyTrait<T, Item = Item> + 'dynosaur_struct),
+                    owned: false,
+                };
+            unsafe { ::dynosaur::macro_lib::Ref::new(this) }
+        }
+        pub fn from_mut<DYNOSAUR>(value: &'dynosaur_struct mut DYNOSAUR)
+            -> ::dynosaur::macro_lib::RefMut<Self> where
+            DYNOSAUR: MyTrait<T, Item = Item> + 'dynosaur_struct,
+            T: 'dynosaur_struct, Item: 'dynosaur_struct {
+            let this =
+                Self {
+                    ptr: value as
+                            &'dynosaur_struct mut (dyn ErasedMyTrait<T, Item = Item> +
+                            'dynosaur_struct) as
+                        *mut (dyn ErasedMyTrait<T, Item = Item> + 'dynosaur_struct),
+                    owned: false,
+                };
+            unsafe { ::dynosaur::macro_lib::RefMut::new(this) }
+        }
     }
 }
-struct DynMyTrait<'dynosaur_struct, T, Item> {
-    ptr: *mut (dyn ErasedMyTrait<T, Item = Item> + 'dynosaur_struct),
-    owned: bool,
-}
-impl<'dynosaur_struct, T, Item> MyTrait<T> for
-    DynMyTrait<'dynosaur_struct, T, Item> {
-    const N: i32 = <Self as MyTrait<T>>::N;
-    type Item = Item;
-    async fn foo(&self, x: &T) -> i32 { unsafe { &*self.ptr }.foo(x).await }
-}
+use _dynosaur_macro_DynMyTrait::DynMyTrait;
 
 fn main() {}

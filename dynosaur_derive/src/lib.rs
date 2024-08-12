@@ -53,19 +53,32 @@ pub fn dynosaur(
     let attrs = parse_macro_input!(attr as Attrs);
     let item_trait = parse_macro_input!(item as ItemTrait);
 
+    let struct_ident = &attrs.ident;
     let expanded_trait_to_dyn = expand_trait_async_fns_to_dyn(&item_trait);
     let erased_trait = mk_erased_trait(&expanded_trait_to_dyn);
     let erased_trait_blanket_impl = mk_erased_trait_blanket_impl(&item_trait.ident, &erased_trait);
     let dyn_struct = mk_dyn_struct(&attrs.ident, &erased_trait);
-    let dyn_struct_impl_item = mk_dyn_struct_impl_item(&attrs.ident, &item_trait);
+    let dyn_struct_impl_item = mk_dyn_struct_impl_item(struct_ident, &item_trait);
+    let struct_inherent_impl =
+        mk_struct_inherent_impl(&attrs.ident, &item_trait.ident, &erased_trait);
+    let dynosaur_mod = Ident::new(
+        &format!("_dynosaur_macro_{}", struct_ident),
+        Span::call_site(),
+    );
 
     quote! {
         #item_trait
 
-        #erased_trait
-        #erased_trait_blanket_impl
-        #dyn_struct
-        #dyn_struct_impl_item
+        mod #dynosaur_mod {
+            use super::*;
+            #erased_trait
+            #erased_trait_blanket_impl
+            #dyn_struct
+            #dyn_struct_impl_item
+            #struct_inherent_impl
+        }
+
+        use #dynosaur_mod::#struct_ident;
     }
     .into()
 }
@@ -156,7 +169,7 @@ fn mk_dyn_struct(struct_ident: &Ident, erased_trait: &ItemTrait) -> TokenStream 
     let (struct_params, trait_params) = struct_trait_params(erased_trait);
 
     quote! {
-        struct #struct_ident #struct_params {
+        pub struct #struct_ident #struct_params {
             ptr: *mut (dyn #erased_trait_ident #trait_params + 'dynosaur_struct),
             owned: bool,
         }
@@ -220,6 +233,82 @@ fn mk_dyn_struct_impl_item(struct_ident: &Ident, erased_trait: &ItemTrait) -> To
         impl #struct_params #erased_trait_ident #trait_generics for #struct_ident #struct_params #where_clause
         {
             #(#items)*
+        }
+    }
+}
+
+fn mk_struct_inherent_impl(
+    struct_ident: &Ident,
+    trait_ident: &Ident,
+    erased_trait: &ItemTrait,
+) -> TokenStream {
+    let (struct_params, trait_params) = struct_trait_params(erased_trait);
+    let erased_trait_ident = &erased_trait.ident;
+
+    let mut where_bounds: Punctuated<_, Token![,]> = Punctuated::new();
+    erased_trait
+        .generics
+        .type_params()
+        .map(|param| &param.ident)
+        .for_each(|param| {
+            where_bounds.push(quote! {
+                #param: 'dynosaur_struct
+            });
+        });
+    erased_trait.items.iter().for_each(|item| match item {
+        TraitItem::Type(TraitItemType { ident, .. }) => {
+            where_bounds.push(quote! {
+                #ident: 'dynosaur_struct,
+            });
+        }
+        _ => {}
+    });
+
+    quote! {
+        impl #struct_params #struct_ident #struct_params
+        {
+            pub fn new<DYNOSAUR>(value: DYNOSAUR) -> Self
+            where
+                DYNOSAUR: #trait_ident #trait_params + 'dynosaur_struct,
+                #where_bounds
+            {
+                let value = Box::new(value);
+                Self {
+                    ptr: Box::into_raw(value
+                             as Box<dyn #erased_trait_ident #trait_params + 'dynosaur_struct>)
+                        as *mut (dyn #erased_trait_ident #trait_params + 'dynosaur_struct),
+                        owned: true,
+                }
+            }
+
+            pub fn from_ref<DYNOSAUR>(value: &'dynosaur_struct DYNOSAUR) -> ::dynosaur::macro_lib::Ref<Self>
+            where
+                DYNOSAUR: #trait_ident #trait_params + 'dynosaur_struct,
+                #where_bounds
+            {
+                let this = Self {
+                    ptr: value
+                        as &'dynosaur_struct (dyn #erased_trait_ident #trait_params + 'dynosaur_struct)
+                        as *const (dyn #erased_trait_ident #trait_params + 'dynosaur_struct)
+                        as *mut (dyn #erased_trait_ident #trait_params + 'dynosaur_struct),
+                        owned: false,
+                };
+                unsafe { ::dynosaur::macro_lib::Ref::new(this) }
+            }
+
+            pub fn from_mut<DYNOSAUR>(value: &'dynosaur_struct mut DYNOSAUR) -> ::dynosaur::macro_lib::RefMut<Self>
+            where
+                DYNOSAUR: #trait_ident #trait_params + 'dynosaur_struct,
+                #where_bounds
+            {
+                let this = Self {
+                    ptr: value
+                        as &'dynosaur_struct mut (dyn #erased_trait_ident #trait_params + 'dynosaur_struct)
+                        as *mut (dyn #erased_trait_ident #trait_params + 'dynosaur_struct),
+                        owned: false,
+                };
+                unsafe { ::dynosaur::macro_lib::RefMut::new(this) }
+            }
         }
     }
 }
