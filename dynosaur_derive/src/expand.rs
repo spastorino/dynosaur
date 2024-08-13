@@ -4,6 +4,7 @@ use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote};
 use std::mem;
 use syn::punctuated::Punctuated;
+use syn::token::RArrow;
 use syn::visit_mut::VisitMut;
 use syn::{
     parse_quote, parse_quote_spanned, FnArg, GenericParam, Generics, Ident, ItemTrait, Lifetime,
@@ -173,13 +174,21 @@ fn expand_async_fn_output(
 ) {
     let sig = &mut trait_item_fn.sig;
 
-    let (ret_arrow, ret) = match &sig.output {
+    let (ret_arrow, ret) = expand_async_ret_ty(&sig.output, ret_fn);
+    trait_item_fn.sig.output = parse_quote! { #ret_arrow #ret };
+}
+
+fn expand_async_ret_ty(
+    ret_ty: &ReturnType,
+    ret_fn: impl Fn(&TokenStream) -> TokenStream,
+) -> (RArrow, TokenStream) {
+    let (ret_arrow, ret) = match ret_ty {
         ReturnType::Default => (Token![->](Span::call_site()), quote!(())),
         ReturnType::Type(arrow, ret) => (*arrow, quote!(#ret)),
     };
 
     let ret = ret_fn(&ret);
-    trait_item_fn.sig.output = parse_quote! { #ret_arrow #ret };
+    (ret_arrow, ret)
 }
 
 fn used_lifetimes<'a>(
