@@ -1,6 +1,6 @@
 use crate::lifetime::{AddLifetimeToImplTrait, CollectLifetimes};
 use crate::receiver::{has_self_in_sig, mut_pat};
-use proc_macro2::Span;
+use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote};
 use std::mem;
 use syn::punctuated::Punctuated;
@@ -39,17 +39,11 @@ pub fn expand_trait_async_fns_to_dyn(item_trait: &ItemTrait) -> ItemTrait {
 
     for trait_item_fn in impl_trait_fns_iter(&mut item_trait.items) {
         expand_async_fn_input(&item_trait.generics, trait_item_fn);
-        let sig = &mut trait_item_fn.sig;
-
-        let (ret_arrow, ret) = match &sig.output {
-            ReturnType::Default => (Token![->](Span::call_site()), quote!(())),
-            ReturnType::Type(arrow, ret) => (*arrow, quote!(#ret)),
-        };
-
-        trait_item_fn.sig.output = parse_quote! {
-            #ret_arrow ::core::pin::Pin<Box<
-            dyn ::core::future::Future<Output = #ret> + 'dynosaur>>
-        };
+        expand_async_fn_output(trait_item_fn, |ret| {
+            parse_quote! {
+                ::core::pin::Pin<Box<dyn ::core::future::Future<Output = #ret> + 'dynosaur>>
+            }
+        });
     }
 
     item_trait
@@ -171,6 +165,21 @@ fn expand_async_fn_input(item_trait_generics: &Generics, trait_item_fn: &mut Tra
             AddLifetimeToImplTrait.visit_type_mut(&mut arg.ty);
         }
     }
+}
+
+fn expand_async_fn_output(
+    trait_item_fn: &mut TraitItemFn,
+    ret_fn: impl Fn(&TokenStream) -> TokenStream,
+) {
+    let sig = &mut trait_item_fn.sig;
+
+    let (ret_arrow, ret) = match &sig.output {
+        ReturnType::Default => (Token![->](Span::call_site()), quote!(())),
+        ReturnType::Type(arrow, ret) => (*arrow, quote!(#ret)),
+    };
+
+    let ret = ret_fn(&ret);
+    trait_item_fn.sig.output = parse_quote! { #ret_arrow #ret };
 }
 
 fn used_lifetimes<'a>(
