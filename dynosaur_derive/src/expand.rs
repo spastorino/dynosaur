@@ -39,6 +39,7 @@ pub fn expand_trait_async_fns_to_dyn(item_trait: &ItemTrait) -> ItemTrait {
     let mut item_trait = item_trait.clone();
 
     for trait_item_fn in impl_trait_fns_iter(&mut item_trait.items) {
+        remove_asyncness_from_fn(trait_item_fn);
         expand_async_fn_input(&item_trait.generics, trait_item_fn);
         expand_async_fn_output(trait_item_fn, |ret| {
             parse_quote! {
@@ -75,10 +76,14 @@ fn impl_trait_fns_iter(
     })
 }
 
-fn expand_async_fn_input(item_trait_generics: &Generics, trait_item_fn: &mut TraitItemFn) {
+fn remove_asyncness_from_fn(trait_item_fn: &mut TraitItemFn) {
     let sig = &mut trait_item_fn.sig;
 
     sig.fn_token.span = sig.asyncness.take().unwrap().span;
+}
+
+fn expand_async_fn_input(item_trait_generics: &Generics, trait_item_fn: &mut TraitItemFn) {
+    let sig = &mut trait_item_fn.sig;
 
     let mut lifetimes = CollectLifetimes::new();
     for arg in &mut sig.inputs {
