@@ -176,16 +176,16 @@ fn mk_dyn_struct(struct_ident: &Ident, erased_trait: &ItemTrait) -> TokenStream 
     }
 }
 
-fn struct_trait_params(erased_trait: &ItemTrait) -> (TokenStream, TokenStream) {
+fn struct_trait_params(item_trait: &ItemTrait) -> (TokenStream, TokenStream) {
     let mut struct_params: Punctuated<_, Token![,]> = Punctuated::new();
     let mut trait_params: Punctuated<_, Token![,]> = Punctuated::new();
 
     struct_params.push(quote! { 'dynosaur_struct });
-    erased_trait.generics.params.iter().for_each(|item| {
+    item_trait.generics.params.iter().for_each(|item| {
         struct_params.push(quote! { #item });
         trait_params.push(quote! { #item });
     });
-    erased_trait.items.iter().for_each(|item| match item {
+    item_trait.items.iter().for_each(|item| match item {
         TraitItem::Type(TraitItemType { ident, .. }) => {
             struct_params.push(quote! { #ident });
             trait_params.push(quote! { #ident = #ident });
@@ -202,13 +202,13 @@ fn struct_trait_params(erased_trait: &ItemTrait) -> (TokenStream, TokenStream) {
     (quote! { <#struct_params> }, trait_params)
 }
 
-fn mk_dyn_struct_impl_item(struct_ident: &Ident, erased_trait: &ItemTrait) -> TokenStream {
-    let erased_trait_ident = &erased_trait.ident;
-    let (_, trait_generics, where_clause) = &erased_trait.generics.split_for_impl();
+fn mk_dyn_struct_impl_item(struct_ident: &Ident, item_trait: &ItemTrait) -> TokenStream {
+    let item_trait_ident = &item_trait.ident;
+    let (_, trait_generics, where_clause) = &item_trait.generics.split_for_impl();
 
     let type_ref = quote! {};
-    let const_ref = quote! { <Self as #erased_trait_ident #trait_generics>:: };
-    let items = erased_trait.items.iter().map(|item| {
+    let const_ref = quote! { <Self as #item_trait_ident #trait_generics>:: };
+    let items = item_trait.items.iter().map(|item| {
         impl_item(item, &type_ref, &const_ref, |ident, args| {
             let args = match &args[..] {
                 [arg, rest @ ..] => {
@@ -227,10 +227,10 @@ fn mk_dyn_struct_impl_item(struct_ident: &Ident, erased_trait: &ItemTrait) -> To
         })
     });
 
-    let (struct_params, _) = struct_trait_params(erased_trait);
+    let (struct_params, _) = struct_trait_params(item_trait);
 
     quote! {
-        impl #struct_params #erased_trait_ident #trait_generics for #struct_ident #struct_params #where_clause
+        impl #struct_params #item_trait_ident #trait_generics for #struct_ident #struct_params #where_clause
         {
             #(#items)*
         }
