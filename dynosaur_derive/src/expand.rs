@@ -59,21 +59,24 @@ fn impl_trait_fns_iter(
     item_trait_items: &mut Vec<TraitItem>,
 ) -> impl Iterator<Item = &mut TraitItemFn> {
     item_trait_items.iter_mut().filter_map(|item| {
-        if let TraitItem::Fn(
-            trait_item_fn @ TraitItemFn {
-                sig:
-                    Signature {
-                        asyncness: Some(..),
-                        ..
-                    },
-                ..
-            },
-        ) = item
+        if let TraitItem::Fn(TraitItemFn {
+            sig:
+                Signature {
+                    asyncness,
+                    output: ReturnType::Type(_, ret),
+                    ..
+                },
+            ..
+        }) = item
         {
-            Some(trait_item_fn)
-        } else {
-            None
+            if asyncness.is_some() || matches!(**ret, Type::ImplTrait(_)) {
+                if let TraitItem::Fn(trait_item_fn) = item {
+                    return Some(trait_item_fn);
+                }
+            }
         }
+
+        None
     })
 }
 
