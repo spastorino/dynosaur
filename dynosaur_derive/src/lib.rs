@@ -93,11 +93,29 @@ fn mk_erased_trait(item_trait: &ItemTrait) -> ItemTrait {
 fn mk_erased_trait_blanket_impl(trait_ident: &Ident, erased_trait: &ItemTrait) -> TokenStream {
     let erased_trait_ident = &erased_trait.ident;
     let (_, trait_generics, _) = &erased_trait.generics.split_for_impl();
-    let ref_ = quote! { <Self as #trait_ident #trait_generics>:: };
     let items = erased_trait.items.iter().map(|item| {
-        impl_item(item, &ref_, &ref_, |ident, args| {
-            quote! { Box::pin(<Self as #trait_ident #trait_generics>::#ident(#(#args),*)) }
-        })
+        impl_item(
+            item,
+            |TraitItemConst {
+                 ident,
+                 generics,
+                 ty,
+                 ..
+             }| {
+                quote! {
+                    const #ident #generics: #ty = <Self as #trait_ident #trait_generics>::#ident;
+                }
+            },
+            |ident, args| {
+                quote! { Box::pin(<Self as #trait_ident #trait_generics>::#ident(#(#args),*)) }
+            },
+            |TraitItemType {
+                ident, generics, .. }| {
+                    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+                    quote! {
+                        type #ident #impl_generics = <Self as #trait_ident #trait_generics>:: #ident #ty_generics #where_clause;
+                    }
+                })
     });
     let blanket_bound: TypeParam = parse_quote!(DYNOSAUR: #trait_ident #trait_generics);
     let blanket = &blanket_bound.ident.clone();
@@ -116,21 +134,12 @@ fn mk_erased_trait_blanket_impl(trait_ident: &Ident, erased_trait: &ItemTrait) -
 
 fn impl_item(
     item: &TraitItem,
-    type_ref: &TokenStream,
-    const_ref: &TokenStream,
+    item_const_fn: impl Fn(&TraitItemConst) -> TokenStream,
     fn_body: impl Fn(&Ident, Vec<TokenStream>) -> TokenStream,
+    item_type_fn: impl Fn(&TraitItemType) -> TokenStream,
 ) -> TokenStream {
     match item {
-        TraitItem::Const(TraitItemConst {
-            ident,
-            generics,
-            ty,
-            ..
-        }) => {
-            quote! {
-                const #ident #generics: #ty = #const_ref #ident;
-            }
-        }
+        TraitItem::Const(trait_item_const) => item_const_fn(trait_item_const),
         TraitItem::Fn(TraitItemFn { sig, .. }) => {
             let args = invoke_fn_args(sig);
             let fn_body = fn_body(&sig.ident, args);
@@ -140,14 +149,7 @@ fn impl_item(
                 }
             }
         }
-        TraitItem::Type(TraitItemType {
-            ident, generics, ..
-        }) => {
-            let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
-            quote! {
-                type #ident #impl_generics = #type_ref #ident #ty_generics #where_clause;
-            }
-        }
+        TraitItem::Type(trait_item_type) => item_type_fn(trait_item_type),
         _ => Error::new_spanned(item, "unsupported item type").into_compile_error(),
     }
 }
@@ -208,25 +210,42 @@ fn mk_dyn_struct_impl_item(struct_ident: &Ident, item_trait: &ItemTrait) -> Toke
     let item_trait_ident = &item_trait.ident;
     let (_, trait_generics, where_clause) = &item_trait.generics.split_for_impl();
 
-    let type_ref = quote! {};
-    let const_ref = quote! { <Self as #item_trait_ident #trait_generics>:: };
     let items = item_trait.items.iter().map(|item| {
-        impl_item(item, &type_ref, &const_ref, |ident, args| {
-            let args = match &args[..] {
-                [arg, rest @ ..] => {
-                    if "self" == arg.to_string() {
-                        rest
-                    } else {
-                        &args
+        impl_item(item,
+            |TraitItemConst {
+                ident,
+                generics,
+                ty,
+                ..
+            }| {
+                quote! {
+                    const #ident #generics: #ty = <Self as #item_trait_ident #trait_generics>::#ident;
+                }
+            },
+            |ident, args| {
+                let args = match &args[..] {
+                    [arg, rest @ ..] => {
+                        if "self" == arg.to_string() {
+                            rest
+                        } else {
+                            &args
+                        }
+                    }
+                    _ => &args,
+                };
+
+                quote! {
+                    unsafe { &*self.ptr }.#ident(#(#args),*).await
+                }
+            },
+            |TraitItemType {
+                ident, generics, .. }| {
+                    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+                    quote! {
+                        type #ident #impl_generics = #ident #ty_generics #where_clause;
                     }
                 }
-                _ => &args,
-            };
-
-            quote! {
-                unsafe { &*self.ptr }.#ident(#(#args),*).await
-            }
-        })
+        )
     });
 
     let (struct_params, _) = struct_trait_params(item_trait);
