@@ -110,7 +110,7 @@ fn mk_erased_trait_blanket_impl(trait_ident: &Ident, erased_trait: &ItemTrait) -
                  sig,
                  ..
              }| {
-                 let args = invoke_fn_args(sig);
+                 let args = invoke_fn_args(sig, true);
                  let ident = &sig.ident;
                  quote! {
                      #sig {
@@ -155,15 +155,23 @@ fn impl_item(
     }
 }
 
-fn invoke_fn_args(sig: &Signature) -> Vec<TokenStream> {
+fn invoke_fn_args(sig: &Signature, include_self: bool) -> Vec<TokenStream> {
     sig.inputs
         .iter()
-        .map(|arg| match arg {
-            FnArg::Receiver(_) => quote! { self },
+        .filter_map(|arg| match arg {
+            FnArg::Receiver(_) => {
+                if include_self {
+                    Some(quote! { self })
+                } else {
+                    None
+                }
+            }
             FnArg::Typed(PatType { pat, .. }) => match &**pat {
-                Pat::Ident(arg) => quote! { #arg },
-                _ => Error::new_spanned(pat, "patterns are not supported in arguments")
-                    .to_compile_error(),
+                Pat::Ident(arg) => Some(quote! { #arg }),
+                _ => Some(
+                    Error::new_spanned(pat, "patterns are not supported in arguments")
+                        .to_compile_error(),
+                ),
             },
         })
         .collect()
@@ -227,17 +235,7 @@ fn mk_dyn_struct_impl_item(struct_ident: &Ident, item_trait: &ItemTrait) -> Toke
                  sig,
                  ..
              }| {
-                 let args = invoke_fn_args(sig);
-                 let args = match &args[..] {
-                     [arg, rest @ ..] => {
-                         if "self" == arg.to_string() {
-                             rest
-                         } else {
-                             &args
-                         }
-                     }
-                     _ => &args,
-                 };
+                 let args = invoke_fn_args(sig, false);
                  let ident = &sig.ident;
                  quote! {
                      #sig {
