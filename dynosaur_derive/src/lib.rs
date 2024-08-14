@@ -5,8 +5,8 @@ use syn::{
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote,
     punctuated::Punctuated,
-    Error, FnArg, GenericParam, Ident, ItemTrait, Pat, PatType, Result, Token, TraitItem,
-    TraitItemConst, TraitItemFn, TraitItemType, TypeParam,
+    Error, FnArg, GenericParam, Ident, ItemTrait, Pat, PatType, Result, Signature, Token,
+    TraitItem, TraitItemConst, TraitItemFn, TraitItemType, TypeParam,
 };
 
 mod expand;
@@ -132,20 +132,8 @@ fn impl_item(
             }
         }
         TraitItem::Fn(TraitItemFn { sig, .. }) => {
-            let ident = &sig.ident;
-            let args: Vec<_> = sig
-                .inputs
-                .iter()
-                .map(|arg| match arg {
-                    FnArg::Receiver(_) => quote! { self },
-                    FnArg::Typed(PatType { pat, .. }) => match &**pat {
-                        Pat::Ident(arg) => quote! { #arg },
-                        _ => Error::new_spanned(pat, "patterns are not supported in arguments")
-                            .to_compile_error(),
-                    },
-                })
-                .collect();
-            let fn_body = fn_body(ident, args);
+            let args = invoke_fn_args(sig);
+            let fn_body = fn_body(&sig.ident, args);
             quote! {
                 #sig {
                     #fn_body
@@ -162,6 +150,20 @@ fn impl_item(
         }
         _ => Error::new_spanned(item, "unsupported item type").into_compile_error(),
     }
+}
+
+fn invoke_fn_args(sig: &Signature) -> Vec<TokenStream> {
+    sig.inputs
+        .iter()
+        .map(|arg| match arg {
+            FnArg::Receiver(_) => quote! { self },
+            FnArg::Typed(PatType { pat, .. }) => match &**pat {
+                Pat::Ident(arg) => quote! { #arg },
+                _ => Error::new_spanned(pat, "patterns are not supported in arguments")
+                    .to_compile_error(),
+            },
+        })
+        .collect()
 }
 
 fn mk_dyn_struct(struct_ident: &Ident, erased_trait: &ItemTrait) -> TokenStream {
