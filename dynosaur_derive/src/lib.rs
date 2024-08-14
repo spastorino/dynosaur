@@ -106,8 +106,17 @@ fn mk_erased_trait_blanket_impl(trait_ident: &Ident, erased_trait: &ItemTrait) -
                     const #ident #generics: #ty = <Self as #trait_ident #trait_generics>::#ident;
                 }
             },
-            |ident, args| {
-                quote! { Box::pin(<Self as #trait_ident #trait_generics>::#ident(#(#args),*)) }
+            |TraitItemFn {
+                 sig,
+                 ..
+             }| {
+                 let args = invoke_fn_args(sig);
+                 let ident = &sig.ident;
+                 quote! {
+                     #sig {
+                         Box::pin(<Self as #trait_ident #trait_generics>::#ident(#(#args),*))
+                     }
+                 }
             },
             |TraitItemType {
                 ident, generics, .. }| {
@@ -135,20 +144,12 @@ fn mk_erased_trait_blanket_impl(trait_ident: &Ident, erased_trait: &ItemTrait) -
 fn impl_item(
     item: &TraitItem,
     item_const_fn: impl Fn(&TraitItemConst) -> TokenStream,
-    fn_body: impl Fn(&Ident, Vec<TokenStream>) -> TokenStream,
+    item_fn_fn: impl Fn(&TraitItemFn) -> TokenStream,
     item_type_fn: impl Fn(&TraitItemType) -> TokenStream,
 ) -> TokenStream {
     match item {
         TraitItem::Const(trait_item_const) => item_const_fn(trait_item_const),
-        TraitItem::Fn(TraitItemFn { sig, .. }) => {
-            let args = invoke_fn_args(sig);
-            let fn_body = fn_body(&sig.ident, args);
-            quote! {
-                #sig {
-                    #fn_body
-                }
-            }
-        }
+        TraitItem::Fn(trait_item_fn) => item_fn_fn(trait_item_fn),
         TraitItem::Type(trait_item_type) => item_type_fn(trait_item_type),
         _ => Error::new_spanned(item, "unsupported item type").into_compile_error(),
     }
@@ -222,21 +223,27 @@ fn mk_dyn_struct_impl_item(struct_ident: &Ident, item_trait: &ItemTrait) -> Toke
                     const #ident #generics: #ty = <Self as #item_trait_ident #trait_generics>::#ident;
                 }
             },
-            |ident, args| {
-                let args = match &args[..] {
-                    [arg, rest @ ..] => {
-                        if "self" == arg.to_string() {
-                            rest
-                        } else {
-                            &args
-                        }
-                    }
-                    _ => &args,
-                };
-
-                quote! {
-                    unsafe { &*self.ptr }.#ident(#(#args),*).await
-                }
+            |TraitItemFn {
+                 sig,
+                 ..
+             }| {
+                 let args = invoke_fn_args(sig);
+                 let args = match &args[..] {
+                     [arg, rest @ ..] => {
+                         if "self" == arg.to_string() {
+                             rest
+                         } else {
+                             &args
+                         }
+                     }
+                     _ => &args,
+                 };
+                 let ident = &sig.ident;
+                 quote! {
+                     #sig {
+                         unsafe { &*self.ptr }.#ident(#(#args),*).await
+                     }
+                 }
             },
             |TraitItemType {
                 ident, generics, .. }| {
