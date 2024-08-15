@@ -5,8 +5,8 @@ use syn::{
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote,
     punctuated::Punctuated,
-    Error, FnArg, GenericParam, Ident, ItemTrait, Pat, PatType, Result, Token, TraitItem,
-    TraitItemConst, TraitItemFn, TraitItemType, TypeParam,
+    Error, FnArg, GenericParam, Ident, ItemTrait, Pat, PatType, Result, Signature, Token,
+    TraitItem, TraitItemConst, TraitItemFn, TraitItemType, TypeParam,
 };
 
 mod expand;
@@ -93,11 +93,38 @@ fn mk_erased_trait(item_trait: &ItemTrait) -> ItemTrait {
 fn mk_erased_trait_blanket_impl(trait_ident: &Ident, erased_trait: &ItemTrait) -> TokenStream {
     let erased_trait_ident = &erased_trait.ident;
     let (_, trait_generics, _) = &erased_trait.generics.split_for_impl();
-    let ref_ = quote! { <Self as #trait_ident #trait_generics>:: };
     let items = erased_trait.items.iter().map(|item| {
-        impl_item(item, &ref_, &ref_, |ident, args| {
-            quote! { Box::pin(<Self as #trait_ident #trait_generics>::#ident(#(#args),*)) }
-        })
+        impl_item(
+            item,
+            |TraitItemConst {
+                 ident,
+                 generics,
+                 ty,
+                 ..
+             }| {
+                quote! {
+                    const #ident #generics: #ty = <Self as #trait_ident #trait_generics>::#ident;
+                }
+            },
+            |TraitItemFn {
+                 sig,
+                 ..
+             }| {
+                 let args = invoke_fn_args(sig, true);
+                 let ident = &sig.ident;
+                 quote! {
+                     #sig {
+                         Box::pin(<Self as #trait_ident #trait_generics>::#ident(#(#args),*))
+                     }
+                 }
+            },
+            |TraitItemType {
+                ident, generics, .. }| {
+                    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+                    quote! {
+                        type #ident #impl_generics = <Self as #trait_ident #trait_generics>:: #ident #ty_generics #where_clause;
+                    }
+                })
     });
     let blanket_bound: TypeParam = parse_quote!(DYNOSAUR: #trait_ident #trait_generics);
     let blanket = &blanket_bound.ident.clone();
@@ -116,52 +143,38 @@ fn mk_erased_trait_blanket_impl(trait_ident: &Ident, erased_trait: &ItemTrait) -
 
 fn impl_item(
     item: &TraitItem,
-    type_ref: &TokenStream,
-    const_ref: &TokenStream,
-    fn_body: impl Fn(&Ident, Vec<TokenStream>) -> TokenStream,
+    item_const_fn: impl Fn(&TraitItemConst) -> TokenStream,
+    item_fn_fn: impl Fn(&TraitItemFn) -> TokenStream,
+    item_type_fn: impl Fn(&TraitItemType) -> TokenStream,
 ) -> TokenStream {
     match item {
-        TraitItem::Const(TraitItemConst {
-            ident,
-            generics,
-            ty,
-            ..
-        }) => {
-            quote! {
-                const #ident #generics: #ty = #const_ref #ident;
-            }
-        }
-        TraitItem::Fn(TraitItemFn { sig, .. }) => {
-            let ident = &sig.ident;
-            let args: Vec<_> = sig
-                .inputs
-                .iter()
-                .map(|arg| match arg {
-                    FnArg::Receiver(_) => quote! { self },
-                    FnArg::Typed(PatType { pat, .. }) => match &**pat {
-                        Pat::Ident(arg) => quote! { #arg },
-                        _ => Error::new_spanned(pat, "patterns are not supported in arguments")
-                            .to_compile_error(),
-                    },
-                })
-                .collect();
-            let fn_body = fn_body(ident, args);
-            quote! {
-                #sig {
-                    #fn_body
-                }
-            }
-        }
-        TraitItem::Type(TraitItemType {
-            ident, generics, ..
-        }) => {
-            let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
-            quote! {
-                type #ident #impl_generics = #type_ref #ident #ty_generics #where_clause;
-            }
-        }
+        TraitItem::Const(trait_item_const) => item_const_fn(trait_item_const),
+        TraitItem::Fn(trait_item_fn) => item_fn_fn(trait_item_fn),
+        TraitItem::Type(trait_item_type) => item_type_fn(trait_item_type),
         _ => Error::new_spanned(item, "unsupported item type").into_compile_error(),
     }
+}
+
+fn invoke_fn_args(sig: &Signature, include_self: bool) -> Vec<TokenStream> {
+    sig.inputs
+        .iter()
+        .filter_map(|arg| match arg {
+            FnArg::Receiver(_) => {
+                if include_self {
+                    Some(quote! { self })
+                } else {
+                    None
+                }
+            }
+            FnArg::Typed(PatType { pat, .. }) => match &**pat {
+                Pat::Ident(arg) => Some(quote! { #arg }),
+                _ => Some(
+                    Error::new_spanned(pat, "patterns are not supported in arguments")
+                        .to_compile_error(),
+                ),
+            },
+        })
+        .collect()
 }
 
 fn mk_dyn_struct(struct_ident: &Ident, erased_trait: &ItemTrait) -> TokenStream {
@@ -176,16 +189,16 @@ fn mk_dyn_struct(struct_ident: &Ident, erased_trait: &ItemTrait) -> TokenStream 
     }
 }
 
-fn struct_trait_params(erased_trait: &ItemTrait) -> (TokenStream, TokenStream) {
+fn struct_trait_params(item_trait: &ItemTrait) -> (TokenStream, TokenStream) {
     let mut struct_params: Punctuated<_, Token![,]> = Punctuated::new();
     let mut trait_params: Punctuated<_, Token![,]> = Punctuated::new();
 
     struct_params.push(quote! { 'dynosaur_struct });
-    erased_trait.generics.params.iter().for_each(|item| {
+    item_trait.generics.params.iter().for_each(|item| {
         struct_params.push(quote! { #item });
         trait_params.push(quote! { #item });
     });
-    erased_trait.items.iter().for_each(|item| match item {
+    item_trait.items.iter().for_each(|item| match item {
         TraitItem::Type(TraitItemType { ident, .. }) => {
             struct_params.push(quote! { #ident });
             trait_params.push(quote! { #ident = #ident });
@@ -202,35 +215,48 @@ fn struct_trait_params(erased_trait: &ItemTrait) -> (TokenStream, TokenStream) {
     (quote! { <#struct_params> }, trait_params)
 }
 
-fn mk_dyn_struct_impl_item(struct_ident: &Ident, erased_trait: &ItemTrait) -> TokenStream {
-    let erased_trait_ident = &erased_trait.ident;
-    let (_, trait_generics, where_clause) = &erased_trait.generics.split_for_impl();
+fn mk_dyn_struct_impl_item(struct_ident: &Ident, item_trait: &ItemTrait) -> TokenStream {
+    let item_trait_ident = &item_trait.ident;
+    let (_, trait_generics, where_clause) = &item_trait.generics.split_for_impl();
 
-    let type_ref = quote! {};
-    let const_ref = quote! { <Self as #erased_trait_ident #trait_generics>:: };
-    let items = erased_trait.items.iter().map(|item| {
-        impl_item(item, &type_ref, &const_ref, |ident, args| {
-            let args = match &args[..] {
-                [arg, rest @ ..] => {
-                    if "self" == arg.to_string() {
-                        rest
-                    } else {
-                        &args
+    let items = item_trait.items.iter().map(|item| {
+        impl_item(item,
+            |TraitItemConst {
+                ident,
+                generics,
+                ty,
+                ..
+            }| {
+                quote! {
+                    const #ident #generics: #ty = <Self as #item_trait_ident #trait_generics>::#ident;
+                }
+            },
+            |TraitItemFn {
+                 sig,
+                 ..
+             }| {
+                 let args = invoke_fn_args(sig, false);
+                 let ident = &sig.ident;
+                 quote! {
+                     #sig {
+                         unsafe { &*self.ptr }.#ident(#(#args),*).await
+                     }
+                 }
+            },
+            |TraitItemType {
+                ident, generics, .. }| {
+                    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+                    quote! {
+                        type #ident #impl_generics = #ident #ty_generics #where_clause;
                     }
                 }
-                _ => &args,
-            };
-
-            quote! {
-                unsafe { &*self.ptr }.#ident(#(#args),*).await
-            }
-        })
+        )
     });
 
-    let (struct_params, _) = struct_trait_params(erased_trait);
+    let (struct_params, _) = struct_trait_params(item_trait);
 
     quote! {
-        impl #struct_params #erased_trait_ident #trait_generics for #struct_ident #struct_params #where_clause
+        impl #struct_params #item_trait_ident #trait_generics for #struct_ident #struct_params #where_clause
         {
             #(#items)*
         }
