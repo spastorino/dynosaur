@@ -1,4 +1,4 @@
-use crate::expand::expand_trait_async_fns_to_dyn;
+use expand::{expand_async_ret_ty, expand_trait_async_fns_to_dyn, remove_asyncness_from_fn};
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{
@@ -235,11 +235,19 @@ fn mk_dyn_struct_impl_item(struct_ident: &Ident, item_trait: &ItemTrait) -> Toke
                  sig,
                  ..
              }| {
-                 let args = invoke_fn_args(sig, false);
                  let ident = &sig.ident;
+                 let mut sig = sig.clone();
+                 let args = invoke_fn_args(&sig, false);
+
+                 let (ret_arrow, ret) = expand_async_ret_ty(&sig);
+                 sig.output = parse_quote! { #ret_arrow impl #ret  };
+                 remove_asyncness_from_fn(&mut sig);
+
                  quote! {
                      #sig {
-                         unsafe { &*self.ptr }.#ident(#(#args),*).await
+                         let fut: ::core::pin::Pin<Box<dyn #ret + '_>> = unsafe { &*self.ptr }.#ident(#(#args),*);
+                         let fut: ::core::pin::Pin<Box<dyn #ret + 'static>> = unsafe { ::core::mem::transmute(fut) };
+                         fut
                      }
                  }
             },

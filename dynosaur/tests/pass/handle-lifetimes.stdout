@@ -41,8 +41,14 @@ mod _dynosaur_macro_DynMyTrait {
     impl<'dynosaur_struct, Item> MyTrait for
         DynMyTrait<'dynosaur_struct, Item> {
         type Item = Item;
-        async fn foo<T>(&self, x: &T) -> i32 {
-            unsafe { &*self.ptr }.foo(x).await
+        fn foo<T>(&self, x: &T) -> impl ::core::future::Future<Output = i32> {
+            let fut:
+                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
+                    i32> + '_>> = unsafe { &*self.ptr }.foo(x);
+            let fut:
+                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
+                    i32> + 'static>> = unsafe { ::core::mem::transmute(fut) };
+            fut
         }
     }
     impl<'dynosaur_struct, Item> DynMyTrait<'dynosaur_struct, Item> {
