@@ -51,25 +51,32 @@ pub fn expand_trait_async_fns_to_dyn(item_trait: &ItemTrait) -> ItemTrait {
 fn impl_trait_fns_iter(
     item_trait_items: &mut Vec<TraitItem>,
 ) -> impl Iterator<Item = &mut TraitItemFn> {
-    item_trait_items.iter_mut().filter_map(|item| {
-        if let TraitItem::Fn(TraitItemFn {
+    item_trait_items.iter_mut().filter_map(|item| match item {
+        TraitItem::Fn(
+            trait_item_fn @ TraitItemFn {
+                sig: Signature {
+                    asyncness: Some(_), ..
+                },
+                ..
+            },
+        ) => Some(trait_item_fn),
+        TraitItem::Fn(TraitItemFn {
             sig:
                 Signature {
-                    asyncness,
+                    asyncness: None,
                     output: ReturnType::Type(_, ret),
                     ..
                 },
             ..
-        }) = item
-        {
-            if asyncness.is_some() || matches!(**ret, Type::ImplTrait(_)) {
+        }) => {
+            if matches!(**ret, Type::ImplTrait(_)) {
                 if let TraitItem::Fn(trait_item_fn) = item {
                     return Some(trait_item_fn);
                 }
             }
+            None
         }
-
-        None
+        _ => None,
     })
 }
 
