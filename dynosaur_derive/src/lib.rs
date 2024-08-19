@@ -5,7 +5,7 @@ use syn::{
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote,
     punctuated::Punctuated,
-    Error, FnArg, GenericParam, Ident, ItemTrait, Pat, PatType, Result, Signature, Token,
+    Error, FnArg, GenericParam, Ident, ItemTrait, Pat, PatType, Receiver, Result, Signature, Token,
     TraitItem, TraitItemConst, TraitItemFn, TraitItemType, TypeParam,
 };
 
@@ -110,7 +110,10 @@ fn mk_erased_trait_blanket_impl(trait_ident: &Ident, erased_trait: &ItemTrait) -
                  sig,
                  ..
              }| {
-                 let args = invoke_fn_args(sig, true);
+                 let (receiver, mut args) = invoke_fn_args(sig);
+                 if receiver.is_some() {
+                     args.insert(0, quote!(self));
+                 }
                  let ident = &sig.ident;
                  quote! {
                      #sig {
@@ -155,26 +158,48 @@ fn impl_item(
     }
 }
 
-fn invoke_fn_args(sig: &Signature, include_self: bool) -> Vec<TokenStream> {
-    sig.inputs
-        .iter()
-        .filter_map(|arg| match arg {
-            FnArg::Receiver(_) => {
-                if include_self {
-                    Some(quote! { self })
-                } else {
-                    None
-                }
+fn invoke_fn_args(sig: &Signature) -> (Option<&Receiver>, Vec<TokenStream>) {
+    let mut receiver = None;
+    let mut args = Vec::new();
+
+    for arg in &sig.inputs {
+        match arg {
+            FnArg::Receiver(fn_arg_receiver) => {
+                receiver = Some(fn_arg_receiver);
             }
             FnArg::Typed(PatType { pat, .. }) => match &**pat {
-                Pat::Ident(arg) => Some(quote! { #arg }),
-                _ => Some(
-                    Error::new_spanned(pat, "patterns are not supported in arguments")
-                        .to_compile_error(),
-                ),
+                Pat::Ident(arg) => {
+                    args.push(quote! { #arg });
+                }
+                _ => {
+                    args.push(
+                        Error::new_spanned(pat, "patterns are not supported in arguments")
+                            .to_compile_error(),
+                    );
+                }
             },
-        })
-        .collect()
+        }
+    }
+
+    (receiver, args)
+}
+
+fn receiver_ref_token(receiver: &Receiver) -> TokenStream {
+    match receiver {
+        Receiver {
+            reference: None, ..
+        } => quote!(),
+        Receiver {
+            reference: Some(..),
+            mutability: None,
+            ..
+        } => quote!(&),
+        Receiver {
+            reference: Some(..),
+            mutability: Some(..),
+            ..
+        } => quote!(&mut),
+    }
 }
 
 fn mk_dyn_struct(struct_ident: &Ident, erased_trait: &ItemTrait) -> TokenStream {
@@ -237,7 +262,12 @@ fn mk_dyn_struct_impl_item(struct_ident: &Ident, item_trait: &ItemTrait) -> Toke
              }| {
                  let ident = &sig.ident;
                  let mut sig = sig.clone();
-                 let args = invoke_fn_args(&sig, false);
+                 let (receiver, args) = invoke_fn_args(&sig);
+                 let ref_ = if let Some(receiver) = receiver {
+                     receiver_ref_token(receiver)
+                 } else {
+                     Error::new_spanned(item, "receiver required").into_compile_error()
+                 };
 
                  let (ret_arrow, ret) = expand_async_ret_ty(&sig);
                  sig.output = parse_quote! { #ret_arrow impl #ret  };
@@ -245,7 +275,7 @@ fn mk_dyn_struct_impl_item(struct_ident: &Ident, item_trait: &ItemTrait) -> Toke
 
                  quote! {
                      #sig {
-                         let fut: ::core::pin::Pin<Box<dyn #ret + '_>> = unsafe { &*self.ptr }.#ident(#(#args),*);
+                         let fut: ::core::pin::Pin<Box<dyn #ret + '_>> = unsafe { #ref_ *self.ptr }.#ident(#(#args),*);
                          let fut: ::core::pin::Pin<Box<dyn #ret + 'static>> = unsafe { ::core::mem::transmute(fut) };
                          fut
                      }
