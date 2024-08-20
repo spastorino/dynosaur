@@ -1,0 +1,85 @@
+#![feature(prelude_import)]
+#[prelude_import]
+use std::prelude::rust_2021::*;
+#[macro_use]
+extern crate std;
+use dynosaur::dynosaur;
+
+trait MyTrait {
+    async fn foo(&mut self);
+}
+mod _dynosaur_macro_DynMyTrait {
+    use super::*;
+    trait ErasedMyTrait {
+        fn foo<'life0, 'dynosaur>(&'life0 mut self)
+        ->
+            ::core::pin::Pin<Box<dyn ::core::future::Future<Output = ()> +
+            'dynosaur>>
+        where
+        'life0: 'dynosaur,
+        Self: 'dynosaur;
+    }
+    impl<DYNOSAUR: MyTrait> ErasedMyTrait for DYNOSAUR {
+        fn foo<'life0, 'dynosaur>(&'life0 mut self)
+            ->
+                ::core::pin::Pin<Box<dyn ::core::future::Future<Output = ()> +
+                'dynosaur>> where 'life0: 'dynosaur, Self: 'dynosaur {
+            Box::pin(<Self as MyTrait>::foo(self))
+        }
+    }
+    pub struct DynMyTrait<'dynosaur_struct> {
+        ptr: *mut (dyn ErasedMyTrait + 'dynosaur_struct),
+        owned: bool,
+    }
+    impl<'dynosaur_struct> MyTrait for DynMyTrait<'dynosaur_struct> {
+        fn foo(&mut self) -> impl ::core::future::Future<Output = ()> {
+            let fut:
+                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
+                    ()> + '_>> = unsafe { &mut *self.ptr }.foo();
+            let fut:
+                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
+                    ()> + 'static>> = unsafe { ::core::mem::transmute(fut) };
+            fut
+        }
+    }
+    impl<'dynosaur_struct> DynMyTrait<'dynosaur_struct> {
+        pub fn new<DYNOSAUR>(value: DYNOSAUR) -> Self where
+            DYNOSAUR: MyTrait + 'dynosaur_struct {
+            let value = Box::new(value);
+            Self {
+                ptr: Box::into_raw(value as
+                            Box<dyn ErasedMyTrait + 'dynosaur_struct>) as
+                    *mut (dyn ErasedMyTrait + 'dynosaur_struct),
+                owned: true,
+            }
+        }
+        pub fn from_ref<DYNOSAUR>(value: &'dynosaur_struct DYNOSAUR)
+            -> ::dynosaur::macro_lib::Ref<Self> where DYNOSAUR: MyTrait +
+            'dynosaur_struct {
+            let this =
+                Self {
+                    ptr: value as
+                                &'dynosaur_struct (dyn ErasedMyTrait + 'dynosaur_struct) as
+                            *const (dyn ErasedMyTrait + 'dynosaur_struct) as
+                        *mut (dyn ErasedMyTrait + 'dynosaur_struct),
+                    owned: false,
+                };
+            unsafe { ::dynosaur::macro_lib::Ref::new(this) }
+        }
+        pub fn from_mut<DYNOSAUR>(value: &'dynosaur_struct mut DYNOSAUR)
+            -> ::dynosaur::macro_lib::RefMut<Self> where DYNOSAUR: MyTrait +
+            'dynosaur_struct {
+            let this =
+                Self {
+                    ptr: value as
+                            &'dynosaur_struct mut (dyn ErasedMyTrait + 'dynosaur_struct)
+                        as *mut (dyn ErasedMyTrait + 'dynosaur_struct),
+                    owned: false,
+                };
+            unsafe { ::dynosaur::macro_lib::RefMut::new(this) }
+        }
+    }
+}
+use _dynosaur_macro_DynMyTrait::DynMyTrait;
+
+fn main() {}
