@@ -189,9 +189,9 @@ fn mk_dyn_struct(struct_ident: &Ident, erased_trait: &ItemTrait) -> TokenStream 
     let (struct_params, trait_params) = struct_trait_params(erased_trait);
 
     quote! {
+        #[repr(transparent)]
         pub struct #struct_ident #struct_params {
-            ptr: *mut (dyn #erased_trait_ident #trait_params + 'dynosaur_struct),
-            owned: bool,
+            ptr: dyn #erased_trait_ident #trait_params + 'dynosaur_struct
         }
     }
 }
@@ -251,7 +251,7 @@ fn mk_dyn_struct_impl_item(struct_ident: &Ident, item_trait: &ItemTrait) -> Toke
 
                  quote! {
                      #sig {
-                         let fut: ::core::pin::Pin<Box<dyn #ret + '_>> = unsafe { &*self.ptr }.#ident(#(#args),*);
+                         let fut: ::core::pin::Pin<Box<dyn #ret + '_>> = self.ptr.#ident(#(#args),*);
                          let fut: ::core::pin::Pin<Box<dyn #ret + 'static>> = unsafe { ::core::mem::transmute(fut) };
                          fut
                      }
@@ -307,47 +307,23 @@ fn mk_struct_inherent_impl(
     quote! {
         impl #struct_params #struct_ident #struct_params
         {
-            pub fn new<DYNOSAUR>(value: DYNOSAUR) -> Self
-            where
-                DYNOSAUR: #trait_ident #trait_params + 'dynosaur_struct,
-                #where_bounds
-            {
-                let value = Box::new(value);
-                Self {
-                    ptr: Box::into_raw(value
-                             as Box<dyn #erased_trait_ident #trait_params + 'dynosaur_struct>)
-                        as *mut (dyn #erased_trait_ident #trait_params + 'dynosaur_struct),
-                        owned: true,
-                }
+            pub fn new(value: Box<impl #trait_ident #trait_params + 'dynosaur_struct>) -> Box<#struct_ident #struct_params> {
+                let value: Box<dyn #erased_trait_ident #trait_params + 'dynosaur_struct> = value;
+                unsafe { ::core::mem::transmute(value) }
             }
 
-            pub fn from_ref<DYNOSAUR>(value: &'dynosaur_struct DYNOSAUR) -> ::dynosaur::macro_lib::Ref<Self>
-            where
-                DYNOSAUR: #trait_ident #trait_params + 'dynosaur_struct,
-                #where_bounds
-            {
-                let this = Self {
-                    ptr: value
-                        as &'dynosaur_struct (dyn #erased_trait_ident #trait_params + 'dynosaur_struct)
-                        as *const (dyn #erased_trait_ident #trait_params + 'dynosaur_struct)
-                        as *mut (dyn #erased_trait_ident #trait_params + 'dynosaur_struct),
-                        owned: false,
-                };
-                unsafe { ::dynosaur::macro_lib::Ref::new(this) }
+            pub fn boxed(value: impl #trait_ident #trait_params + 'dynosaur_struct) -> Box<#struct_ident #struct_params> {
+                Self::new(Box::new(value))
             }
 
-            pub fn from_mut<DYNOSAUR>(value: &'dynosaur_struct mut DYNOSAUR) -> ::dynosaur::macro_lib::RefMut<Self>
-            where
-                DYNOSAUR: #trait_ident #trait_params + 'dynosaur_struct,
-                #where_bounds
-            {
-                let this = Self {
-                    ptr: value
-                        as &'dynosaur_struct mut (dyn #erased_trait_ident #trait_params + 'dynosaur_struct)
-                        as *mut (dyn #erased_trait_ident #trait_params + 'dynosaur_struct),
-                        owned: false,
-                };
-                unsafe { ::dynosaur::macro_lib::RefMut::new(this) }
+            pub fn from_ref(value: &(impl #trait_ident #trait_params + 'dynosaur_struct)) -> & #struct_ident #struct_params {
+                let value: &(dyn #erased_trait_ident #trait_params + 'dynosaur_struct) = &*value;
+                unsafe { ::core::mem::transmute(value) }
+            }
+
+            pub fn from_mut(value: &mut (impl #trait_ident #trait_params + 'dynosaur_struct)) -> &mut #struct_ident #struct_params {
+                let value: &mut (dyn #erased_trait_ident #trait_params + 'dynosaur_struct) = &mut *value;
+                unsafe { ::core::mem::transmute(value) }
             }
         }
     }
