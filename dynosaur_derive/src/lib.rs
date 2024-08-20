@@ -184,24 +184,6 @@ fn invoke_fn_args(sig: &Signature) -> (Option<&Receiver>, Vec<TokenStream>) {
     (receiver, args)
 }
 
-fn receiver_ref_token(receiver: &Receiver) -> TokenStream {
-    match receiver {
-        Receiver {
-            reference: None, ..
-        } => quote!(),
-        Receiver {
-            reference: Some(..),
-            mutability: None,
-            ..
-        } => quote!(&),
-        Receiver {
-            reference: Some(..),
-            mutability: Some(..),
-            ..
-        } => quote!(&mut),
-    }
-}
-
 fn mk_dyn_struct(struct_ident: &Ident, erased_trait: &ItemTrait) -> TokenStream {
     let erased_trait_ident = &erased_trait.ident;
     let (struct_params, trait_params) = struct_trait_params(erased_trait);
@@ -262,20 +244,14 @@ fn mk_dyn_struct_impl_item(struct_ident: &Ident, item_trait: &ItemTrait) -> Toke
              }| {
                  let ident = &sig.ident;
                  let mut sig = sig.clone();
-                 let (receiver, args) = invoke_fn_args(&sig);
-                 let ref_ = if let Some(receiver) = receiver {
-                     receiver_ref_token(receiver)
-                 } else {
-                     Error::new_spanned(item, "receiver required").into_compile_error()
-                 };
-
+                 let (_, args) = invoke_fn_args(&sig);
                  let (ret_arrow, ret) = expand_async_ret_ty(&sig);
                  sig.output = parse_quote! { #ret_arrow impl #ret  };
                  remove_asyncness_from_fn(&mut sig);
 
                  quote! {
                      #sig {
-                         let fut: ::core::pin::Pin<Box<dyn #ret + '_>> = unsafe { #ref_ *self.ptr }.#ident(#(#args),*);
+                         let fut: ::core::pin::Pin<Box<dyn #ret + '_>> = unsafe { &*self.ptr }.#ident(#(#args),*);
                          let fut: ::core::pin::Pin<Box<dyn #ret + 'static>> = unsafe { ::core::mem::transmute(fut) };
                          fut
                      }
