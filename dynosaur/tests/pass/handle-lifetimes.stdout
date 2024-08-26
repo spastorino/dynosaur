@@ -34,9 +34,9 @@ mod _dynosaur_macro_DynMyTrait {
             Box::pin(<Self as MyTrait>::foo(self, x))
         }
     }
+    #[repr(transparent)]
     pub struct DynMyTrait<'dynosaur_struct, Item> {
-        ptr: *mut (dyn ErasedMyTrait<Item = Item> + 'dynosaur_struct),
-        owned: bool,
+        ptr: dyn ErasedMyTrait<Item = Item> + 'dynosaur_struct,
     }
     impl<'dynosaur_struct, Item> MyTrait for
         DynMyTrait<'dynosaur_struct, Item> {
@@ -44,7 +44,7 @@ mod _dynosaur_macro_DynMyTrait {
         fn foo<T>(&self, x: &T) -> impl ::core::future::Future<Output = i32> {
             let fut:
                     ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
-                    i32> + '_>> = unsafe { &*self.ptr }.foo(x);
+                    i32> + '_>> = self.ptr.foo(x);
             let fut:
                     ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
                     i32> + 'static>> = unsafe { ::core::mem::transmute(fut) };
@@ -52,45 +52,31 @@ mod _dynosaur_macro_DynMyTrait {
         }
     }
     impl<'dynosaur_struct, Item> DynMyTrait<'dynosaur_struct, Item> {
-        pub fn new<DYNOSAUR>(value: DYNOSAUR) -> Self where
-            DYNOSAUR: MyTrait<Item = Item> + 'dynosaur_struct,
-            Item: 'dynosaur_struct {
-            let value = Box::new(value);
-            Self {
-                ptr: Box::into_raw(value as
-                            Box<dyn ErasedMyTrait<Item = Item> + 'dynosaur_struct>) as
-                    *mut (dyn ErasedMyTrait<Item = Item> + 'dynosaur_struct),
-                owned: true,
-            }
+        pub fn new(value: Box<impl MyTrait<Item = Item> + 'dynosaur_struct>)
+            -> Box<DynMyTrait<'dynosaur_struct, Item>> {
+            let value:
+                    Box<dyn ErasedMyTrait<Item = Item> + 'dynosaur_struct> =
+                value;
+            unsafe { ::core::mem::transmute(value) }
         }
-        pub fn from_ref<DYNOSAUR>(value: &'dynosaur_struct DYNOSAUR)
-            -> ::dynosaur::macro_lib::Ref<Self> where
-            DYNOSAUR: MyTrait<Item = Item> + 'dynosaur_struct,
-            Item: 'dynosaur_struct {
-            let this =
-                Self {
-                    ptr: value as
-                                &'dynosaur_struct (dyn ErasedMyTrait<Item = Item> +
-                                'dynosaur_struct) as
-                            *const (dyn ErasedMyTrait<Item = Item> + 'dynosaur_struct)
-                        as *mut (dyn ErasedMyTrait<Item = Item> + 'dynosaur_struct),
-                    owned: false,
-                };
-            unsafe { ::dynosaur::macro_lib::Ref::new(this) }
+        pub fn boxed(value: impl MyTrait<Item = Item> + 'dynosaur_struct)
+            -> Box<DynMyTrait<'dynosaur_struct, Item>> {
+            Self::new(Box::new(value))
         }
-        pub fn from_mut<DYNOSAUR>(value: &'dynosaur_struct mut DYNOSAUR)
-            -> ::dynosaur::macro_lib::RefMut<Self> where
-            DYNOSAUR: MyTrait<Item = Item> + 'dynosaur_struct,
-            Item: 'dynosaur_struct {
-            let this =
-                Self {
-                    ptr: value as
-                            &'dynosaur_struct mut (dyn ErasedMyTrait<Item = Item> +
-                            'dynosaur_struct) as
-                        *mut (dyn ErasedMyTrait<Item = Item> + 'dynosaur_struct),
-                    owned: false,
-                };
-            unsafe { ::dynosaur::macro_lib::RefMut::new(this) }
+        pub fn from_ref(value:
+                &(impl MyTrait<Item = Item> + 'dynosaur_struct))
+            -> &DynMyTrait<'dynosaur_struct, Item> {
+            let value: &(dyn ErasedMyTrait<Item = Item> + 'dynosaur_struct) =
+                &*value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub fn from_mut(value:
+                &mut (impl MyTrait<Item = Item> + 'dynosaur_struct))
+            -> &mut DynMyTrait<'dynosaur_struct, Item> {
+            let value:
+                    &mut (dyn ErasedMyTrait<Item = Item> + 'dynosaur_struct) =
+                &mut *value;
+            unsafe { ::core::mem::transmute(value) }
         }
     }
 }
