@@ -1,7 +1,11 @@
 [package]
 name = "dynosaur"
 version = "0.1.0"
-authors = ["Santiago Pastorino <spastorino@gmail.com>", "Tyler Mandry <tmandry@google.com>", "Niko Matsakis <rust@nikomatsakis.com>"]
+authors = [
+    "Santiago Pastorino <spastorino@gmail.com>",
+    "Tyler Mandry <tmandry@google.com>",
+    "Niko Matsakis <rust@nikomatsakis.com>",
+]
 categories = ["asynchronous", "no-std"]
 keywords = ["async", "trait", "impl"]
 description = "Dynamic dispatch for return position impl traits and async in Rust"
@@ -15,7 +19,11 @@ rust-version = "1.75"
 dynosaur_derive = { version = "0.1", path = "../dynosaur_derive" }
 
 [dev-dependencies]
+tokio = { workspace = true }
 ui_test = "0.24"
+
+[[example]]
+name = "next"
 
 [[test]]
 name = "ui"

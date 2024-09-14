@@ -25,26 +25,78 @@ impl Parse for Attrs {
     }
 }
 
-/// Given a trait like
+/// Create a struct that takes the place of `dyn Trait` for a trait, supporting
+/// both `async` and `-> impl Trait` methods.
 ///
-/// ```rust,ignore
-/// use dynosaur::dynosaur;
-///
-/// #[dynosaur(DynMyTrait)]
-/// trait MyTrait {
+/// ```
+/// # mod dynosaur { pub use dynosaur_derive::dynosaur; }
+/// #[dynosaur::dynosaur(DynNext)]
+/// trait Next {
 ///     type Item;
-///     async fn foo(&self) -> Self::Item;
+///     async fn next(&self) -> Option<Self::Item>;
+/// }
+/// # // This is necessary to prevent weird scoping errors in the doctets:
+/// # fn main() {}
+/// ```
+///
+/// Here, the struct is named `DynNext`. It can be used like this:
+///
+/// ```
+/// # mod dynosaur { pub use dynosaur_derive::dynosaur; }
+/// # #[dynosaur::dynosaur(DynNext)]
+/// # trait Next {
+/// #     type Item;
+/// #     async fn next(&self) -> Option<Self::Item>;
+/// # }
+/// #
+/// # fn from_iter<T: IntoIterator>(v: T) -> impl Next<Item = i32> {
+/// #     Never
+/// # }
+/// # struct Never;
+/// # impl Next for Never {
+/// #     type Item = i32;
+/// #     async fn next(&self) -> Option<Self::Item> { None }
+/// # }
+/// #
+/// # #[tokio::main(flavor = "current_thread")]
+/// # async fn main() {
+/// #
+/// async fn dyn_dispatch(iter: &mut DynNext<'_, i32>) {
+///     while let Some(item) = iter.next().await {
+///         println!("- {item}");
+///     }
+/// }
+///
+/// let a = [1, 2, 3];
+/// dyn_dispatch(DynNext::from_mut(&mut from_iter(a))).await;
+/// # }
+/// ```
+///
+/// ## Interface
+///
+/// The `Dyn` struct produced by this macro has the following constructors:
+///
+/// ```ignore
+/// impl<'a> DynTrait<'a> {
+///     fn new(from: Box<impl Trait>) -> Box<Self> { ... }
+///     fn boxed(from: impl Trait) -> Box<Self> { ... }
+///     fn from_ref(from: &'a impl Trait) -> &'a Self { ... }
+///     fn from_mut(from: &'a mut impl Trait) -> &'a mut Self { ... }
 /// }
 /// ```
 ///
-/// The above example causes the trait to be rewritten as:
+/// Normally a concrete type behind a pointer coerces to `dyn Trait` implicitly.
+/// When using the `Dyn` struct created by this macro, such conversions must be
+/// done explicitly with the provided constructors.
 ///
-/// ```rust
-/// trait DynMyTrait {
-///     type Item;
-///     fn foo(&self) -> ::core::pin::Pin<Box<dyn ::core::future::Future<Output = Self::Item>>>;
-/// }
-/// ```
+/// ## Performance
+///
+/// In addition to the normal overhead of dynamic dispatch, calling `async` and
+/// `-> impl Trait` methods on a `Dyn` struct will box the returned value so it
+/// has a known size.
+///
+/// There is no performance cost to using this macro when the trait is used with
+/// static dispatch.
 #[proc_macro_attribute]
 pub fn dynosaur(
     attr: proc_macro::TokenStream,
