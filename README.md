@@ -1,6 +1,6 @@
 [![Latest Version]][crates.io] [![Documentation]][docs.rs] [![GHA Status]][GitHub Actions] ![License]
 
-dynosaur lets you use dynamic dispatch on traits with with `async fn` and
+dynosaur lets you use dynamic dispatch on traits with `async fn` and
 methods returning `impl Trait`.
 
 ```rust,ignore
