@@ -1,6 +1,6 @@
 [workspace]
-members = [
-    "dynosaur",
-    "dynosaur_derive",
-]
+members = ["dynosaur", "dynosaur_derive"]
 resolver = "2"
+
+[workspace.dependencies]
+tokio = { version = "1.40.0", features = ["macros", "rt"] }

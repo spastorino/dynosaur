@@ -1,7 +1,11 @@
 [package]
 name = "dynosaur_derive"
 version = "0.1.0"
-authors = ["Santiago Pastorino <spastorino@gmail.com>", "Tyler Mandry <tmandry@google.com>", "Niko Matsakis <rust@nikomatsakis.com>"]
+authors = [
+    "Santiago Pastorino <spastorino@gmail.com>",
+    "Tyler Mandry <tmandry@google.com>",
+    "Niko Matsakis <rust@nikomatsakis.com>",
+]
 categories = ["asynchronous", "no-std"]
 keywords = ["async", "trait", "impl"]
 description = "Dynamic dispatch for return position impl traits and async in Rust"
@@ -18,3 +22,6 @@ proc-macro = true
 proc-macro2 = "1.0"
 quote = "1.0"
 syn = { version = "2.0", features = ["full", "visit-mut"] }
+
+[dev-dependencies]
+tokio = { workspace = true }
