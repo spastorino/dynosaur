@@ -1,0 +1,144 @@
+#![feature(prelude_import)]
+#[prelude_import]
+use std::prelude::rust_2021::*;
+#[macro_use]
+extern crate std;
+use std::pin::Pin;
+use std::rc::Rc;
+use std::sync::Arc;
+
+use dynosaur::dynosaur;
+
+trait MyTrait {
+    async fn foo(self: Box<Self>);
+    async fn bar(self: Rc<Self>);
+    async fn baz(self: Arc<Self>);
+    async fn zoo(self: Pin<Box<Self>>);
+}
+mod _dynosaur_macro_DynMyTrait {
+    use super::*;
+    trait ErasedMyTrait {
+        fn foo<'dynosaur>(self: Box<Self>)
+        ->
+            ::core::pin::Pin<Box<dyn ::core::future::Future<Output = ()> +
+            'dynosaur>>
+        where
+        Self: 'dynosaur;
+        fn bar<'dynosaur>(self: Rc<Self>)
+        ->
+            ::core::pin::Pin<Box<dyn ::core::future::Future<Output = ()> +
+            'dynosaur>>
+        where
+        Self: 'dynosaur;
+        fn baz<'dynosaur>(self: Arc<Self>)
+        ->
+            ::core::pin::Pin<Box<dyn ::core::future::Future<Output = ()> +
+            'dynosaur>>
+        where
+        Self: 'dynosaur;
+        fn zoo<'dynosaur>(self: Pin<Box<Self>>)
+        ->
+            ::core::pin::Pin<Box<dyn ::core::future::Future<Output = ()> +
+            'dynosaur>>
+        where
+        Self: 'dynosaur;
+    }
+    impl<DYNOSAUR: MyTrait + ?Sized> ErasedMyTrait for DYNOSAUR {
+        fn foo<'dynosaur>(self: Box<Self>)
+            ->
+                ::core::pin::Pin<Box<dyn ::core::future::Future<Output = ()> +
+                'dynosaur>> where Self: 'dynosaur {
+            Box::pin(<Self as MyTrait>::foo(self))
+        }
+        fn bar<'dynosaur>(self: Rc<Self>)
+            ->
+                ::core::pin::Pin<Box<dyn ::core::future::Future<Output = ()> +
+                'dynosaur>> where Self: 'dynosaur {
+            Box::pin(<Self as MyTrait>::bar(self))
+        }
+        fn baz<'dynosaur>(self: Arc<Self>)
+            ->
+                ::core::pin::Pin<Box<dyn ::core::future::Future<Output = ()> +
+                'dynosaur>> where Self: 'dynosaur {
+            Box::pin(<Self as MyTrait>::baz(self))
+        }
+        fn zoo<'dynosaur>(self: Pin<Box<Self>>)
+            ->
+                ::core::pin::Pin<Box<dyn ::core::future::Future<Output = ()> +
+                'dynosaur>> where Self: 'dynosaur {
+            Box::pin(<Self as MyTrait>::zoo(self))
+        }
+    }
+    #[repr(transparent)]
+    pub struct DynMyTrait<'dynosaur_struct> {
+        ptr: dyn ErasedMyTrait + 'dynosaur_struct,
+    }
+    impl<'dynosaur_struct> MyTrait for DynMyTrait<'dynosaur_struct> {
+        fn foo(self: Box<Self>) -> impl ::core::future::Future<Output = ()> {
+            let fut:
+                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
+                    ()> + '_>> =
+                <DynMyTrait<'dynosaur_struct> as ErasedMyTrait>::foo(self);
+            let fut:
+                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
+                    ()> + 'static>> = unsafe { ::core::mem::transmute(fut) };
+            fut
+        }
+        fn bar(self: Rc<Self>) -> impl ::core::future::Future<Output = ()> {
+            let fut:
+                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
+                    ()> + '_>> =
+                <DynMyTrait<'dynosaur_struct> as ErasedMyTrait>::bar(self);
+            let fut:
+                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
+                    ()> + 'static>> = unsafe { ::core::mem::transmute(fut) };
+            fut
+        }
+        fn baz(self: Arc<Self>) -> impl ::core::future::Future<Output = ()> {
+            let fut:
+                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
+                    ()> + '_>> =
+                <DynMyTrait<'dynosaur_struct> as ErasedMyTrait>::baz(self);
+            let fut:
+                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
+                    ()> + 'static>> = unsafe { ::core::mem::transmute(fut) };
+            fut
+        }
+        fn zoo(self: Pin<Box<Self>>)
+            -> impl ::core::future::Future<Output = ()> {
+            let fut:
+                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
+                    ()> + '_>> =
+                <DynMyTrait<'dynosaur_struct> as ErasedMyTrait>::zoo(self);
+            let fut:
+                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
+                    ()> + 'static>> = unsafe { ::core::mem::transmute(fut) };
+            fut
+        }
+    }
+    impl<'dynosaur_struct> DynMyTrait<'dynosaur_struct> {
+        pub fn new(value: Box<impl MyTrait + 'dynosaur_struct>)
+            -> Box<DynMyTrait<'dynosaur_struct>> {
+            let value: Box<dyn ErasedMyTrait + 'dynosaur_struct> = value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub fn boxed(value: impl MyTrait + 'dynosaur_struct)
+            -> Box<DynMyTrait<'dynosaur_struct>> {
+            Self::new(Box::new(value))
+        }
+        pub fn from_ref(value: &(impl MyTrait + 'dynosaur_struct))
+            -> &DynMyTrait<'dynosaur_struct> {
+            let value: &(dyn ErasedMyTrait + 'dynosaur_struct) = &*value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub fn from_mut(value: &mut (impl MyTrait + 'dynosaur_struct))
+            -> &mut DynMyTrait<'dynosaur_struct> {
+            let value: &mut (dyn ErasedMyTrait + 'dynosaur_struct) =
+                &mut *value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+    }
+}
+use _dynosaur_macro_DynMyTrait::DynMyTrait;
+
+fn main() {}

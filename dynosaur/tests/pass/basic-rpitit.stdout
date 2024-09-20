@@ -18,7 +18,7 @@ mod _dynosaur_macro_DynMyTrait {
         'life0: 'dynosaur,
         Self: 'dynosaur;
     }
-    impl<DYNOSAUR: MyTrait> ErasedMyTrait for DYNOSAUR {
+    impl<DYNOSAUR: MyTrait + ?Sized> ErasedMyTrait for DYNOSAUR {
         fn foo<'life0, 'dynosaur>(&'life0 self)
             -> ::core::pin::Pin<Box<dyn Send + 'dynosaur>> where
             'life0: 'dynosaur, Self: 'dynosaur {
@@ -31,7 +31,8 @@ mod _dynosaur_macro_DynMyTrait {
     }
     impl<'dynosaur_struct> MyTrait for DynMyTrait<'dynosaur_struct> {
         fn foo(&self) -> impl Send {
-            let fut: ::core::pin::Pin<Box<dyn Send + '_>> = self.ptr.foo();
+            let fut: ::core::pin::Pin<Box<dyn Send + '_>> =
+                <DynMyTrait<'dynosaur_struct> as ErasedMyTrait>::foo(self);
             let fut: ::core::pin::Pin<Box<dyn Send + 'static>> =
                 unsafe { ::core::mem::transmute(fut) };
             fut

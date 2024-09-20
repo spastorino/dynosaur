@@ -19,7 +19,7 @@ mod _dynosaur_macro_DynMyTrait {
         'life0: 'dynosaur,
         Self: 'dynosaur;
     }
-    impl<DYNOSAUR: MyTrait> ErasedMyTrait for DYNOSAUR {
+    impl<DYNOSAUR: MyTrait + ?Sized> ErasedMyTrait for DYNOSAUR {
         fn foo<'life0, 'dynosaur>(&'life0 mut self)
             ->
                 ::core::pin::Pin<Box<dyn ::core::future::Future<Output = ()> +
@@ -35,7 +35,8 @@ mod _dynosaur_macro_DynMyTrait {
         fn foo(&mut self) -> impl ::core::future::Future<Output = ()> {
             let fut:
                     ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
-                    ()> + '_>> = self.ptr.foo();
+                    ()> + '_>> =
+                <DynMyTrait<'dynosaur_struct> as ErasedMyTrait>::foo(self);
             let fut:
                     ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
                     ()> + 'static>> = unsafe { ::core::mem::transmute(fut) };
