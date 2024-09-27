@@ -198,6 +198,7 @@ dependencies = [
  "quote",
  "syn",
  "tokio",
+ "trait-variant",
 ]
 
 [[package]]

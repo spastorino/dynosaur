@@ -105,6 +105,27 @@ impl Parse for Attrs {
 /// When using the `Dyn` struct created by this macro, such conversions must be
 /// done explicitly with the provided constructors.
 ///
+/// ## Use with `trait_variant`
+///
+/// You can use dynosaur with the trait_variant macro like this. The
+/// trait_variant attribute must go first.
+///
+/// ```rust
+/// # pub mod dynosaur { pub use dynosaur_derive::dynosaur; }
+/// #[trait_variant::make(SendNext: Send)]
+/// #[dynosaur::dynosaur(DynNext = dyn Next)]
+/// #[dynosaur::dynosaur(DynSendNext = dyn SendNext)]
+/// trait Next {
+///     type Item;
+///     async fn next(&mut self) -> Option<Self::Item>;
+/// }
+/// # // This is necessary to prevent weird scoping errors in the doctets:
+/// # fn main() {}
+/// ```
+///
+/// The `DynNext = dyn Next` is a more explicit form of the macro invocation
+/// that allows you to select a particular trait.
+///
 /// ## Performance
 ///
 /// In addition to the normal overhead of dynamic dispatch, calling `async` and
