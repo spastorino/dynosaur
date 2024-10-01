@@ -19,8 +19,6 @@ struct Attrs {
 }
 
 struct Target {
-    _equals: Token![=],
-    _dyn: Token![dyn],
     trait_name: Ident,
 }
 
@@ -29,9 +27,9 @@ impl Parse for Attrs {
         Ok(Attrs {
             ident: input.parse()?,
             target: if input.peek(Token![=]) {
+                input.parse::<Token![=]>()?;
+                input.parse::<Token![dyn]>()?;
                 Some(Target {
-                    _equals: input.parse()?,
-                    _dyn: input.parse()?,
                     trait_name: input.parse()?,
                 })
             } else {

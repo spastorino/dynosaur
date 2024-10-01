@@ -1,5 +1,5 @@
 [workspace]
-members = ["dynosaur", "dynosaur_derive"]
+members = ["dynosaur", "dynosaur_derive", "dynosaur/tests"]
 resolver = "2"
 
 [workspace.dependencies]
