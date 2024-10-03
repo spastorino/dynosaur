@@ -157,7 +157,10 @@ pub fn dynosaur(
     let struct_inherent_impl =
         mk_struct_inherent_impl(&struct_ident, &item_trait.ident, &erased_trait);
     let dynosaur_mod = Ident::new(
-        &format!("_dynosaur_macro_{}", struct_ident),
+        &format!(
+            "_dynosaur_macro_{}",
+            struct_ident.to_string().to_lowercase(),
+        ),
         Span::call_site(),
     );
 

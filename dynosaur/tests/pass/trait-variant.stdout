@@ -9,7 +9,7 @@ trait Next {
     async fn next(&mut self)
     -> Option<Self::Item>;
 }
-mod _dynosaur_macro_DynNext {
+mod _dynosaur_macro_dynnext {
     use super::*;
     #[allow(async_fn_in_trait)]
     trait ErasedNext {
@@ -76,13 +76,13 @@ mod _dynosaur_macro_DynNext {
         }
     }
 }
-use _dynosaur_macro_DynNext::DynNext;
+use _dynosaur_macro_dynnext::DynNext;
 trait SendNext: Send {
     type Item;
     fn next(&mut self)
     -> impl ::core::future::Future<Output = Option<Self::Item>> + Send;
 }
-mod _dynosaur_macro_DynSendNext {
+mod _dynosaur_macro_dynsendnext {
     use super::*;
     trait ErasedSendNext: Send {
         type Item;
@@ -154,7 +154,7 @@ mod _dynosaur_macro_DynSendNext {
         }
     }
 }
-use _dynosaur_macro_DynSendNext::DynSendNext;
+use _dynosaur_macro_dynsendnext::DynSendNext;
 impl<TraitVariantBlanketType: SendNext> Next for TraitVariantBlanketType {
     type Item = <Self as SendNext>::Item;
     async fn next(&mut self) -> Option<Self::Item> {
