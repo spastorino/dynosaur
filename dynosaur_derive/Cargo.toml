@@ -25,3 +25,4 @@ syn = { version = "2.0", features = ["full", "visit-mut"] }
 
 [dev-dependencies]
 tokio = { workspace = true }
+trait-variant = { workspace = true }

@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use ui_test::color_eyre::eyre::Result;
 use ui_test::dependencies::DependencyBuilder;
@@ -26,10 +26,13 @@ fn cfg(path: &Path, mode: Mode) -> Config {
     let require_annotations = false; // we're not showing errors in a specific line anyway
     config.comment_defaults.base().exit_status = Spanned::dummy(exit_status).into();
     config.comment_defaults.base().require_annotations = Spanned::dummy(require_annotations).into();
-    config
-        .comment_defaults
-        .base()
-        .set_custom("dependencies", DependencyBuilder::default());
+    config.comment_defaults.base().set_custom(
+        "dependencies",
+        DependencyBuilder {
+            crate_manifest_path: PathBuf::from("tests/Cargo.toml"),
+            ..DependencyBuilder::default()
+        },
+    );
     config
 }
 

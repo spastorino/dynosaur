@@ -1,0 +1,15 @@
+# Stub manifest file to specify dependencies.
+# This is required because ui tests don't have access to dev dependencies:
+# https://github.com/oli-obk/ui_test/issues/282
+
+[package]
+name = "dynosaur_ui_tests"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+path = "lib.rs"
+
+[dependencies]
+dynosaur = { version = "0.1", path = "../" }
+trait-variant = { workspace = true }

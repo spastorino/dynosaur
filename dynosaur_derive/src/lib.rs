@@ -15,12 +15,26 @@ mod receiver;
 
 struct Attrs {
     ident: Ident,
+    target: Option<Target>,
+}
+
+struct Target {
+    trait_name: Ident,
 }
 
 impl Parse for Attrs {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Attrs {
             ident: input.parse()?,
+            target: if input.peek(Token![=]) {
+                input.parse::<Token![=]>()?;
+                input.parse::<Token![dyn]>()?;
+                Some(Target {
+                    trait_name: input.parse()?,
+                })
+            } else {
+                None
+            },
         })
     }
 }
@@ -89,6 +103,27 @@ impl Parse for Attrs {
 /// When using the `Dyn` struct created by this macro, such conversions must be
 /// done explicitly with the provided constructors.
 ///
+/// ## Use with `trait_variant`
+///
+/// You can use dynosaur with the trait_variant macro like this. The
+/// trait_variant attribute must go first.
+///
+/// ```rust
+/// # pub mod dynosaur { pub use dynosaur_derive::dynosaur; }
+/// #[trait_variant::make(SendNext: Send)]
+/// #[dynosaur::dynosaur(DynNext = dyn Next)]
+/// #[dynosaur::dynosaur(DynSendNext = dyn SendNext)]
+/// trait Next {
+///     type Item;
+///     async fn next(&mut self) -> Option<Self::Item>;
+/// }
+/// # // This is necessary to prevent weird scoping errors in the doctets:
+/// # fn main() {}
+/// ```
+///
+/// The `DynNext = dyn Next` is a more explicit form of the macro invocation
+/// that allows you to select a particular trait.
+///
 /// ## Performance
 ///
 /// In addition to the normal overhead of dynamic dispatch, calling `async` and
@@ -104,15 +139,23 @@ pub fn dynosaur(
 ) -> proc_macro::TokenStream {
     let attrs = parse_macro_input!(attr as Attrs);
     let item_trait = parse_macro_input!(item as ItemTrait);
+    if let Some(target) = attrs.target {
+        // This attribute is being applied to a different trait than the one
+        // named (possibly one created by trait_variant).
+        // TODO: Add checking in case a trait is missing or misspelled.
+        if target.trait_name != item_trait.ident {
+            return quote! { #item_trait }.into();
+        }
+    }
 
     let struct_ident = &attrs.ident;
     let expanded_trait_to_dyn = expand_trait_async_fns_to_dyn(&item_trait);
     let erased_trait = mk_erased_trait(&expanded_trait_to_dyn);
     let erased_trait_blanket_impl = mk_erased_trait_blanket_impl(&item_trait.ident, &erased_trait);
-    let dyn_struct = mk_dyn_struct(&attrs.ident, &erased_trait);
+    let dyn_struct = mk_dyn_struct(&struct_ident, &erased_trait);
     let dyn_struct_impl_item = mk_dyn_struct_impl_item(struct_ident, &item_trait);
     let struct_inherent_impl =
-        mk_struct_inherent_impl(&attrs.ident, &item_trait.ident, &erased_trait);
+        mk_struct_inherent_impl(&struct_ident, &item_trait.ident, &erased_trait);
     let dynosaur_mod = Ident::new(
         &format!("_dynosaur_macro_{}", struct_ident),
         Span::call_site(),

@@ -17,6 +17,7 @@ rust-version = "1.75"
 
 [dependencies]
 dynosaur_derive = { version = "0.1", path = "../dynosaur_derive" }
+trait-variant = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true }
@@ -24,6 +25,9 @@ ui_test = "0.24"
 
 [[example]]
 name = "next"
+
+[[example]]
+name = "trait_variant"
 
 [[test]]
 name = "ui"
