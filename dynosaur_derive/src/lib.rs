@@ -5,7 +5,7 @@ use syn::{
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote,
     punctuated::Punctuated,
-    Error, FnArg, GenericParam, Ident, ItemTrait, Pat, PatType, Receiver, Result, Signature, Token,
+    Error, FnArg, GenericParam, Ident, ItemTrait, Pat, PatType, Result, Signature, Token,
     TraitItem, TraitItemConst, TraitItemFn, TraitItemType, TypeParam,
 };
 
@@ -183,9 +183,13 @@ pub fn dynosaur(
 
 fn mk_erased_trait(item_trait: &ItemTrait) -> ItemTrait {
     ItemTrait {
-        ident: Ident::new(&format!("Erased{}", item_trait.ident), Span::call_site()),
+        ident: erased_trait_ident(&item_trait.ident),
         ..item_trait.clone()
     }
+}
+
+fn erased_trait_ident(item_trait_ident: &Ident) -> Ident {
+    Ident::new(&format!("Erased{}", item_trait_ident), Span::call_site())
 }
 
 fn mk_erased_trait_blanket_impl(trait_ident: &Ident, erased_trait: &ItemTrait) -> TokenStream {
@@ -208,10 +212,7 @@ fn mk_erased_trait_blanket_impl(trait_ident: &Ident, erased_trait: &ItemTrait) -
                  sig,
                  ..
              }| {
-                 let (receiver, mut args) = invoke_fn_args(sig);
-                 if receiver.is_some() {
-                     args.insert(0, quote!(self));
-                 }
+                 let args = invoke_fn_args(sig);
                  let ident = &sig.ident;
                  quote! {
                      #sig {
@@ -227,7 +228,7 @@ fn mk_erased_trait_blanket_impl(trait_ident: &Ident, erased_trait: &ItemTrait) -
                     }
                 })
     });
-    let blanket_bound: TypeParam = parse_quote!(DYNOSAUR: #trait_ident #trait_generics);
+    let blanket_bound: TypeParam = parse_quote!(DYNOSAUR: #trait_ident #trait_generics + ?Sized);
     let blanket = &blanket_bound.ident.clone();
     let mut blanket_generics = erased_trait.generics.clone();
     blanket_generics
@@ -256,30 +257,18 @@ fn impl_item(
     }
 }
 
-fn invoke_fn_args(sig: &Signature) -> (Option<&Receiver>, Vec<TokenStream>) {
-    let mut receiver = None;
-    let mut args = Vec::new();
-
-    for arg in &sig.inputs {
-        match arg {
-            FnArg::Receiver(fn_arg_receiver) => {
-                receiver = Some(fn_arg_receiver);
-            }
+fn invoke_fn_args(sig: &Signature) -> Vec<TokenStream> {
+    sig.inputs
+        .iter()
+        .map(|arg| match arg {
+            FnArg::Receiver(_) => quote! { self },
             FnArg::Typed(PatType { pat, .. }) => match &**pat {
-                Pat::Ident(arg) => {
-                    args.push(quote! { #arg });
-                }
-                _ => {
-                    args.push(
-                        Error::new_spanned(pat, "patterns are not supported in arguments")
-                            .to_compile_error(),
-                    );
-                }
+                Pat::Ident(arg) => quote! { #arg },
+                _ => Error::new_spanned(pat, "patterns are not supported in arguments")
+                    .to_compile_error(),
             },
-        }
-    }
-
-    (receiver, args)
+        })
+        .collect()
 }
 
 fn mk_dyn_struct(struct_ident: &Ident, erased_trait: &ItemTrait) -> TokenStream {
@@ -323,6 +312,7 @@ fn struct_trait_params(item_trait: &ItemTrait) -> (TokenStream, TokenStream) {
 fn mk_dyn_struct_impl_item(struct_ident: &Ident, item_trait: &ItemTrait) -> TokenStream {
     let item_trait_ident = &item_trait.ident;
     let (_, trait_generics, where_clause) = &item_trait.generics.split_for_impl();
+    let (struct_params, _) = struct_trait_params(item_trait);
 
     let items = item_trait.items.iter().map(|item| {
         impl_item(item,
@@ -340,16 +330,17 @@ fn mk_dyn_struct_impl_item(struct_ident: &Ident, item_trait: &ItemTrait) -> Toke
                  sig,
                  ..
              }| {
+                 let erased_trait_ident = erased_trait_ident(item_trait_ident);
                  let ident = &sig.ident;
                  let mut sig = sig.clone();
-                 let (_, args) = invoke_fn_args(&sig);
+                 let args = invoke_fn_args(&sig);
                  let (ret_arrow, ret) = expand_async_ret_ty(&sig);
                  sig.output = parse_quote! { #ret_arrow impl #ret  };
                  remove_asyncness_from_fn(&mut sig);
 
                  quote! {
                      #sig {
-                         let fut: ::core::pin::Pin<Box<dyn #ret + '_>> = self.ptr.#ident(#(#args),*);
+                         let fut: ::core::pin::Pin<Box<dyn #ret + '_>> = <#struct_ident #struct_params as #erased_trait_ident #trait_generics>::#ident(#(#args),*);
                          let fut: ::core::pin::Pin<Box<dyn #ret + 'static>> = unsafe { ::core::mem::transmute(fut) };
                          fut
                      }
@@ -364,8 +355,6 @@ fn mk_dyn_struct_impl_item(struct_ident: &Ident, item_trait: &ItemTrait) -> Toke
                 }
         )
     });
-
-    let (struct_params, _) = struct_trait_params(item_trait);
 
     quote! {
         impl #struct_params #item_trait_ident #trait_generics for #struct_ident #struct_params #where_clause
