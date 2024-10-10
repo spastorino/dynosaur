@@ -36,7 +36,7 @@ Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or
 [MIT license](LICENSE-MIT) at your option.
 
 [GitHub Actions]: https://github.com/spastorino/dynosaur/actions
-[GHA Status]: https://github.com/spastorino/dynosaur/actions/workflows/rust.yml/badge.svg
+[GHA Status]: https://github.com/spastorino/dynosaur/actions/workflows/ci.yaml/badge.svg
 [crates.io]: https://crates.io/crates/dynosaur
 [Latest Version]: https://img.shields.io/crates/v/dynosaur.svg
 [Documentation]: https://img.shields.io/docsrs/dynosaur
