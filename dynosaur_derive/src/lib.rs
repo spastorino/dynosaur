@@ -284,28 +284,42 @@ fn invoke_fn_args(sig: &Signature) -> (Option<&Receiver>, Vec<TokenStream>) {
 
 fn mk_dyn_struct(struct_ident: &Ident, erased_trait: &ItemTrait) -> TokenStream {
     let erased_trait_ident = &erased_trait.ident;
-    let (struct_params, trait_params) = struct_trait_params(erased_trait);
+    let StructTraitParams {
+        struct_with_bounds_params,
+        trait_params,
+        ..
+    } = struct_trait_params(erased_trait);
 
     quote! {
         #[repr(transparent)]
-        pub struct #struct_ident #struct_params {
+        pub struct #struct_ident #struct_with_bounds_params {
             ptr: dyn #erased_trait_ident #trait_params + 'dynosaur_struct
         }
     }
 }
 
-fn struct_trait_params(item_trait: &ItemTrait) -> (TokenStream, TokenStream) {
+struct StructTraitParams {
+    struct_params: TokenStream,
+    struct_with_bounds_params: TokenStream,
+    trait_params: TokenStream,
+}
+
+fn struct_trait_params(item_trait: &ItemTrait) -> StructTraitParams {
     let mut struct_params: Punctuated<_, Token![,]> = Punctuated::new();
+    let mut struct_with_bounds_params: Punctuated<_, Token![,]> = Punctuated::new();
     let mut trait_params: Punctuated<_, Token![,]> = Punctuated::new();
 
     struct_params.push(quote! { 'dynosaur_struct });
+    struct_with_bounds_params.push(quote! { 'dynosaur_struct });
     item_trait.generics.params.iter().for_each(|item| {
         struct_params.push(quote! { #item });
+        struct_with_bounds_params.push(quote! { #item });
         trait_params.push(quote! { #item });
     });
     item_trait.items.iter().for_each(|item| match item {
-        TraitItem::Type(TraitItemType { ident, .. }) => {
+        TraitItem::Type(TraitItemType { ident, bounds, .. }) => {
             struct_params.push(quote! { #ident });
+            struct_with_bounds_params.push(quote! { #ident: #bounds });
             trait_params.push(quote! { #ident = #ident });
         }
         _ => {}
@@ -317,7 +331,11 @@ fn struct_trait_params(item_trait: &ItemTrait) -> (TokenStream, TokenStream) {
         quote! { <#trait_params> }
     };
 
-    (quote! { <#struct_params> }, trait_params)
+    StructTraitParams {
+        struct_params: quote! { <#struct_params> },
+        struct_with_bounds_params: quote! { <#struct_with_bounds_params> },
+        trait_params,
+    }
 }
 
 fn mk_dyn_struct_impl_item(struct_ident: &Ident, item_trait: &ItemTrait) -> TokenStream {
@@ -365,10 +383,14 @@ fn mk_dyn_struct_impl_item(struct_ident: &Ident, item_trait: &ItemTrait) -> Toke
         )
     });
 
-    let (struct_params, _) = struct_trait_params(item_trait);
+    let StructTraitParams {
+        struct_params,
+        struct_with_bounds_params,
+        ..
+    } = struct_trait_params(item_trait);
 
     quote! {
-        impl #struct_params #item_trait_ident #trait_generics for #struct_ident #struct_params #where_clause
+        impl #struct_with_bounds_params #item_trait_ident #trait_generics for #struct_ident #struct_params #where_clause
         {
             #(#items)*
         }
@@ -380,7 +402,11 @@ fn mk_struct_inherent_impl(
     trait_ident: &Ident,
     erased_trait: &ItemTrait,
 ) -> TokenStream {
-    let (struct_params, trait_params) = struct_trait_params(erased_trait);
+    let StructTraitParams {
+        struct_params,
+        struct_with_bounds_params,
+        trait_params,
+    } = struct_trait_params(erased_trait);
     let erased_trait_ident = &erased_trait.ident;
 
     let mut where_bounds: Punctuated<_, Token![,]> = Punctuated::new();
@@ -403,7 +429,7 @@ fn mk_struct_inherent_impl(
     });
 
     quote! {
-        impl #struct_params #struct_ident #struct_params
+        impl #struct_with_bounds_params #struct_ident #struct_params
         {
             pub fn new(value: Box<impl #trait_ident #trait_params + 'dynosaur_struct>) -> Box<#struct_ident #struct_params> {
                 let value: Box<dyn #erased_trait_ident #trait_params + 'dynosaur_struct> = value;
