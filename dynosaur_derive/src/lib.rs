@@ -182,8 +182,17 @@ pub fn dynosaur(
 }
 
 fn mk_erased_trait(item_trait: &ItemTrait) -> ItemTrait {
+    let mut items = item_trait.items.clone();
+
+    for item in &mut items {
+        if let TraitItem::Fn(trait_item_fn) = item {
+            trait_item_fn.default = None;
+        }
+    }
+
     ItemTrait {
         ident: Ident::new(&format!("Erased{}", item_trait.ident), Span::call_site()),
+        items,
         ..item_trait.clone()
     }
 }
