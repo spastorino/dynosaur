@@ -9,9 +9,9 @@ pub fn has_self_in_sig(sig: &Signature) -> bool {
     visitor.0
 }
 
-pub fn mut_pat(pat: &mut Pat) -> Option<Token![mut]> {
+pub fn mut_pat(pat: &Pat) -> Option<Token![mut]> {
     let mut visitor = HasMutPat(None);
-    visitor.visit_pat_mut(pat);
+    visitor.visit_pat(pat);
     visitor.0
 }
 
@@ -61,12 +61,12 @@ fn has_self_in_token_stream(tokens: TokenStream) -> bool {
 
 struct HasMutPat(Option<Token![mut]>);
 
-impl VisitMut for HasMutPat {
-    fn visit_pat_ident_mut(&mut self, i: &mut PatIdent) {
+impl Visit<'_> for HasMutPat {
+    fn visit_pat_ident(&mut self, i: &PatIdent) {
         if let Some(m) = i.mutability {
             self.0 = Some(m);
         } else {
-            visit_mut::visit_pat_ident_mut(self, i);
+            visit::visit_pat_ident(self, i);
         }
     }
 }
