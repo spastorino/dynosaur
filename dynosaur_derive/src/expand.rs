@@ -1,15 +1,15 @@
 use crate::lifetime::{AddLifetimeToImplTrait, CollectLifetimes};
-use crate::receiver::{has_self_in_sig, mut_pat};
+use crate::receiver::has_self_in_sig;
 use proc_macro2::{Span, TokenStream};
-use quote::{format_ident, quote};
+use quote::quote;
 use std::mem;
 use syn::punctuated::Punctuated;
 use syn::token::RArrow;
 use syn::visit_mut::VisitMut;
 use syn::{
-    parse_quote, parse_quote_spanned, Error, FnArg, GenericParam, Generics, Ident, ItemTrait,
-    Lifetime, LifetimeParam, Pat, ReturnType, Signature, Token, TraitItem, TraitItemFn, Type,
-    TypeImplTrait, WhereClause,
+    parse_quote, parse_quote_spanned, Error, FnArg, GenericParam, Generics, ItemTrait, Lifetime,
+    LifetimeParam, ReturnType, Signature, Token, TraitItem, TraitItemFn, Type, TypeImplTrait,
+    WhereClause,
 };
 
 /// Expands the signature of each function on the trait, converting async fn into fn with return
@@ -157,21 +157,8 @@ fn expand_async_fn_input(item_trait_generics: &Generics, trait_item_fn: &mut Tra
             });
     }
 
-    for (i, arg) in sig.inputs.iter_mut().enumerate() {
+    for arg in &mut sig.inputs {
         if let FnArg::Typed(arg) = arg {
-            if match *arg.ty {
-                Type::Reference(_) => false,
-                _ => true,
-            } {
-                match &*arg.pat {
-                    Pat::Ident(_) => {}
-                    _ => {
-                        let positional = positional_arg(i, &arg.pat);
-                        let m = mut_pat(&arg.pat);
-                        arg.pat = parse_quote!(#m #positional);
-                    }
-                }
-            }
             AddLifetimeToImplTrait.visit_type_mut(&mut arg.ty);
         }
     }
@@ -232,9 +219,4 @@ fn where_clause_or_default(clause: &mut Option<WhereClause>) -> &mut WhereClause
         where_token: Default::default(),
         predicates: Punctuated::new(),
     })
-}
-
-fn positional_arg(i: usize, pat: &Pat) -> Ident {
-    let span = syn::spanned::Spanned::span(pat).resolved_at(Span::mixed_site());
-    format_ident!("__arg{}", i, span = span)
 }
