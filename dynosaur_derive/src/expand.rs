@@ -167,7 +167,7 @@ fn expand_async_fn_input(item_trait_generics: &Generics, trait_item_fn: &mut Tra
                     Pat::Ident(_) => {}
                     _ => {
                         let positional = positional_arg(i, &arg.pat);
-                        let m = mut_pat(&mut arg.pat);
+                        let m = mut_pat(&arg.pat);
                         arg.pat = parse_quote!(#m #positional);
                     }
                 }

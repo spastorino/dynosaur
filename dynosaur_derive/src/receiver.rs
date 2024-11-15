@@ -1,41 +1,42 @@
 use proc_macro2::{TokenStream, TokenTree};
+use syn::visit::{self, Visit};
 use syn::visit_mut::{self, VisitMut};
 use syn::{ExprPath, Item, Macro, Pat, PatIdent, Receiver, Signature, Token, TypePath};
 
-pub fn has_self_in_sig(sig: &mut Signature) -> bool {
+pub fn has_self_in_sig(sig: &Signature) -> bool {
     let mut visitor = HasSelf(false);
-    visitor.visit_signature_mut(sig);
+    visitor.visit_signature(sig);
     visitor.0
 }
 
-pub fn mut_pat(pat: &mut Pat) -> Option<Token![mut]> {
+pub fn mut_pat(pat: &Pat) -> Option<Token![mut]> {
     let mut visitor = HasMutPat(None);
-    visitor.visit_pat_mut(pat);
+    visitor.visit_pat(pat);
     visitor.0
 }
 
 struct HasSelf(bool);
 
-impl VisitMut for HasSelf {
-    fn visit_expr_path_mut(&mut self, expr: &mut ExprPath) {
+impl Visit<'_> for HasSelf {
+    fn visit_expr_path(&mut self, expr: &ExprPath) {
         self.0 |= expr.path.segments[0].ident == "Self";
-        visit_mut::visit_expr_path_mut(self, expr);
+        visit::visit_expr_path(self, expr);
     }
 
-    fn visit_type_path_mut(&mut self, ty: &mut TypePath) {
+    fn visit_type_path(&mut self, ty: &TypePath) {
         self.0 |= ty.path.segments[0].ident == "Self";
-        visit_mut::visit_type_path_mut(self, ty);
+        visit::visit_type_path(self, ty);
     }
 
-    fn visit_receiver_mut(&mut self, _arg: &mut Receiver) {
+    fn visit_receiver(&mut self, _arg: &Receiver) {
         self.0 = true;
     }
 
-    fn visit_item_mut(&mut self, _: &mut Item) {
+    fn visit_item(&mut self, _: &Item) {
         // Do not recurse into nested items.
     }
 
-    fn visit_macro_mut(&mut self, mac: &mut Macro) {
+    fn visit_macro(&mut self, mac: &Macro) {
         if !contains_fn(mac.tokens.clone()) {
             self.0 |= has_self_in_token_stream(mac.tokens.clone());
         }
@@ -60,12 +61,12 @@ fn has_self_in_token_stream(tokens: TokenStream) -> bool {
 
 struct HasMutPat(Option<Token![mut]>);
 
-impl VisitMut for HasMutPat {
-    fn visit_pat_ident_mut(&mut self, i: &mut PatIdent) {
+impl Visit<'_> for HasMutPat {
+    fn visit_pat_ident(&mut self, i: &PatIdent) {
         if let Some(m) = i.mutability {
             self.0 = Some(m);
         } else {
-            visit_mut::visit_pat_ident_mut(self, i);
+            visit::visit_pat_ident(self, i);
         }
     }
 }
