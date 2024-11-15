@@ -8,10 +8,12 @@ use syn::{
     Error, FnArg, GenericParam, Ident, ItemTrait, Pat, PatType, Receiver, Result, Signature, Token,
     TraitItem, TraitItemConst, TraitItemFn, TraitItemType, TypeParam,
 };
+use where_clauses::has_where_self_sized;
 
 mod expand;
 mod lifetime;
 mod receiver;
+mod where_clauses;
 
 struct Attrs {
     ident: Ident,
@@ -182,11 +184,20 @@ pub fn dynosaur(
 }
 
 fn mk_erased_trait(item_trait: &ItemTrait) -> ItemTrait {
-    let mut items = item_trait.items.clone();
+    let mut items = Vec::new();
 
-    for item in &mut items {
-        if let TraitItem::Fn(trait_item_fn) = item {
-            trait_item_fn.default = None;
+    for trait_item in &item_trait.items {
+        let trait_item = trait_item.clone();
+
+        match trait_item {
+            TraitItem::Fn(mut trait_item_fn) => {
+                // ignore if Self: Sized
+                if !has_where_self_sized(&mut trait_item_fn.sig) {
+                    trait_item_fn.default = None;
+                    items.push(TraitItem::Fn(trait_item_fn));
+                }
+            }
+            _ => items.push(trait_item),
         }
     }
 
@@ -374,11 +385,20 @@ fn mk_dyn_struct_impl_item(struct_ident: &Ident, item_trait: &ItemTrait) -> Toke
                  sig.output = parse_quote! { #ret_arrow impl #ret  };
                  remove_asyncness_from_fn(&mut sig);
 
-                 quote! {
-                     #sig {
-                         let fut: ::core::pin::Pin<Box<dyn #ret + '_>> = self.ptr.#ident(#(#args),*);
-                         let fut: ::core::pin::Pin<Box<dyn #ret + 'static>> = unsafe { ::core::mem::transmute(fut) };
-                         fut
+                 if has_where_self_sized(&mut sig) {
+                     quote! {
+                         #sig {
+                             let fut: ::core::pin::Pin<Box<dyn #ret + 'static>> = unreachable!();
+                             fut
+                         }
+                     }
+                 } else {
+                     quote! {
+                         #sig {
+                             let fut: ::core::pin::Pin<Box<dyn #ret + '_>> = self.ptr.#ident(#(#args),*);
+                             let fut: ::core::pin::Pin<Box<dyn #ret + 'static>> = unsafe { ::core::mem::transmute(fut) };
+                             fut
+                         }
                      }
                  }
             },
