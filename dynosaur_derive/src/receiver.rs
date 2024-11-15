@@ -1,17 +1,10 @@
 use proc_macro2::{TokenStream, TokenTree};
 use syn::visit::{self, Visit};
-use syn::visit_mut::{self, VisitMut};
-use syn::{ExprPath, Item, Macro, Pat, PatIdent, Receiver, Signature, Token, TypePath};
+use syn::{ExprPath, Item, Macro, Receiver, Signature, TypePath};
 
 pub fn has_self_in_sig(sig: &Signature) -> bool {
     let mut visitor = HasSelf(false);
     visitor.visit_signature(sig);
-    visitor.0
-}
-
-pub fn mut_pat(pat: &Pat) -> Option<Token![mut]> {
-    let mut visitor = HasMutPat(None);
-    visitor.visit_pat(pat);
     visitor.0
 }
 
@@ -57,16 +50,4 @@ fn has_self_in_token_stream(tokens: TokenStream) -> bool {
         TokenTree::Group(group) => has_self_in_token_stream(group.stream()),
         _ => false,
     })
-}
-
-struct HasMutPat(Option<Token![mut]>);
-
-impl Visit<'_> for HasMutPat {
-    fn visit_pat_ident(&mut self, i: &PatIdent) {
-        if let Some(m) = i.mutability {
-            self.0 = Some(m);
-        } else {
-            visit::visit_pat_ident(self, i);
-        }
-    }
 }
