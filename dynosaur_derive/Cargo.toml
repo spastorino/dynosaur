@@ -1,6 +1,6 @@
 [package]
 name = "dynosaur_derive"
-version = "0.1.1"
+version = "0.1.2"
 authors = [
     "Santiago Pastorino <spastorino@gmail.com>",
     "Tyler Mandry <tmandry@google.com>",
