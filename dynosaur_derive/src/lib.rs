@@ -150,6 +150,7 @@ pub fn dynosaur(
         }
     }
 
+    let vis = &item_trait.vis;
     let struct_ident = &attrs.ident;
     let expanded_trait_to_dyn = expand_trait_async_fns_to_dyn(&item_trait);
     let erased_trait = mk_erased_trait(&expanded_trait_to_dyn);
@@ -178,7 +179,7 @@ pub fn dynosaur(
             #struct_inherent_impl
         }
 
-        use #dynosaur_mod::#struct_ident;
+        #vis use #dynosaur_mod::#struct_ident;
     }
     .into()
 }
