@@ -55,17 +55,13 @@ mod _dynosaur_macro_dynmytrait {
         }
     }
     impl<'dynosaur_struct, T, Item> DynMyTrait<'dynosaur_struct, T, Item> {
-        pub fn new(value:
-                Box<impl MyTrait<T, Item = Item> + 'dynosaur_struct>)
+        pub fn boxed(value: impl MyTrait<T, Item = Item> + 'dynosaur_struct)
             -> Box<DynMyTrait<'dynosaur_struct, T, Item>> {
+            let value = Box::new(value);
             let value:
                     Box<dyn ErasedMyTrait<T, Item = Item> + 'dynosaur_struct> =
                 value;
             unsafe { ::core::mem::transmute(value) }
-        }
-        pub fn boxed(value: impl MyTrait<T, Item = Item> + 'dynosaur_struct)
-            -> Box<DynMyTrait<'dynosaur_struct, T, Item>> {
-            Self::new(Box::new(value))
         }
         pub fn from_ref(value:
                 &(impl MyTrait<T, Item = Item> + 'dynosaur_struct))
