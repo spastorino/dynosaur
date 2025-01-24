@@ -51,15 +51,12 @@ mod _dynosaur_macro_dynfoo {
         }
     }
     impl<'dynosaur_struct, Bar: Baz> DynFoo<'dynosaur_struct, Bar> {
-        pub fn new(value: Box<impl Foo<Bar = Bar> + 'dynosaur_struct>)
+        pub fn boxed(value: impl Foo<Bar = Bar> + 'dynosaur_struct)
             -> Box<DynFoo<'dynosaur_struct, Bar>> {
+            let value = Box::new(value);
             let value: Box<dyn ErasedFoo<Bar = Bar> + 'dynosaur_struct> =
                 value;
             unsafe { ::core::mem::transmute(value) }
-        }
-        pub fn boxed(value: impl Foo<Bar = Bar> + 'dynosaur_struct)
-            -> Box<DynFoo<'dynosaur_struct, Bar>> {
-            Self::new(Box::new(value))
         }
         pub fn from_ref(value: &(impl Foo<Bar = Bar> + 'dynosaur_struct))
             -> &DynFoo<'dynosaur_struct, Bar> {

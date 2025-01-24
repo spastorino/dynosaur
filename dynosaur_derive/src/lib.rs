@@ -461,13 +461,10 @@ fn mk_struct_inherent_impl(
     quote! {
         impl #struct_with_bounds_params #struct_ident #struct_params
         {
-            pub fn new(value: Box<impl #trait_ident #trait_params + 'dynosaur_struct>) -> Box<#struct_ident #struct_params> {
+            pub fn boxed(value: impl #trait_ident #trait_params + 'dynosaur_struct) -> Box<#struct_ident #struct_params> {
+                let value = Box::new(value);
                 let value: Box<dyn #erased_trait_ident #trait_params + 'dynosaur_struct> = value;
                 unsafe { ::core::mem::transmute(value) }
-            }
-
-            pub fn boxed(value: impl #trait_ident #trait_params + 'dynosaur_struct) -> Box<#struct_ident #struct_params> {
-                Self::new(Box::new(value))
             }
 
             pub fn from_ref(value: &(impl #trait_ident #trait_params + 'dynosaur_struct)) -> & #struct_ident #struct_params {
