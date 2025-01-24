@@ -7,7 +7,7 @@ methods returning `impl Trait`.
 #[dynosaur::dynosaur(DynNext)]
 trait Next {
     type Item;
-    async fn next(&mut self) -> Self::Item;
+    async fn next(&mut self) -> Option<Self::Item>;
 }
 ```
 
