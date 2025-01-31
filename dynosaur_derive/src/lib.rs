@@ -156,7 +156,7 @@ pub fn dynosaur(
     let erased_trait_blanket_impl = mk_erased_trait_blanket_impl(&item_trait);
     let dyn_struct = mk_dyn_struct(&struct_ident, &item_trait);
     let dyn_struct_impl_item = mk_dyn_struct_impl_item(struct_ident, &item_trait);
-    let struct_inherent_impl = mk_struct_inherent_impl(&struct_ident, &item_trait);
+    let struct_inherent_impl = mk_struct_inherent_impl(struct_ident, &item_trait);
     let dynosaur_mod = Ident::new(
         &format!(
             "_dynosaur_macro_{}",
