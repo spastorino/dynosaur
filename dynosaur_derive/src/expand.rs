@@ -35,10 +35,15 @@ use syn::{
 ///     Self: 'dynosaur;
 /// }
 /// ```
-pub(crate) fn rpit_fn_to_dyn(item_trait_generics: &Generics, trait_item_fn: &mut TraitItemFn) {
-    expand_fn_input(item_trait_generics, trait_item_fn);
-    expand_fn_output(trait_item_fn);
-    remove_fn_asyncness(&mut trait_item_fn.sig);
+pub(crate) fn expand_fn(item_trait_generics: &Generics, trait_item_fn: &mut TraitItemFn) {
+    if is_async_or_rpit(trait_item_fn) {
+        expand_fn_input(item_trait_generics, trait_item_fn);
+        expand_fn_output(trait_item_fn);
+        remove_fn_asyncness(&mut trait_item_fn.sig);
+    }
+
+    // Remove default method if any for the erased trait
+    trait_item_fn.default = None;
 }
 
 pub(crate) fn is_async_or_rpit(trait_item_fn: &TraitItemFn) -> bool {

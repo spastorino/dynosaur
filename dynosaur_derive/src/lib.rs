@@ -1,4 +1,4 @@
-use expand::{expand_ret_ty, is_async_or_rpit, remove_fn_asyncness, rpit_fn_to_dyn};
+use expand::{expand_fn, expand_ret_ty, remove_fn_asyncness};
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{
@@ -188,12 +188,7 @@ fn mk_erased_trait(item_trait: &ItemTrait) -> ItemTrait {
         .cloned()
         .map(|mut trait_item| {
             if let TraitItem::Fn(ref mut trait_item_fn) = trait_item {
-                if is_async_or_rpit(trait_item_fn) {
-                    rpit_fn_to_dyn(&item_trait.generics, trait_item_fn);
-                }
-
-                // Remove default method if any for the erased trait
-                trait_item_fn.default = None;
+                expand_fn(&item_trait.generics, trait_item_fn);
             }
 
             trait_item
