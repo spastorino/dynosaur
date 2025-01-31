@@ -153,7 +153,7 @@ pub fn dynosaur(
     let vis = &item_trait.vis;
     let struct_ident = &attrs.ident;
     let erased_trait = mk_erased_trait(&item_trait);
-    let erased_trait_blanket_impl = mk_erased_trait_blanket_impl(&item_trait.ident, &erased_trait);
+    let erased_trait_blanket_impl = mk_erased_trait_blanket_impl(&item_trait);
     let dyn_struct = mk_dyn_struct(&struct_ident, &erased_trait);
     let dyn_struct_impl_item = mk_dyn_struct_impl_item(struct_ident, &item_trait);
     let struct_inherent_impl =
@@ -216,47 +216,51 @@ fn trait_item_erased_name(trait_ident: &Ident) -> Ident {
     Ident::new(&format!("Erased{}", trait_ident), Span::call_site())
 }
 
-fn mk_erased_trait_blanket_impl(trait_ident: &Ident, erased_trait: &ItemTrait) -> TokenStream {
-    let erased_trait_ident = &erased_trait.ident;
-    let (_, trait_generics, _) = &erased_trait.generics.split_for_impl();
-    let items = erased_trait.items.iter().map(|item| {
-        match item {
-            TraitItem::Const(TraitItemConst {
-                ident,
-                generics,
-                ty,
-                ..
-            }) => {
-                quote! {
-                    const #ident #generics: #ty = <Self as #trait_ident #trait_generics>::#ident;
-                }
-            }
-            TraitItem::Fn(trait_item_fn) => {
-                let sig = &trait_item_fn.sig;
-                let (receiver, mut args) = invoke_fn_args(sig);
-                if receiver.is_some() {
-                    args.insert(0, quote!(self));
-                }
-                let ident = &sig.ident;
-                quote! {
-                    #sig {
-                        Box::pin(<Self as #trait_ident #trait_generics>::#ident(#(#args),*))
+fn mk_erased_trait_blanket_impl(item_trait: &ItemTrait) -> TokenStream {
+    let trait_ident = &item_trait.ident;
+    let (_, trait_generics, _) = &item_trait.generics.split_for_impl();
+    let items = dyn_compatible_items(&item_trait.items)
+        .cloned()
+        .map(|trait_item| {
+            match trait_item {
+                TraitItem::Const(TraitItemConst {
+                    ident,
+                    generics,
+                    ty,
+                    ..
+                }) => {
+                    quote! {
+                        const #ident #generics: #ty = <Self as #trait_ident #trait_generics>::#ident;
                     }
                 }
-            }
-            TraitItem::Type(TraitItemType {
-                ident, generics, .. }) => {
-                let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
-                quote! {
-                    type #ident #impl_generics = <Self as #trait_ident #trait_generics>:: #ident #ty_generics #where_clause;
+                TraitItem::Fn(mut trait_item_fn) => {
+                    expand_fn(&item_trait.generics, &mut trait_item_fn);
+                    let sig = &trait_item_fn.sig;
+                    let (receiver, mut args) = invoke_fn_args(sig);
+                    if receiver.is_some() {
+                        args.insert(0, quote!(self));
+                    }
+                    let ident = &sig.ident;
+                    quote! {
+                        #sig {
+                            Box::pin(<Self as #trait_ident #trait_generics>::#ident(#(#args),*))
+                        }
+                    }
                 }
+                TraitItem::Type(TraitItemType {
+                    ident, generics, .. }) => {
+                    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+                    quote! {
+                        type #ident #impl_generics = <Self as #trait_ident #trait_generics>:: #ident #ty_generics #where_clause;
+                    }
+                }
+                _ => Error::new_spanned(trait_item, "unsupported item type").into_compile_error(),
             }
-            _ => Error::new_spanned(item, "unsupported item type").into_compile_error(),
-        }
-    });
+        });
     let blanket_bound: TypeParam = parse_quote!(DYNOSAUR: #trait_ident #trait_generics);
     let blanket = &blanket_bound.ident.clone();
-    let mut blanket_generics = erased_trait.generics.clone();
+    let erased_trait_ident = trait_item_erased_name(&trait_ident);
+    let mut blanket_generics = item_trait.generics.clone();
     blanket_generics
         .params
         .push(GenericParam::Type(blanket_bound));
