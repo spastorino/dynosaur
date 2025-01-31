@@ -39,28 +39,28 @@ use syn::{
 pub fn expand_trait_async_fns_to_dyn(item_trait: &ItemTrait) -> ItemTrait {
     let mut item_trait = item_trait.clone();
 
-    for trait_item_fn in impl_trait_fns_iter(&mut item_trait.items) {
-        expand_async_fn_input(&item_trait.generics, trait_item_fn);
-        expand_async_fn_output(trait_item_fn);
-        remove_asyncness_from_fn(&mut trait_item_fn.sig);
+    for item in &mut item_trait.items {
+        if let TraitItem::Fn(trait_item_fn) = item {
+            if is_async_or_rpit(trait_item_fn) {
+                expand_async_fn_input(&item_trait.generics, trait_item_fn);
+                expand_async_fn_output(trait_item_fn);
+                remove_asyncness_from_fn(&mut trait_item_fn.sig);
+            }
+        }
     }
 
     item_trait
 }
 
-fn impl_trait_fns_iter(
-    item_trait_items: &mut Vec<TraitItem>,
-) -> impl Iterator<Item = &mut TraitItemFn> {
-    item_trait_items.iter_mut().filter_map(|item| match item {
-        TraitItem::Fn(
-            trait_item_fn @ TraitItemFn {
-                sig: Signature {
-                    asyncness: Some(_), ..
-                },
-                ..
+fn is_async_or_rpit(trait_item_fn: &TraitItemFn) -> bool {
+    match trait_item_fn {
+        TraitItemFn {
+            sig: Signature {
+                asyncness: Some(_), ..
             },
-        ) => Some(trait_item_fn),
-        TraitItem::Fn(TraitItemFn {
+            ..
+        } => true,
+        TraitItemFn {
             sig:
                 Signature {
                     asyncness: None,
@@ -68,16 +68,11 @@ fn impl_trait_fns_iter(
                     ..
                 },
             ..
-        }) => {
-            if matches!(**ret, Type::ImplTrait(_)) {
-                if let TraitItem::Fn(trait_item_fn) = item {
-                    return Some(trait_item_fn);
-                }
-            }
-            None
+        } => {
+            matches!(**ret, Type::ImplTrait(_))
         }
-        _ => None,
-    })
+        _ => false,
+    }
 }
 
 pub fn remove_asyncness_from_fn(sig: &mut Signature) {
