@@ -156,8 +156,7 @@ pub fn dynosaur(
     let erased_trait_blanket_impl = mk_erased_trait_blanket_impl(&item_trait);
     let dyn_struct = mk_dyn_struct(&struct_ident, &item_trait);
     let dyn_struct_impl_item = mk_dyn_struct_impl_item(struct_ident, &item_trait);
-    let struct_inherent_impl =
-        mk_struct_inherent_impl(&struct_ident, &item_trait.ident, &erased_trait);
+    let struct_inherent_impl = mk_struct_inherent_impl(&struct_ident, &item_trait);
     let dynosaur_mod = Ident::new(
         &format!(
             "_dynosaur_macro_{}",
@@ -436,16 +435,14 @@ fn mk_dyn_struct_impl_item(struct_ident: &Ident, item_trait: &ItemTrait) -> Toke
     }
 }
 
-fn mk_struct_inherent_impl(
-    struct_ident: &Ident,
-    trait_ident: &Ident,
-    erased_trait: &ItemTrait,
-) -> TokenStream {
+fn mk_struct_inherent_impl(struct_ident: &Ident, item_trait: &ItemTrait) -> TokenStream {
+    let trait_ident = &item_trait.ident;
+    let erased_trait = mk_erased_trait(item_trait);
     let StructTraitParams {
         struct_params,
         struct_with_bounds_params,
         trait_params,
-    } = struct_trait_params(erased_trait);
+    } = struct_trait_params(&erased_trait);
     let erased_trait_ident = &erased_trait.ident;
 
     let mut where_bounds: Punctuated<_, Token![,]> = Punctuated::new();
