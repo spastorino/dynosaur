@@ -197,6 +197,7 @@ fn mk_erased_trait(item_trait: &ItemTrait) -> ItemTrait {
                         rpit_fn_to_dyn(&item_trait.generics, &mut trait_item_fn);
                     }
 
+                    // Remove default method if any for the erased trait
                     trait_item_fn.default = None;
                     items.push(TraitItem::Fn(trait_item_fn));
                 }
