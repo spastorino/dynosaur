@@ -217,40 +217,39 @@ fn mk_erased_trait_blanket_impl(trait_ident: &Ident, erased_trait: &ItemTrait) -
     let erased_trait_ident = &erased_trait.ident;
     let (_, trait_generics, _) = &erased_trait.generics.split_for_impl();
     let items = erased_trait.items.iter().map(|item| {
-        impl_item(
-            item,
-            |TraitItemConst {
-                 ident,
-                 generics,
-                 ty,
-                 ..
-             }| {
+        match item {
+            TraitItem::Const(TraitItemConst {
+                ident,
+                generics,
+                ty,
+                ..
+            }) => {
                 quote! {
                     const #ident #generics: #ty = <Self as #trait_ident #trait_generics>::#ident;
                 }
-            },
-            |TraitItemFn {
-                 sig,
-                 ..
-             }| {
-                 let (receiver, mut args) = invoke_fn_args(sig);
-                 if receiver.is_some() {
-                     args.insert(0, quote!(self));
-                 }
-                 let ident = &sig.ident;
-                 quote! {
-                     #sig {
-                         Box::pin(<Self as #trait_ident #trait_generics>::#ident(#(#args),*))
-                     }
-                 }
-            },
-            |TraitItemType {
-                ident, generics, .. }| {
-                    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
-                    quote! {
-                        type #ident #impl_generics = <Self as #trait_ident #trait_generics>:: #ident #ty_generics #where_clause;
+            }
+            TraitItem::Fn(trait_item_fn) => {
+                let sig = &trait_item_fn.sig;
+                let (receiver, mut args) = invoke_fn_args(sig);
+                if receiver.is_some() {
+                    args.insert(0, quote!(self));
+                }
+                let ident = &sig.ident;
+                quote! {
+                    #sig {
+                        Box::pin(<Self as #trait_ident #trait_generics>::#ident(#(#args),*))
                     }
-                })
+                }
+            }
+            TraitItem::Type(TraitItemType {
+                ident, generics, .. }) => {
+                let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+                quote! {
+                    type #ident #impl_generics = <Self as #trait_ident #trait_generics>:: #ident #ty_generics #where_clause;
+                }
+            }
+            _ => Error::new_spanned(item, "unsupported item type").into_compile_error(),
+        }
     });
     let blanket_bound: TypeParam = parse_quote!(DYNOSAUR: #trait_ident #trait_generics);
     let blanket = &blanket_bound.ident.clone();
@@ -264,20 +263,6 @@ fn mk_erased_trait_blanket_impl(trait_ident: &Ident, erased_trait: &ItemTrait) -
         {
             #(#items)*
         }
-    }
-}
-
-fn impl_item(
-    item: &TraitItem,
-    item_const_fn: impl Fn(&TraitItemConst) -> TokenStream,
-    item_fn_fn: impl Fn(&TraitItemFn) -> TokenStream,
-    item_type_fn: impl Fn(&TraitItemType) -> TokenStream,
-) -> TokenStream {
-    match item {
-        TraitItem::Const(trait_item_const) => item_const_fn(trait_item_const),
-        TraitItem::Fn(trait_item_fn) => item_fn_fn(trait_item_fn),
-        TraitItem::Type(trait_item_type) => item_type_fn(trait_item_type),
-        _ => Error::new_spanned(item, "unsupported item type").into_compile_error(),
     }
 }
 
@@ -368,53 +353,54 @@ fn mk_dyn_struct_impl_item(struct_ident: &Ident, item_trait: &ItemTrait) -> Toke
     let (_, trait_generics, where_clause) = &item_trait.generics.split_for_impl();
 
     let items = item_trait.items.iter().map(|item| {
-        impl_item(item,
-            |TraitItemConst {
+        match item {
+            TraitItem::Const(TraitItemConst {
                 ident,
                 generics,
                 ty,
                 ..
-            }| {
+            }) => {
                 quote! {
                     const #ident #generics: #ty = <Self as #item_trait_ident #trait_generics>::#ident;
                 }
-            },
-            |TraitItemFn {
-                 sig,
-                 ..
-             }| {
-                 let ident = &sig.ident;
-                 let mut sig = sig.clone();
-                 let (_, args) = invoke_fn_args(&sig);
-                 let (ret_arrow, ret) = expand_ret_ty(&sig);
-                 sig.output = parse_quote! { #ret_arrow impl #ret  };
-                 remove_fn_asyncness(&mut sig);
+            }
+            TraitItem::Fn(TraitItemFn {
+                sig,
+                ..
+            }) => {
+                let ident = &sig.ident;
+                let mut sig = sig.clone();
+                let (_, args) = invoke_fn_args(&sig);
+                let (ret_arrow, ret) = expand_ret_ty(&sig);
+                sig.output = parse_quote! { #ret_arrow impl #ret  };
+                remove_fn_asyncness(&mut sig);
 
-                 if has_where_self_sized(&mut sig) {
-                     quote! {
-                         #sig {
-                             let fut: ::core::pin::Pin<Box<dyn #ret + 'static>> = unreachable!();
-                             fut
-                         }
-                     }
-                 } else {
-                     quote! {
-                         #sig {
-                             let fut: ::core::pin::Pin<Box<dyn #ret + '_>> = self.ptr.#ident(#(#args),*);
-                             let fut: ::core::pin::Pin<Box<dyn #ret + 'static>> = unsafe { ::core::mem::transmute(fut) };
-                             fut
-                         }
-                     }
-                 }
-            },
-            |TraitItemType {
-                ident, generics, .. }| {
-                    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+                if has_where_self_sized(&mut sig) {
                     quote! {
-                        type #ident #impl_generics = #ident #ty_generics #where_clause;
+                        #sig {
+                            let fut: ::core::pin::Pin<Box<dyn #ret + 'static>> = unreachable!();
+                            fut
+                        }
+                    }
+                } else {
+                    quote! {
+                        #sig {
+                            let fut: ::core::pin::Pin<Box<dyn #ret + '_>> = self.ptr.#ident(#(#args),*);
+                            let fut: ::core::pin::Pin<Box<dyn #ret + 'static>> = unsafe { ::core::mem::transmute(fut) };
+                            fut
+                        }
                     }
                 }
-        )
+            }
+            TraitItem::Type(TraitItemType {
+                ident, generics, .. }) => {
+                let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+                quote! {
+                    type #ident #impl_generics = #ident #ty_generics #where_clause;
+                }
+            }
+            _ => Error::new_spanned(item, "unsupported item type").into_compile_error(),
+        }
     });
 
     let StructTraitParams {
