@@ -1,4 +1,4 @@
-use expand::{expand_fn, expand_ret_ty, remove_fn_asyncness};
+use expand::{expand_fn, expand_ret_ty, is_async_or_rpit, remove_fn_asyncness};
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{
@@ -6,7 +6,7 @@ use syn::{
     parse_macro_input, parse_quote,
     punctuated::Punctuated,
     Error, FnArg, GenericParam, Ident, ItemTrait, Pat, PatType, Receiver, Result, Signature, Token,
-    TraitItem, TraitItemConst, TraitItemFn, TraitItemType, TypeParam,
+    TraitItem, TraitItemConst, TraitItemType, TypeParam,
 };
 use where_clauses::has_where_self_sized;
 
@@ -234,6 +234,7 @@ fn mk_erased_trait_blanket_impl(item_trait: &ItemTrait) -> TokenStream {
                     }
                 }
                 TraitItem::Fn(mut trait_item_fn) => {
+                    let is_async_or_rpit = is_async_or_rpit(&trait_item_fn);
                     expand_fn(&item_trait.generics, &mut trait_item_fn);
                     let sig = &trait_item_fn.sig;
                     let (receiver, mut args) = invoke_fn_args(sig);
@@ -241,9 +242,17 @@ fn mk_erased_trait_blanket_impl(item_trait: &ItemTrait) -> TokenStream {
                         args.insert(0, quote!(self));
                     }
                     let ident = &sig.ident;
-                    quote! {
-                        #sig {
-                            Box::pin(<Self as #trait_ident #trait_generics>::#ident(#(#args),*))
+                    if is_async_or_rpit {
+                        quote! {
+                            #sig {
+                                Box::pin(<Self as #trait_ident #trait_generics>::#ident(#(#args),*))
+                            }
+                        }
+                    } else {
+                        quote! {
+                            #sig {
+                                <Self as #trait_ident #trait_generics>::#ident(#(#args),*)
+                            }
                         }
                     }
                 }
@@ -371,30 +380,38 @@ fn mk_dyn_struct_impl_item(struct_ident: &Ident, item_trait: &ItemTrait) -> Toke
                     const #ident #generics: #ty = <Self as #item_trait_ident #trait_generics>::#ident;
                 }
             }
-            TraitItem::Fn(TraitItemFn {
-                sig,
-                ..
-            }) => {
+            TraitItem::Fn(trait_item_fn) => {
+                let is_async_or_rpit = is_async_or_rpit(&trait_item_fn);
+                let sig = &trait_item_fn.sig;
                 let ident = &sig.ident;
                 let mut sig = sig.clone();
                 let (_, args) = invoke_fn_args(&sig);
-                let (ret_arrow, ret) = expand_ret_ty(&sig);
-                sig.output = parse_quote! { #ret_arrow impl #ret  };
-                remove_fn_asyncness(&mut sig);
 
-                if has_where_self_sized(&mut sig) {
-                    quote! {
-                        #sig {
-                            let fut: ::core::pin::Pin<Box<dyn #ret + 'static>> = unreachable!();
-                            fut
+                if is_async_or_rpit {
+                    let (ret_arrow, ret) = expand_ret_ty(&sig);
+                    sig.output = parse_quote! { #ret_arrow impl #ret  };
+                    remove_fn_asyncness(&mut sig);
+
+                    if has_where_self_sized(&mut sig) {
+                        quote! {
+                            #sig {
+                                let fut: ::core::pin::Pin<Box<dyn #ret + 'static>> = unreachable!();
+                                fut
+                            }
+                        }
+                    } else {
+                        quote! {
+                            #sig {
+                                let fut: ::core::pin::Pin<Box<dyn #ret + '_>> = self.ptr.#ident(#(#args),*);
+                                let fut: ::core::pin::Pin<Box<dyn #ret + 'static>> = unsafe { ::core::mem::transmute(fut) };
+                                fut
+                            }
                         }
                     }
                 } else {
                     quote! {
                         #sig {
-                            let fut: ::core::pin::Pin<Box<dyn #ret + '_>> = self.ptr.#ident(#(#args),*);
-                            let fut: ::core::pin::Pin<Box<dyn #ret + 'static>> = unsafe { ::core::mem::transmute(fut) };
-                            fut
+                            self.ptr.#ident(#(#args),*)
                         }
                     }
                 }
