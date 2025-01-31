@@ -184,33 +184,37 @@ pub fn dynosaur(
 }
 
 fn mk_erased_trait(item_trait: &ItemTrait) -> ItemTrait {
-    let mut items = Vec::new();
-
-    for trait_item in &item_trait.items {
-        let trait_item = trait_item.clone();
-
-        match trait_item {
-            TraitItem::Fn(mut trait_item_fn) => {
-                // ignore if Self: Sized
-                if !has_where_self_sized(&mut trait_item_fn.sig) {
-                    if is_async_or_rpit(&trait_item_fn) {
-                        rpit_fn_to_dyn(&item_trait.generics, &mut trait_item_fn);
-                    }
-
-                    // Remove default method if any for the erased trait
-                    trait_item_fn.default = None;
-                    items.push(TraitItem::Fn(trait_item_fn));
+    let items: Vec<_> = dyn_compatible_items(&item_trait.items)
+        .cloned()
+        .map(|mut trait_item| {
+            if let TraitItem::Fn(ref mut trait_item_fn) = trait_item {
+                if is_async_or_rpit(trait_item_fn) {
+                    rpit_fn_to_dyn(&item_trait.generics, trait_item_fn);
                 }
+
+                // Remove default method if any for the erased trait
+                trait_item_fn.default = None;
             }
-            _ => items.push(trait_item),
-        }
-    }
+
+            trait_item
+        })
+        .collect();
 
     ItemTrait {
         ident: Ident::new(&format!("Erased{}", item_trait.ident), Span::call_site()),
         items,
         ..item_trait.clone()
     }
+}
+
+/// Remove Self: Sized fns
+fn dyn_compatible_items(item_trait_items: &[TraitItem]) -> impl Iterator<Item = &TraitItem> {
+    item_trait_items
+        .iter()
+        .filter_map(|trait_item| match trait_item {
+            TraitItem::Fn(trait_item_fn) if has_where_self_sized(&trait_item_fn.sig) => None,
+            _ => Some(trait_item),
+        })
 }
 
 fn mk_erased_trait_blanket_impl(trait_ident: &Ident, erased_trait: &ItemTrait) -> TokenStream {
