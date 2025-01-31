@@ -201,7 +201,7 @@ fn mk_erased_trait(item_trait: &ItemTrait) -> ItemTrait {
         .collect();
 
     ItemTrait {
-        ident: Ident::new(&format!("Erased{}", item_trait.ident), Span::call_site()),
+        ident: trait_item_erased_name(&item_trait.ident),
         items,
         ..item_trait.clone()
     }
@@ -215,6 +215,10 @@ fn dyn_compatible_items(item_trait_items: &[TraitItem]) -> impl Iterator<Item = 
             TraitItem::Fn(trait_item_fn) if has_where_self_sized(&trait_item_fn.sig) => None,
             _ => Some(trait_item),
         })
+}
+
+fn trait_item_erased_name(trait_ident: &Ident) -> Ident {
+    Ident::new(&format!("Erased{}", trait_ident), Span::call_site())
 }
 
 fn mk_erased_trait_blanket_impl(trait_ident: &Ident, erased_trait: &ItemTrait) -> TokenStream {
