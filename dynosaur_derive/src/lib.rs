@@ -1,4 +1,4 @@
-use expand::{expand_async_ret_ty, expand_trait_async_fns_to_dyn, remove_asyncness_from_fn};
+use expand::{expand_ret_ty, is_async_or_rpit, remove_fn_asyncness, rpit_fn_to_dyn};
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{
@@ -152,8 +152,7 @@ pub fn dynosaur(
 
     let vis = &item_trait.vis;
     let struct_ident = &attrs.ident;
-    let expanded_trait_to_dyn = expand_trait_async_fns_to_dyn(&item_trait);
-    let erased_trait = mk_erased_trait(&expanded_trait_to_dyn);
+    let erased_trait = mk_erased_trait(&item_trait);
     let erased_trait_blanket_impl = mk_erased_trait_blanket_impl(&item_trait.ident, &erased_trait);
     let dyn_struct = mk_dyn_struct(&struct_ident, &erased_trait);
     let dyn_struct_impl_item = mk_dyn_struct_impl_item(struct_ident, &item_trait);
@@ -194,6 +193,10 @@ fn mk_erased_trait(item_trait: &ItemTrait) -> ItemTrait {
             TraitItem::Fn(mut trait_item_fn) => {
                 // ignore if Self: Sized
                 if !has_where_self_sized(&mut trait_item_fn.sig) {
+                    if is_async_or_rpit(&trait_item_fn) {
+                        rpit_fn_to_dyn(&item_trait.generics, &mut trait_item_fn);
+                    }
+
                     trait_item_fn.default = None;
                     items.push(TraitItem::Fn(trait_item_fn));
                 }
@@ -382,9 +385,9 @@ fn mk_dyn_struct_impl_item(struct_ident: &Ident, item_trait: &ItemTrait) -> Toke
                  let ident = &sig.ident;
                  let mut sig = sig.clone();
                  let (_, args) = invoke_fn_args(&sig);
-                 let (ret_arrow, ret) = expand_async_ret_ty(&sig);
+                 let (ret_arrow, ret) = expand_ret_ty(&sig);
                  sig.output = parse_quote! { #ret_arrow impl #ret  };
-                 remove_asyncness_from_fn(&mut sig);
+                 remove_fn_asyncness(&mut sig);
 
                  if has_where_self_sized(&mut sig) {
                      quote! {
