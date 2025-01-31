@@ -6,7 +6,7 @@ use syn::{
     parse_macro_input, parse_quote,
     punctuated::Punctuated,
     Error, FnArg, GenericParam, Ident, ItemTrait, Pat, PatType, Receiver, Result, Signature, Token,
-    TraitItem, TraitItemConst, TraitItemType, TypeParam,
+    TraitItem, TraitItemConst, TraitItemFn, TraitItemType, TypeParam,
 };
 use where_clauses::has_where_self_sized;
 
@@ -379,22 +379,20 @@ fn mk_dyn_struct_impl_item(struct_ident: &Ident, item_trait: &ItemTrait) -> Toke
                     const #ident #generics: #ty = <Self as #item_trait_ident #trait_generics>::#ident;
                 }
             }
-            TraitItem::Fn(trait_item_fn) => {
-                let is_async_or_rpit = is_async_or_rpit(&trait_item_fn.sig);
-                let sig = &trait_item_fn.sig;
-                let ident = &sig.ident;
-                let mut sig = sig.clone();
-                let (_, args) = invoke_fn_args(&sig);
-
-                if is_async_or_rpit {
-                    if has_where_self_sized(&mut sig) {
-                        quote! {
-                            #sig {
-                                unreachable!()
-                            }
+            TraitItem::Fn(TraitItemFn { sig, .. }) => {
+                if has_where_self_sized(&sig) {
+                    quote! {
+                        #sig {
+                            unreachable!()
                         }
-                    } else {
+                    }
+                } else {
+                    let ident = &sig.ident;
+                    let (_, args) = invoke_fn_args(&sig);
+
+                    if is_async_or_rpit(&sig) {
                         let (_, ret) = expand_ret_ty(&sig);
+                        let mut sig = sig.clone();
                         expand_sig_ret_ty_to_rpit(&mut sig);
 
                         quote! {
@@ -404,11 +402,11 @@ fn mk_dyn_struct_impl_item(struct_ident: &Ident, item_trait: &ItemTrait) -> Toke
                                 fut
                             }
                         }
-                    }
-                } else {
-                    quote! {
-                        #sig {
-                            self.ptr.#ident(#(#args),*)
+                    } else {
+                        quote! {
+                            #sig {
+                                self.ptr.#ident(#(#args),*)
+                            }
                         }
                     }
                 }
