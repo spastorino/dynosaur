@@ -387,17 +387,16 @@ fn mk_dyn_struct_impl_item(struct_ident: &Ident, item_trait: &ItemTrait) -> Toke
                 let (_, args) = invoke_fn_args(&sig);
 
                 if is_async_or_rpit {
-                    let (_, ret) = expand_ret_ty(&sig);
-                    expand_sig_ret_ty_to_rpit(&mut sig);
-
                     if has_where_self_sized(&mut sig) {
                         quote! {
                             #sig {
-                                let fut: ::core::pin::Pin<Box<dyn #ret + 'static>> = unreachable!();
-                                fut
+                                unreachable!()
                             }
                         }
                     } else {
+                        let (_, ret) = expand_ret_ty(&sig);
+                        expand_sig_ret_ty_to_rpit(&mut sig);
+
                         quote! {
                             #sig {
                                 let fut: ::core::pin::Pin<Box<dyn #ret + '_>> = self.ptr.#ident(#(#args),*);

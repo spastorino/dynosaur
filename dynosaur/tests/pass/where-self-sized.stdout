@@ -35,13 +35,9 @@ mod _dynosaur_macro_dynmytrait {
         ptr: dyn ErasedMyTrait + 'dynosaur_struct,
     }
     impl<'dynosaur_struct> MyTrait for DynMyTrait<'dynosaur_struct> {
-        fn foo(&mut self) -> impl ::core::future::Future<Output = ()> where
-            Self: Sized {
-            let fut:
-                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
-                    ()> + 'static>> =
-                ::core::panicking::panic("internal error: entered unreachable code");
-            fut
+        async fn foo(&mut self) where Self: Sized {
+
+            ::core::panicking::panic("internal error: entered unreachable code")
         }
         fn bar(&mut self) -> impl ::core::future::Future<Output = ()> {
             let fut:
