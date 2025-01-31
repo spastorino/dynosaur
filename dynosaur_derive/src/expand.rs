@@ -40,8 +40,7 @@ pub(crate) fn expand_fn_sig(item_trait_generics: &Generics, trait_item_fn: &mut 
 
     if is_async_or_rpit(sig) {
         expand_fn_input(item_trait_generics, sig);
-        expand_fn_output(sig);
-        remove_fn_asyncness(sig);
+        expand_sig_ret_ty_to_pin_box(sig);
     }
 
     // Remove default method if any for the erased trait
@@ -61,12 +60,6 @@ pub(crate) fn is_async_or_rpit(sig: &Signature) -> bool {
             matches!(**ret, Type::ImplTrait(_))
         }
         _ => false,
-    }
-}
-
-pub fn remove_fn_asyncness(sig: &mut Signature) {
-    if let Some(asyncness) = sig.asyncness.take() {
-        sig.fn_token.span = asyncness.span;
     }
 }
 
@@ -146,9 +139,20 @@ fn expand_fn_input(item_trait_generics: &Generics, sig: &mut Signature) {
     }
 }
 
-pub(crate) fn expand_fn_output(sig: &mut Signature) {
-    let (ret_arrow, ret) = expand_ret_ty(sig);
-    sig.output = parse_quote! { #ret_arrow ::core::pin::Pin<Box<dyn #ret + 'dynosaur>> };
+pub(crate) fn expand_sig_ret_ty_to_pin_box(sig: &mut Signature) {
+    let (arrow, ret) = expand_ret_ty(sig);
+    if let Some(asyncness) = sig.asyncness.take() {
+        sig.fn_token.span = asyncness.span;
+    }
+    sig.output = parse_quote! { #arrow ::core::pin::Pin<Box<dyn #ret + 'dynosaur>> };
+}
+
+pub(crate) fn expand_sig_ret_ty_to_rpit(sig: &mut Signature) {
+    let (arrow, ret) = expand_ret_ty(sig);
+    if let Some(asyncness) = sig.asyncness.take() {
+        sig.fn_token.span = asyncness.span;
+    }
+    sig.output = parse_quote! { #arrow impl #ret };
 }
 
 pub(crate) fn expand_ret_ty(sig: &Signature) -> (RArrow, TokenStream) {

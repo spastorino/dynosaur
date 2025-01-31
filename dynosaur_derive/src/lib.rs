@@ -1,4 +1,4 @@
-use expand::{expand_fn_sig, expand_ret_ty, is_async_or_rpit, remove_fn_asyncness};
+use expand::{expand_fn_sig, expand_ret_ty, expand_sig_ret_ty_to_rpit, is_async_or_rpit};
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{
@@ -387,9 +387,8 @@ fn mk_dyn_struct_impl_item(struct_ident: &Ident, item_trait: &ItemTrait) -> Toke
                 let (_, args) = invoke_fn_args(&sig);
 
                 if is_async_or_rpit {
-                    let (ret_arrow, ret) = expand_ret_ty(&sig);
-                    sig.output = parse_quote! { #ret_arrow impl #ret  };
-                    remove_fn_asyncness(&mut sig);
+                    let (_, ret) = expand_ret_ty(&sig);
+                    expand_sig_ret_ty_to_rpit(&mut sig);
 
                     if has_where_self_sized(&mut sig) {
                         quote! {
