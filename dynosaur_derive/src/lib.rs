@@ -154,7 +154,7 @@ pub fn dynosaur(
     let struct_ident = &attrs.ident;
     let erased_trait = mk_erased_trait(&item_trait);
     let erased_trait_blanket_impl = mk_erased_trait_blanket_impl(&item_trait);
-    let dyn_struct = mk_dyn_struct(&struct_ident, &erased_trait);
+    let dyn_struct = mk_dyn_struct(&struct_ident, &item_trait);
     let dyn_struct_impl_item = mk_dyn_struct_impl_item(struct_ident, &item_trait);
     let struct_inherent_impl =
         mk_struct_inherent_impl(&struct_ident, &item_trait.ident, &erased_trait);
@@ -307,13 +307,14 @@ fn invoke_fn_args(sig: &Signature) -> (Option<&Receiver>, Vec<TokenStream>) {
     (receiver, args)
 }
 
-fn mk_dyn_struct(struct_ident: &Ident, erased_trait: &ItemTrait) -> TokenStream {
+fn mk_dyn_struct(struct_ident: &Ident, item_trait: &ItemTrait) -> TokenStream {
+    let erased_trait = mk_erased_trait(&item_trait);
     let erased_trait_ident = &erased_trait.ident;
     let StructTraitParams {
         struct_with_bounds_params,
         trait_params,
         ..
-    } = struct_trait_params(erased_trait);
+    } = struct_trait_params(&erased_trait);
 
     quote! {
         #[repr(transparent)]
