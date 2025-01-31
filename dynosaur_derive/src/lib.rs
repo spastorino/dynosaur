@@ -391,7 +391,7 @@ fn mk_dyn_struct_impl_item(struct_ident: &Ident, item_trait: &ItemTrait) -> Toke
                     let (_, args) = invoke_fn_args(&sig);
 
                     if is_async_or_rpit(&sig) {
-                        let (_, ret) = expand_ret_ty(&sig);
+                        let ret = expand_ret_ty(&sig);
                         let mut sig = sig.clone();
                         expand_sig_ret_ty_to_rpit(&mut sig);
 

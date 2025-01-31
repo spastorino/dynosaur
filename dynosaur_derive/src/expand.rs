@@ -140,7 +140,7 @@ fn expand_fn_input(item_trait_generics: &Generics, sig: &mut Signature) {
 }
 
 pub(crate) fn expand_sig_ret_ty_to_pin_box(sig: &mut Signature) {
-    let (arrow, ret) = expand_ret_ty(sig);
+    let (arrow, ret) = expand_arrow_ret_ty(sig);
     if let Some(asyncness) = sig.asyncness.take() {
         sig.fn_token.span = asyncness.span;
     }
@@ -148,14 +148,18 @@ pub(crate) fn expand_sig_ret_ty_to_pin_box(sig: &mut Signature) {
 }
 
 pub(crate) fn expand_sig_ret_ty_to_rpit(sig: &mut Signature) {
-    let (arrow, ret) = expand_ret_ty(sig);
+    let (arrow, ret) = expand_arrow_ret_ty(sig);
     if let Some(asyncness) = sig.asyncness.take() {
         sig.fn_token.span = asyncness.span;
     }
     sig.output = parse_quote! { #arrow impl #ret };
 }
 
-pub(crate) fn expand_ret_ty(sig: &Signature) -> (RArrow, TokenStream) {
+pub(crate) fn expand_ret_ty(sig: &Signature) -> TokenStream {
+    expand_arrow_ret_ty(sig).1
+}
+
+fn expand_arrow_ret_ty(sig: &Signature) -> (RArrow, TokenStream) {
     match (sig.asyncness.is_some(), &sig.output) {
         (true, ReturnType::Default) => {
             return (
