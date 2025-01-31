@@ -162,31 +162,28 @@ pub(crate) fn expand_fn_output(trait_item_fn: &mut TraitItemFn) {
 }
 
 pub(crate) fn expand_ret_ty(sig: &Signature) -> (RArrow, TokenStream) {
-    let is_async = sig.asyncness.is_some();
-
-    if is_async {
-        let (ret_arrow, ret) = match &sig.output {
-            ReturnType::Default => (Token![->](Span::call_site()), quote!(())),
-            ReturnType::Type(arrow, ret) => (*arrow, quote!(#ret)),
-        };
-
-        (ret_arrow, quote! { ::core::future::Future<Output = #ret> })
-    } else {
-        if let ReturnType::Type(ret_arrow, ret) = &sig.output {
-            match &**ret {
-                Type::ImplTrait(TypeImplTrait { bounds, .. }) => (*ret_arrow, quote!(#bounds)),
-                _ => (
-                    Token![->](Span::call_site()),
-                    Error::new_spanned(&sig.output, "wrong return type").to_compile_error(),
-                ),
-            }
-        } else {
-            (
+    match (sig.asyncness.is_some(), &sig.output) {
+        (true, ReturnType::Default) => {
+            return (
                 Token![->](Span::call_site()),
-                Error::new_spanned(&sig.output, "wrong return type").to_compile_error(),
-            )
+                quote! { ::core::future::Future<Output = ()> },
+            );
         }
+        (true, ReturnType::Type(arrow, ret)) => {
+            return (*arrow, quote! { ::core::future::Future<Output = #ret> });
+        }
+        (false, ReturnType::Type(arrow, ret)) => {
+            if let Type::ImplTrait(TypeImplTrait { bounds, .. }) = &**ret {
+                return (*arrow, quote!(#bounds));
+            }
+        }
+        _ => {}
     }
+
+    (
+        Token![->](Span::call_site()),
+        Error::new_spanned(&sig.output, "wrong return type").to_compile_error(),
+    )
 }
 
 fn used_lifetimes<'a>(
