@@ -1,4 +1,4 @@
-use expand::{expand_fn, expand_ret_ty, is_async_or_rpit, remove_fn_asyncness};
+use expand::{expand_fn_sig, expand_ret_ty, is_async_or_rpit, remove_fn_asyncness};
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{
@@ -188,7 +188,7 @@ fn mk_erased_trait(item_trait: &ItemTrait) -> ItemTrait {
         .cloned()
         .map(|mut trait_item| {
             if let TraitItem::Fn(ref mut trait_item_fn) = trait_item {
-                expand_fn(&item_trait.generics, trait_item_fn);
+                expand_fn_sig(&item_trait.generics, trait_item_fn);
             }
 
             trait_item
@@ -234,8 +234,8 @@ fn mk_erased_trait_blanket_impl(item_trait: &ItemTrait) -> TokenStream {
                     }
                 }
                 TraitItem::Fn(mut trait_item_fn) => {
-                    let is_async_or_rpit = is_async_or_rpit(&trait_item_fn);
-                    expand_fn(&item_trait.generics, &mut trait_item_fn);
+                    let is_async_or_rpit = is_async_or_rpit(&trait_item_fn.sig);
+                    expand_fn_sig(&item_trait.generics, &mut trait_item_fn);
                     let sig = &trait_item_fn.sig;
                     let (receiver, mut args) = invoke_fn_args(sig);
                     if receiver.is_some() {
@@ -380,7 +380,7 @@ fn mk_dyn_struct_impl_item(struct_ident: &Ident, item_trait: &ItemTrait) -> Toke
                 }
             }
             TraitItem::Fn(trait_item_fn) => {
-                let is_async_or_rpit = is_async_or_rpit(&trait_item_fn);
+                let is_async_or_rpit = is_async_or_rpit(&trait_item_fn.sig);
                 let sig = &trait_item_fn.sig;
                 let ident = &sig.ident;
                 let mut sig = sig.clone();
