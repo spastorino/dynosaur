@@ -5,7 +5,7 @@ use syn::{
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote,
     punctuated::Punctuated,
-    Error, FnArg, GenericParam, Ident, ItemTrait, Pat, PatType, Receiver, Result, Signature, Token,
+    Error, FnArg, GenericParam, Ident, ItemTrait, Pat, PatType, Result, Signature, Token,
     TraitItem, TraitItemConst, TraitItemFn, TraitItemType, TypeParam,
 };
 use where_clauses::has_where_self_sized;
@@ -236,13 +236,13 @@ fn mk_erased_trait_blanket_impl(item_trait: &ItemTrait) -> TokenStream {
                 }
                 TraitItem::Fn(mut trait_item_fn) => {
                     let is_async_or_rpit = is_async_or_rpit(&trait_item_fn.sig);
+
                     expand_fn_sig(&item_trait.generics, &mut trait_item_fn);
+
                     let sig = &trait_item_fn.sig;
-                    let (receiver, mut args) = invoke_fn_args(sig);
-                    if receiver.is_some() {
-                        args.insert(0, quote!(self));
-                    }
                     let ident = &sig.ident;
+                    let args = expand_invoke_args(sig, false);
+
                     if is_async_or_rpit {
                         quote! {
                             #sig {
@@ -282,14 +282,16 @@ fn mk_erased_trait_blanket_impl(item_trait: &ItemTrait) -> TokenStream {
     }
 }
 
-fn invoke_fn_args(sig: &Signature) -> (Option<&Receiver>, Vec<TokenStream>) {
-    let mut receiver = None;
+fn expand_invoke_args(sig: &Signature, ufc: bool) -> Vec<TokenStream> {
     let mut args = Vec::new();
 
     for arg in &sig.inputs {
         match arg {
-            FnArg::Receiver(fn_arg_receiver) => {
-                receiver = Some(fn_arg_receiver);
+            FnArg::Receiver(_) => {
+                if !ufc {
+                    // Do not need & or &mut as this is at calling site
+                    args.push(quote! { self });
+                }
             }
             FnArg::Typed(PatType { pat, .. }) => match &**pat {
                 Pat::Ident(arg) => {
@@ -305,7 +307,7 @@ fn invoke_fn_args(sig: &Signature) -> (Option<&Receiver>, Vec<TokenStream>) {
         }
     }
 
-    (receiver, args)
+    args
 }
 
 fn mk_dyn_struct(struct_ident: &Ident, item_trait: &ItemTrait) -> TokenStream {
@@ -390,7 +392,7 @@ fn mk_dyn_struct_impl_item(struct_ident: &Ident, item_trait: &ItemTrait) -> Toke
                     }
                 } else {
                     let ident = &sig.ident;
-                    let (_, args) = invoke_fn_args(&sig);
+                    let args = expand_invoke_args(&sig, true);
 
                     if is_async_or_rpit(&sig) {
                         let ret = expand_ret_ty(&sig);
