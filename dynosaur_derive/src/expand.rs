@@ -8,7 +8,8 @@ use syn::token::RArrow;
 use syn::visit_mut::VisitMut;
 use syn::{
     parse_quote, parse_quote_spanned, Error, FnArg, GenericParam, Generics, Lifetime,
-    LifetimeParam, ReturnType, Signature, Token, TraitItemFn, Type, TypeImplTrait, WhereClause,
+    LifetimeParam, Pat, PatType, ReturnType, Signature, Token, TraitItemFn, Type, TypeImplTrait,
+    WhereClause,
 };
 
 /// Expands the signature of each function on the trait, converting async fn into fn with return
@@ -157,6 +158,34 @@ pub(crate) fn expand_sig_ret_ty_to_rpit(sig: &mut Signature) {
 
 pub(crate) fn expand_ret_ty(sig: &Signature) -> TokenStream {
     expand_arrow_ret_ty(sig).1
+}
+
+pub(crate) fn expand_invoke_args(sig: &Signature, ufc: bool) -> Vec<TokenStream> {
+    let mut args = Vec::new();
+
+    for arg in &sig.inputs {
+        match arg {
+            FnArg::Receiver(_) => {
+                if !ufc {
+                    // Do not need & or &mut as this is at calling site
+                    args.push(quote! { self });
+                }
+            }
+            FnArg::Typed(PatType { pat, .. }) => match &**pat {
+                Pat::Ident(arg) => {
+                    args.push(quote! { #arg });
+                }
+                _ => {
+                    args.push(
+                        Error::new_spanned(pat, "patterns are not supported in arguments")
+                            .to_compile_error(),
+                    );
+                }
+            },
+        }
+    }
+
+    args
 }
 
 fn expand_arrow_ret_ty(sig: &Signature) -> (RArrow, TokenStream) {

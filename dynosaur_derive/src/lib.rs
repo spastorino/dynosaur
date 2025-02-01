@@ -1,18 +1,24 @@
-use expand::{expand_fn_sig, expand_ret_ty, expand_sig_ret_ty_to_rpit, is_async_or_rpit};
+use expand::{
+    expand_fn_sig, expand_invoke_args, expand_ret_ty, expand_sig_ret_ty_to_rpit, is_async_or_rpit,
+};
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote,
     punctuated::Punctuated,
-    Error, FnArg, GenericParam, Ident, ItemTrait, Pat, PatType, Result, Signature, Token,
-    TraitItem, TraitItemConst, TraitItemFn, TraitItemType, TypeParam,
+    Error, GenericParam, Ident, ItemTrait, Result, Token, TraitItem, TraitItemConst, TraitItemFn,
+    TraitItemType, TypeParam,
+};
+use traits::{
+    dyn_compatible_items, struct_trait_params, trait_item_erased_name, StructTraitParams,
 };
 use where_clauses::has_where_self_sized;
 
 mod expand;
 mod lifetime;
 mod receiver;
+mod traits;
 mod where_clauses;
 
 struct Attrs {
@@ -203,23 +209,11 @@ fn mk_erased_trait(item_trait: &ItemTrait) -> ItemTrait {
     }
 }
 
-/// Remove Self: Sized fns
-fn dyn_compatible_items(item_trait_items: &[TraitItem]) -> impl Iterator<Item = &TraitItem> {
-    item_trait_items
-        .iter()
-        .filter(|trait_item| match trait_item {
-            TraitItem::Fn(trait_item_fn) if has_where_self_sized(&trait_item_fn.sig) => false,
-            _ => true,
-        })
-}
-
-fn trait_item_erased_name(trait_ident: &Ident) -> Ident {
-    Ident::new(&format!("Erased{}", trait_ident), Span::call_site())
-}
-
 fn mk_erased_trait_blanket_impl(item_trait: &ItemTrait) -> TokenStream {
     let trait_ident = &item_trait.ident;
+    let erased_trait_ident = trait_item_erased_name(&trait_ident);
     let (_, trait_generics, _) = &item_trait.generics.split_for_impl();
+
     let items = dyn_compatible_items(&item_trait.items)
         .cloned()
         .map(|trait_item| {
@@ -266,48 +260,21 @@ fn mk_erased_trait_blanket_impl(item_trait: &ItemTrait) -> TokenStream {
                 _ => Error::new_spanned(trait_item, "unsupported item type").into_compile_error(),
             }
         });
+
     let blanket_bound: TypeParam = parse_quote!(DYNOSAUR: #trait_ident #trait_generics);
-    let blanket = &blanket_bound.ident.clone();
-    let erased_trait_ident = trait_item_erased_name(&trait_ident);
+    let blanket = blanket_bound.ident.clone();
     let mut blanket_generics = item_trait.generics.clone();
     blanket_generics
         .params
         .push(GenericParam::Type(blanket_bound));
     let (blanket_impl_generics, _, blanket_where_clause) = &blanket_generics.split_for_impl();
+
     quote! {
         impl #blanket_impl_generics #erased_trait_ident #trait_generics for #blanket #blanket_where_clause
         {
             #(#items)*
         }
     }
-}
-
-fn expand_invoke_args(sig: &Signature, ufc: bool) -> Vec<TokenStream> {
-    let mut args = Vec::new();
-
-    for arg in &sig.inputs {
-        match arg {
-            FnArg::Receiver(_) => {
-                if !ufc {
-                    // Do not need & or &mut as this is at calling site
-                    args.push(quote! { self });
-                }
-            }
-            FnArg::Typed(PatType { pat, .. }) => match &**pat {
-                Pat::Ident(arg) => {
-                    args.push(quote! { #arg });
-                }
-                _ => {
-                    args.push(
-                        Error::new_spanned(pat, "patterns are not supported in arguments")
-                            .to_compile_error(),
-                    );
-                }
-            },
-        }
-    }
-
-    args
 }
 
 fn mk_dyn_struct(struct_ident: &Ident, item_trait: &ItemTrait) -> TokenStream {
@@ -324,46 +291,6 @@ fn mk_dyn_struct(struct_ident: &Ident, item_trait: &ItemTrait) -> TokenStream {
         pub struct #struct_ident #struct_with_bounds_params {
             ptr: dyn #erased_trait_ident #trait_params + 'dynosaur_struct
         }
-    }
-}
-
-struct StructTraitParams {
-    struct_params: TokenStream,
-    struct_with_bounds_params: TokenStream,
-    trait_params: TokenStream,
-}
-
-fn struct_trait_params(item_trait: &ItemTrait) -> StructTraitParams {
-    let mut struct_params: Punctuated<_, Token![,]> = Punctuated::new();
-    let mut struct_with_bounds_params: Punctuated<_, Token![,]> = Punctuated::new();
-    let mut trait_params: Punctuated<_, Token![,]> = Punctuated::new();
-
-    struct_params.push(quote! { 'dynosaur_struct });
-    struct_with_bounds_params.push(quote! { 'dynosaur_struct });
-    item_trait.generics.params.iter().for_each(|item| {
-        struct_params.push(quote! { #item });
-        struct_with_bounds_params.push(quote! { #item });
-        trait_params.push(quote! { #item });
-    });
-    item_trait.items.iter().for_each(|item| match item {
-        TraitItem::Type(TraitItemType { ident, bounds, .. }) => {
-            struct_params.push(quote! { #ident });
-            struct_with_bounds_params.push(quote! { #ident: #bounds });
-            trait_params.push(quote! { #ident = #ident });
-        }
-        _ => {}
-    });
-
-    let trait_params = if trait_params.is_empty() {
-        quote! {}
-    } else {
-        quote! { <#trait_params> }
-    };
-
-    StructTraitParams {
-        struct_params: quote! { <#struct_params> },
-        struct_with_bounds_params: quote! { <#struct_with_bounds_params> },
-        trait_params,
     }
 }
 
