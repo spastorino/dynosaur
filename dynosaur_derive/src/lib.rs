@@ -206,9 +206,9 @@ fn mk_erased_trait(item_trait: &ItemTrait) -> ItemTrait {
 fn dyn_compatible_items(item_trait_items: &[TraitItem]) -> impl Iterator<Item = &TraitItem> {
     item_trait_items
         .iter()
-        .filter_map(|trait_item| match trait_item {
-            TraitItem::Fn(trait_item_fn) if has_where_self_sized(&trait_item_fn.sig) => None,
-            _ => Some(trait_item),
+        .filter(|trait_item| match trait_item {
+            TraitItem::Fn(trait_item_fn) if has_where_self_sized(&trait_item_fn.sig) => false,
+            _ => true,
         })
 }
 
@@ -256,8 +256,7 @@ fn mk_erased_trait_blanket_impl(item_trait: &ItemTrait) -> TokenStream {
                         }
                     }
                 }
-                TraitItem::Type(TraitItemType {
-                    ident, generics, .. }) => {
+                TraitItem::Type(TraitItemType { ident, generics, .. }) => {
                     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
                     quote! {
                         type #ident #impl_generics = <Self as #trait_ident #trait_generics>:: #ident #ty_generics #where_clause;
@@ -416,8 +415,7 @@ fn mk_dyn_struct_impl_item(struct_ident: &Ident, item_trait: &ItemTrait) -> Toke
                     }
                 }
             }
-            TraitItem::Type(TraitItemType {
-                ident, generics, .. }) => {
+            TraitItem::Type(TraitItemType { ident, generics, .. }) => {
                 let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
                 quote! {
                     type #ident #impl_generics = #ident #ty_generics #where_clause;
