@@ -1,0 +1,73 @@
+#![feature(prelude_import)]
+#[prelude_import]
+use std::prelude::rust_2021::*;
+#[macro_use]
+extern crate std;
+use dynosaur::dynosaur;
+
+pub trait JobQueue {
+    fn len(&self)
+    -> usize;
+    async fn dispatch(&self);
+}
+mod _dynosaur_macro_dynjobqueue {
+    use super::*;
+    pub trait ErasedJobQueue {
+        fn len(&self)
+        -> usize;
+        fn dispatch<'life0, 'dynosaur>(&'life0 self)
+        ->
+            ::core::pin::Pin<Box<dyn ::core::future::Future<Output = ()> +
+            'dynosaur>>
+        where
+        'life0: 'dynosaur,
+        Self: 'dynosaur;
+    }
+    impl<DYNOSAUR: JobQueue> ErasedJobQueue for DYNOSAUR {
+        fn len(&self) -> usize { <Self as JobQueue>::len(self) }
+        fn dispatch<'life0, 'dynosaur>(&'life0 self)
+            ->
+                ::core::pin::Pin<Box<dyn ::core::future::Future<Output = ()> +
+                'dynosaur>> where 'life0: 'dynosaur, Self: 'dynosaur {
+            Box::pin(<Self as JobQueue>::dispatch(self))
+        }
+    }
+    #[repr(transparent)]
+    pub struct DynJobQueue<'dynosaur_struct> {
+        ptr: dyn ErasedJobQueue + 'dynosaur_struct,
+    }
+    impl<'dynosaur_struct> JobQueue for DynJobQueue<'dynosaur_struct> {
+        fn len(&self) -> usize { self.ptr.len() }
+        fn dispatch(&self) -> impl ::core::future::Future<Output = ()> {
+            let fut:
+                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
+                    ()> + '_>> = self.ptr.dispatch();
+            let fut:
+                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
+                    ()> + 'static>> = unsafe { ::core::mem::transmute(fut) };
+            fut
+        }
+    }
+    impl<'dynosaur_struct> DynJobQueue<'dynosaur_struct> {
+        pub fn boxed(value: impl JobQueue + 'dynosaur_struct)
+            -> Box<DynJobQueue<'dynosaur_struct>> {
+            let value = Box::new(value);
+            let value: Box<dyn ErasedJobQueue + 'dynosaur_struct> = value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub fn from_ref(value: &(impl JobQueue + 'dynosaur_struct))
+            -> &DynJobQueue<'dynosaur_struct> {
+            let value: &(dyn ErasedJobQueue + 'dynosaur_struct) = &*value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub fn from_mut(value: &mut (impl JobQueue + 'dynosaur_struct))
+            -> &mut DynJobQueue<'dynosaur_struct> {
+            let value: &mut (dyn ErasedJobQueue + 'dynosaur_struct) =
+                &mut *value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+    }
+}
+pub use _dynosaur_macro_dynjobqueue::DynJobQueue;
+
+fn main() {}

@@ -7,9 +7,8 @@ use syn::punctuated::Punctuated;
 use syn::token::RArrow;
 use syn::visit_mut::VisitMut;
 use syn::{
-    parse_quote, parse_quote_spanned, Error, FnArg, GenericParam, Generics, ItemTrait, Lifetime,
-    LifetimeParam, ReturnType, Signature, Token, TraitItem, TraitItemFn, Type, TypeImplTrait,
-    WhereClause,
+    parse_quote, parse_quote_spanned, Error, FnArg, GenericParam, Generics, Lifetime,
+    LifetimeParam, ReturnType, Signature, Token, TraitItemFn, Type, TypeImplTrait, WhereClause,
 };
 
 /// Expands the signature of each function on the trait, converting async fn into fn with return
@@ -36,31 +35,26 @@ use syn::{
 ///     Self: 'dynosaur;
 /// }
 /// ```
-pub fn expand_trait_async_fns_to_dyn(item_trait: &ItemTrait) -> ItemTrait {
-    let mut item_trait = item_trait.clone();
-
-    for trait_item_fn in impl_trait_fns_iter(&mut item_trait.items) {
-        expand_async_fn_input(&item_trait.generics, trait_item_fn);
-        expand_async_fn_output(trait_item_fn);
-        remove_asyncness_from_fn(&mut trait_item_fn.sig);
+pub(crate) fn expand_fn(item_trait_generics: &Generics, trait_item_fn: &mut TraitItemFn) {
+    if is_async_or_rpit(trait_item_fn) {
+        expand_fn_input(item_trait_generics, trait_item_fn);
+        expand_fn_output(trait_item_fn);
+        remove_fn_asyncness(&mut trait_item_fn.sig);
     }
 
-    item_trait
+    // Remove default method if any for the erased trait
+    trait_item_fn.default = None;
 }
 
-fn impl_trait_fns_iter(
-    item_trait_items: &mut Vec<TraitItem>,
-) -> impl Iterator<Item = &mut TraitItemFn> {
-    item_trait_items.iter_mut().filter_map(|item| match item {
-        TraitItem::Fn(
-            trait_item_fn @ TraitItemFn {
-                sig: Signature {
-                    asyncness: Some(_), ..
-                },
-                ..
+pub(crate) fn is_async_or_rpit(trait_item_fn: &TraitItemFn) -> bool {
+    match trait_item_fn {
+        TraitItemFn {
+            sig: Signature {
+                asyncness: Some(_), ..
             },
-        ) => Some(trait_item_fn),
-        TraitItem::Fn(TraitItemFn {
+            ..
+        } => true,
+        TraitItemFn {
             sig:
                 Signature {
                     asyncness: None,
@@ -68,25 +62,20 @@ fn impl_trait_fns_iter(
                     ..
                 },
             ..
-        }) => {
-            if matches!(**ret, Type::ImplTrait(_)) {
-                if let TraitItem::Fn(trait_item_fn) = item {
-                    return Some(trait_item_fn);
-                }
-            }
-            None
+        } => {
+            matches!(**ret, Type::ImplTrait(_))
         }
-        _ => None,
-    })
+        _ => false,
+    }
 }
 
-pub fn remove_asyncness_from_fn(sig: &mut Signature) {
+pub fn remove_fn_asyncness(sig: &mut Signature) {
     if let Some(asyncness) = sig.asyncness.take() {
         sig.fn_token.span = asyncness.span;
     }
 }
 
-fn expand_async_fn_input(item_trait_generics: &Generics, trait_item_fn: &mut TraitItemFn) {
+fn expand_fn_input(item_trait_generics: &Generics, trait_item_fn: &mut TraitItemFn) {
     let sig = &mut trait_item_fn.sig;
 
     let mut lifetimes = CollectLifetimes::new();
@@ -164,15 +153,15 @@ fn expand_async_fn_input(item_trait_generics: &Generics, trait_item_fn: &mut Tra
     }
 }
 
-fn expand_async_fn_output(trait_item_fn: &mut TraitItemFn) {
+pub(crate) fn expand_fn_output(trait_item_fn: &mut TraitItemFn) {
     let sig = &mut trait_item_fn.sig;
 
-    let (ret_arrow, ret) = expand_async_ret_ty(sig);
+    let (ret_arrow, ret) = expand_ret_ty(sig);
     trait_item_fn.sig.output =
         parse_quote! { #ret_arrow ::core::pin::Pin<Box<dyn #ret + 'dynosaur>> };
 }
 
-pub fn expand_async_ret_ty(sig: &Signature) -> (RArrow, TokenStream) {
+pub(crate) fn expand_ret_ty(sig: &Signature) -> (RArrow, TokenStream) {
     let is_async = sig.asyncness.is_some();
 
     if is_async {
