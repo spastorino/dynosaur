@@ -15,6 +15,7 @@ use traits::{
 mod expand;
 mod lifetime;
 mod receiver;
+mod sig;
 mod traits;
 mod where_clauses;
 
