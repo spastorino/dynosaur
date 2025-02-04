@@ -1,7 +1,15 @@
+use syn::punctuated::Punctuated;
 use syn::visit::Visit;
 use syn::{PredicateType, Signature, Type, TypeParamBound, WhereClause, WherePredicate};
 
-pub fn has_where_self_sized(sig: &Signature) -> bool {
+pub(crate) fn where_clause_or_default(clause: &mut Option<WhereClause>) -> &mut WhereClause {
+    clause.get_or_insert_with(|| WhereClause {
+        where_token: Default::default(),
+        predicates: Punctuated::new(),
+    })
+}
+
+pub(crate) fn has_where_self_sized(sig: &Signature) -> bool {
     let mut visitor = SelfSized(false);
     visitor.visit_signature(sig);
     visitor.0
