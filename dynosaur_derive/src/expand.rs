@@ -8,7 +8,8 @@ use syn::token::RArrow;
 use syn::visit_mut::VisitMut;
 use syn::{
     parse_quote, parse_quote_spanned, Error, FnArg, GenericParam, Generics, Lifetime,
-    LifetimeParam, ReturnType, Signature, Token, TraitItemFn, Type, TypeImplTrait, WhereClause,
+    LifetimeParam, Pat, PatType, ReturnType, Signature, Token, TraitItemFn, Type, TypeImplTrait,
+    WhereClause,
 };
 
 /// Expands the signature of each function on the trait, converting async fn into fn with return
@@ -35,32 +36,26 @@ use syn::{
 ///     Self: 'dynosaur;
 /// }
 /// ```
-pub(crate) fn expand_fn(item_trait_generics: &Generics, trait_item_fn: &mut TraitItemFn) {
-    if is_async_or_rpit(trait_item_fn) {
-        expand_fn_input(item_trait_generics, trait_item_fn);
-        expand_fn_output(trait_item_fn);
-        remove_fn_asyncness(&mut trait_item_fn.sig);
+pub(crate) fn expand_fn_sig(item_trait_generics: &Generics, trait_item_fn: &mut TraitItemFn) {
+    let sig = &mut trait_item_fn.sig;
+
+    if is_async_or_rpit(sig) {
+        expand_fn_input(item_trait_generics, sig);
+        expand_sig_ret_ty_to_pin_box(sig);
     }
 
     // Remove default method if any for the erased trait
     trait_item_fn.default = None;
 }
 
-pub(crate) fn is_async_or_rpit(trait_item_fn: &TraitItemFn) -> bool {
-    match trait_item_fn {
-        TraitItemFn {
-            sig: Signature {
-                asyncness: Some(_), ..
-            },
-            ..
+pub(crate) fn is_async_or_rpit(sig: &Signature) -> bool {
+    match sig {
+        Signature {
+            asyncness: Some(_), ..
         } => true,
-        TraitItemFn {
-            sig:
-                Signature {
-                    asyncness: None,
-                    output: ReturnType::Type(_, ret),
-                    ..
-                },
+        Signature {
+            asyncness: None,
+            output: ReturnType::Type(_, ret),
             ..
         } => {
             matches!(**ret, Type::ImplTrait(_))
@@ -69,15 +64,7 @@ pub(crate) fn is_async_or_rpit(trait_item_fn: &TraitItemFn) -> bool {
     }
 }
 
-pub fn remove_fn_asyncness(sig: &mut Signature) {
-    if let Some(asyncness) = sig.asyncness.take() {
-        sig.fn_token.span = asyncness.span;
-    }
-}
-
-fn expand_fn_input(item_trait_generics: &Generics, trait_item_fn: &mut TraitItemFn) {
-    let sig = &mut trait_item_fn.sig;
-
+fn expand_fn_input(item_trait_generics: &Generics, sig: &mut Signature) {
     let mut lifetimes = CollectLifetimes::new();
     for arg in &mut sig.inputs {
         match arg {
@@ -153,40 +140,77 @@ fn expand_fn_input(item_trait_generics: &Generics, trait_item_fn: &mut TraitItem
     }
 }
 
-pub(crate) fn expand_fn_output(trait_item_fn: &mut TraitItemFn) {
-    let sig = &mut trait_item_fn.sig;
-
-    let (ret_arrow, ret) = expand_ret_ty(sig);
-    trait_item_fn.sig.output =
-        parse_quote! { #ret_arrow ::core::pin::Pin<Box<dyn #ret + 'dynosaur>> };
+pub(crate) fn expand_sig_ret_ty_to_pin_box(sig: &mut Signature) {
+    let (arrow, ret) = expand_arrow_ret_ty(sig);
+    if let Some(asyncness) = sig.asyncness.take() {
+        sig.fn_token.span = asyncness.span;
+    }
+    sig.output = parse_quote! { #arrow ::core::pin::Pin<Box<dyn #ret + 'dynosaur>> };
 }
 
-pub(crate) fn expand_ret_ty(sig: &Signature) -> (RArrow, TokenStream) {
-    let is_async = sig.asyncness.is_some();
+pub(crate) fn expand_sig_ret_ty_to_rpit(sig: &mut Signature) {
+    let (arrow, ret) = expand_arrow_ret_ty(sig);
+    if let Some(asyncness) = sig.asyncness.take() {
+        sig.fn_token.span = asyncness.span;
+    }
+    sig.output = parse_quote! { #arrow impl #ret };
+}
 
-    if is_async {
-        let (ret_arrow, ret) = match &sig.output {
-            ReturnType::Default => (Token![->](Span::call_site()), quote!(())),
-            ReturnType::Type(arrow, ret) => (*arrow, quote!(#ret)),
-        };
+pub(crate) fn expand_ret_ty(sig: &Signature) -> TokenStream {
+    expand_arrow_ret_ty(sig).1
+}
 
-        (ret_arrow, quote! { ::core::future::Future<Output = #ret> })
-    } else {
-        if let ReturnType::Type(ret_arrow, ret) = &sig.output {
-            match &**ret {
-                Type::ImplTrait(TypeImplTrait { bounds, .. }) => (*ret_arrow, quote!(#bounds)),
-                _ => (
-                    Token![->](Span::call_site()),
-                    Error::new_spanned(&sig.output, "wrong return type").to_compile_error(),
-                ),
+pub(crate) fn expand_invoke_args(sig: &Signature, ufc: bool) -> Vec<TokenStream> {
+    let mut args = Vec::new();
+
+    for arg in &sig.inputs {
+        match arg {
+            FnArg::Receiver(_) => {
+                if !ufc {
+                    // Do not need & or &mut as this is at calling site
+                    args.push(quote! { self });
+                }
             }
-        } else {
-            (
-                Token![->](Span::call_site()),
-                Error::new_spanned(&sig.output, "wrong return type").to_compile_error(),
-            )
+            FnArg::Typed(PatType { pat, .. }) => match &**pat {
+                Pat::Ident(arg) => {
+                    args.push(quote! { #arg });
+                }
+                _ => {
+                    args.push(
+                        Error::new_spanned(pat, "patterns are not supported in arguments")
+                            .to_compile_error(),
+                    );
+                }
+            },
         }
     }
+
+    args
+}
+
+fn expand_arrow_ret_ty(sig: &Signature) -> (RArrow, TokenStream) {
+    match (sig.asyncness.is_some(), &sig.output) {
+        (true, ReturnType::Default) => {
+            return (
+                Token![->](Span::call_site()),
+                quote! { ::core::future::Future<Output = ()> },
+            );
+        }
+        (true, ReturnType::Type(arrow, ret)) => {
+            return (*arrow, quote! { ::core::future::Future<Output = #ret> });
+        }
+        (false, ReturnType::Type(arrow, ret)) => {
+            if let Type::ImplTrait(TypeImplTrait { bounds, .. }) = &**ret {
+                return (*arrow, quote!(#bounds));
+            }
+        }
+        _ => {}
+    }
+
+    (
+        Token![->](Span::call_site()),
+        Error::new_spanned(&sig.output, "unsupported return type").to_compile_error(),
+    )
 }
 
 fn used_lifetimes<'a>(
