@@ -209,7 +209,7 @@ fn expand_arrow_ret_ty(sig: &Signature) -> (RArrow, TokenStream) {
 
     (
         Token![->](Span::call_site()),
-        Error::new_spanned(&sig.output, "wrong return type").to_compile_error(),
+        Error::new_spanned(&sig.output, "unsupported return type").to_compile_error(),
     )
 }
 
