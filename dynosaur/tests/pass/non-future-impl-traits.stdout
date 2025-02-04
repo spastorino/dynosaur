@@ -1,0 +1,73 @@
+#![feature(prelude_import)]
+#[prelude_import]
+use std::prelude::rust_2021::*;
+#[macro_use]
+extern crate std;
+trait SomeTrait {
+    fn get_iter(&mut self)
+    -> impl Iterator<Item = u8> + '_;
+}
+mod _dynosaur_macro_dynsometrait {
+    use super::*;
+    trait ErasedSomeTrait {
+        fn get_iter<'life0, 'dynosaur>(&'life0 mut self)
+        -> Box<dyn Iterator<Item = u8> + 'dynosaur>
+        where
+        'life0: 'dynosaur,
+        Self: 'dynosaur;
+    }
+    impl<DYNOSAUR: SomeTrait> ErasedSomeTrait for DYNOSAUR {
+        fn get_iter<'life0, 'dynosaur>(&'life0 mut self)
+            -> Box<dyn Iterator<Item = u8> + 'dynosaur> where
+            'life0: 'dynosaur, Self: 'dynosaur {
+            Box::new(<Self as SomeTrait>::get_iter(self))
+        }
+    }
+    #[repr(transparent)]
+    pub struct DynSomeTrait<'dynosaur_struct> {
+        ptr: dyn ErasedSomeTrait + 'dynosaur_struct,
+    }
+    impl<'dynosaur_struct> SomeTrait for DynSomeTrait<'dynosaur_struct> {
+        fn get_iter(&mut self) -> impl Iterator<Item = u8> + '_ {
+            let ret: Box<dyn Iterator<Item = u8> + '_> = self.ptr.get_iter();
+            let ret: Box<dyn Iterator<Item = u8> + '_> =
+                unsafe { ::core::mem::transmute(ret) };
+            ret
+        }
+    }
+    impl<'dynosaur_struct> DynSomeTrait<'dynosaur_struct> {
+        pub fn boxed(value: impl SomeTrait + 'dynosaur_struct)
+            -> Box<DynSomeTrait<'dynosaur_struct>> {
+            let value = Box::new(value);
+            let value: Box<dyn ErasedSomeTrait + 'dynosaur_struct> = value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub fn from_ref(value: &(impl SomeTrait + 'dynosaur_struct))
+            -> &DynSomeTrait<'dynosaur_struct> {
+            let value: &(dyn ErasedSomeTrait + 'dynosaur_struct) = &*value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub fn from_mut(value: &mut (impl SomeTrait + 'dynosaur_struct))
+            -> &mut DynSomeTrait<'dynosaur_struct> {
+            let value: &mut (dyn ErasedSomeTrait + 'dynosaur_struct) =
+                &mut *value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+    }
+}
+use _dynosaur_macro_dynsometrait::DynSomeTrait;
+
+struct MyImpl([u8; 4]);
+
+impl SomeTrait for MyImpl {
+    fn get_iter(&mut self) -> impl Iterator<Item = u8> + '_ {
+        return self.0.into_iter();
+    }
+}
+
+fn main() {
+    let mut st = DynSomeTrait::boxed(MyImpl([3, 2, 4, 1]));
+    for x in st.get_iter() {
+        { ::std::io::_print(format_args!("{0}\n", x)); };
+    }
+}

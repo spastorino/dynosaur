@@ -1,6 +1,4 @@
-use expand::{
-    expand_fn_sig, expand_invoke_args, expand_ret_ty, expand_sig_ret_ty_to_rpit, is_async_or_rpit,
-};
+use expand::{expand_blanket_impl_fn, expand_dyn_struct_fn, expand_fn_sig};
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{
@@ -13,7 +11,6 @@ use syn::{
 use traits::{
     dyn_compatible_items, struct_trait_params, trait_item_erased_name, StructTraitParams,
 };
-use where_clauses::has_where_self_sized;
 
 mod expand;
 mod lifetime;
@@ -229,27 +226,7 @@ fn mk_erased_trait_blanket_impl(item_trait: &ItemTrait) -> TokenStream {
                     }
                 }
                 TraitItem::Fn(mut trait_item_fn) => {
-                    let is_async_or_rpit = is_async_or_rpit(&trait_item_fn.sig);
-
-                    expand_fn_sig(&item_trait.generics, &mut trait_item_fn);
-
-                    let sig = &trait_item_fn.sig;
-                    let ident = &sig.ident;
-                    let args = expand_invoke_args(sig, false);
-
-                    if is_async_or_rpit {
-                        quote! {
-                            #sig {
-                                Box::pin(<Self as #trait_ident #trait_generics>::#ident(#(#args),*))
-                            }
-                        }
-                    } else {
-                        quote! {
-                            #sig {
-                                <Self as #trait_ident #trait_generics>::#ident(#(#args),*)
-                            }
-                        }
-                    }
+                    expand_blanket_impl_fn(item_trait, &mut trait_item_fn)
                 }
                 TraitItem::Type(TraitItemType { ident, generics, .. }) => {
                     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
@@ -298,58 +275,27 @@ fn mk_dyn_struct_impl_item(struct_ident: &Ident, item_trait: &ItemTrait) -> Toke
     let item_trait_ident = &item_trait.ident;
     let (_, trait_generics, where_clause) = &item_trait.generics.split_for_impl();
 
-    let items = item_trait.items.iter().map(|item| {
-        match item {
-            TraitItem::Const(TraitItemConst {
-                ident,
-                generics,
-                ty,
-                ..
-            }) => {
-                quote! {
-                    const #ident #generics: #ty = <Self as #item_trait_ident #trait_generics>::#ident;
-                }
+    let items = item_trait.items.iter().map(|item| match item {
+        TraitItem::Const(TraitItemConst {
+            ident,
+            generics,
+            ty,
+            ..
+        }) => {
+            quote! {
+                const #ident #generics: #ty = <Self as #item_trait_ident #trait_generics>::#ident;
             }
-            TraitItem::Fn(TraitItemFn { sig, .. }) => {
-                if has_where_self_sized(&sig) {
-                    quote! {
-                        #sig {
-                            unreachable!()
-                        }
-                    }
-                } else {
-                    let ident = &sig.ident;
-                    let args = expand_invoke_args(&sig, true);
-
-                    if is_async_or_rpit(&sig) {
-                        let ret = expand_ret_ty(&sig);
-                        let mut sig = sig.clone();
-                        expand_sig_ret_ty_to_rpit(&mut sig);
-
-                        quote! {
-                            #sig {
-                                let fut: ::core::pin::Pin<Box<dyn #ret + '_>> = self.ptr.#ident(#(#args),*);
-                                let fut: ::core::pin::Pin<Box<dyn #ret + 'static>> = unsafe { ::core::mem::transmute(fut) };
-                                fut
-                            }
-                        }
-                    } else {
-                        quote! {
-                            #sig {
-                                self.ptr.#ident(#(#args),*)
-                            }
-                        }
-                    }
-                }
-            }
-            TraitItem::Type(TraitItemType { ident, generics, .. }) => {
-                let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
-                quote! {
-                    type #ident #impl_generics = #ident #ty_generics #where_clause;
-                }
-            }
-            _ => Error::new_spanned(item, "unsupported item type").into_compile_error(),
         }
+        TraitItem::Fn(TraitItemFn { sig, .. }) => expand_dyn_struct_fn(sig),
+        TraitItem::Type(TraitItemType {
+            ident, generics, ..
+        }) => {
+            let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+            quote! {
+                type #ident #impl_generics = #ident #ty_generics #where_clause;
+            }
+        }
+        _ => Error::new_spanned(item, "unsupported item type").into_compile_error(),
     });
 
     let StructTraitParams {
