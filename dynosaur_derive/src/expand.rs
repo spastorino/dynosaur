@@ -1,5 +1,6 @@
-use crate::lifetime::{AddLifetimeToImplTrait, CollectLifetimes};
+use crate::lifetime::{used_lifetimes, AddLifetimeToImplTrait, CollectLifetimes};
 use crate::receiver::has_self_in_sig;
+use crate::where_clauses::where_clause_or_default;
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use std::mem;
@@ -7,9 +8,8 @@ use syn::punctuated::Punctuated;
 use syn::token::RArrow;
 use syn::visit_mut::VisitMut;
 use syn::{
-    parse_quote, parse_quote_spanned, Error, FnArg, GenericParam, Generics, Lifetime,
-    LifetimeParam, Pat, PatType, ReturnType, Signature, Token, TraitItemFn, Type, TypeImplTrait,
-    WhereClause,
+    parse_quote, parse_quote_spanned, Error, FnArg, GenericParam, Generics, Pat, PatType,
+    ReturnType, Signature, Token, TraitItemFn, Type, TypeImplTrait,
 };
 
 /// Expands the signature of each function on the trait, converting async fn into fn with return
@@ -211,25 +211,4 @@ fn expand_arrow_ret_ty(sig: &Signature) -> (RArrow, TokenStream) {
         Token![->](Span::call_site()),
         Error::new_spanned(&sig.output, "unsupported return type").to_compile_error(),
     )
-}
-
-fn used_lifetimes<'a>(
-    generics: &'a Generics,
-    used: &'a [Lifetime],
-) -> impl Iterator<Item = &'a LifetimeParam> {
-    generics.params.iter().filter_map(move |param| {
-        if let GenericParam::Lifetime(param) = param {
-            if used.contains(&param.lifetime) {
-                return Some(param);
-            }
-        }
-        None
-    })
-}
-
-fn where_clause_or_default(clause: &mut Option<WhereClause>) -> &mut WhereClause {
-    clause.get_or_insert_with(|| WhereClause {
-        where_token: Default::default(),
-        predicates: Punctuated::new(),
-    })
 }
