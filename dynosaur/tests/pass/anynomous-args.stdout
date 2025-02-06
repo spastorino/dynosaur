@@ -1,0 +1,81 @@
+#![feature(prelude_import)]
+#[prelude_import]
+use std::prelude::rust_2021::*;
+#[macro_use]
+extern crate std;
+trait SomeTrait {
+    async fn multiple_elided_lifetimes(&self, _: &u8, _: &u8);
+}
+mod _dynosaur_macro_dynsometrait {
+    use super::*;
+    trait ErasedSomeTrait {
+        fn multiple_elided_lifetimes<'life0, 'life1, 'life2,
+        'dynosaur>(&'life0 self, __dynosaur_arg1: &'life1 u8,
+        __dynosaur_arg2: &'life2 u8)
+        ->
+            ::core::pin::Pin<Box<dyn ::core::future::Future<Output = ()> +
+            'dynosaur>>
+        where
+        'life0: 'dynosaur,
+        'life1: 'dynosaur,
+        'life2: 'dynosaur,
+        Self: 'dynosaur;
+    }
+    impl<DYNOSAUR: SomeTrait> ErasedSomeTrait for DYNOSAUR {
+        fn multiple_elided_lifetimes<'life0, 'life1, 'life2,
+            'dynosaur>(&'life0 self, __dynosaur_arg1: &'life1 u8,
+            __dynosaur_arg2: &'life2 u8)
+            ->
+                ::core::pin::Pin<Box<dyn ::core::future::Future<Output = ()> +
+                'dynosaur>> where 'life0: 'dynosaur, 'life1: 'dynosaur,
+            'life2: 'dynosaur, Self: 'dynosaur {
+            Box::pin(<Self as
+                        SomeTrait>::multiple_elided_lifetimes(self, __dynosaur_arg1,
+                    __dynosaur_arg2))
+        }
+    }
+    #[repr(transparent)]
+    pub struct DynSomeTrait<'dynosaur_struct> {
+        ptr: dyn ErasedSomeTrait + 'dynosaur_struct,
+    }
+    impl<'dynosaur_struct> SomeTrait for DynSomeTrait<'dynosaur_struct> {
+        fn multiple_elided_lifetimes(&self, __dynosaur_arg1: &u8,
+            __dynosaur_arg2: &u8)
+            -> impl ::core::future::Future<Output = ()> {
+            let fut:
+                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
+                    ()> + '_>> =
+                self.ptr.multiple_elided_lifetimes(__dynosaur_arg1,
+                    __dynosaur_arg2);
+            let fut:
+                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
+                    ()> + 'static>> = unsafe { ::core::mem::transmute(fut) };
+            fut
+        }
+    }
+    impl<'dynosaur_struct> DynSomeTrait<'dynosaur_struct> {
+        pub fn boxed(value: impl SomeTrait + 'dynosaur_struct)
+            -> Box<DynSomeTrait<'dynosaur_struct>> {
+            let value = Box::new(value);
+            let value: Box<dyn ErasedSomeTrait + 'dynosaur_struct> = value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub fn from_ref(value: &(impl SomeTrait + 'dynosaur_struct))
+            -> &DynSomeTrait<'dynosaur_struct> {
+            let value: &(dyn ErasedSomeTrait + 'dynosaur_struct) = &*value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub fn from_mut(value: &mut (impl SomeTrait + 'dynosaur_struct))
+            -> &mut DynSomeTrait<'dynosaur_struct> {
+            let value: &mut (dyn ErasedSomeTrait + 'dynosaur_struct) =
+                &mut *value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+    }
+}
+use _dynosaur_macro_dynsometrait::DynSomeTrait;
+impl SomeTrait for () {
+    async fn multiple_elided_lifetimes(&self, _: &u8, _: &u8) {}
+}
+
+fn main() {}
