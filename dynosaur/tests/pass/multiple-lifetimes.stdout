@@ -1,0 +1,184 @@
+#![feature(prelude_import)]
+#[prelude_import]
+use std::prelude::rust_2021::*;
+#[macro_use]
+extern crate std;
+trait SomeTrait {
+    async fn multiple_elided_lifetimes(&self, a: &u8, b: &u8);
+    async fn multiple_named_lifetimes<'a,
+    'b>(&self, a: &'a u8, b: &'b u8, c: &u8);
+    async fn same_lifetimes_multiple_params<'a>(&self, a1: &'a u8, a2: &'a u8,
+    c: &u8)
+    -> &'a u8;
+    async fn multiple_static_and_anonymous(&self, a: &'static u8, b: &'_ u8,
+    c: &'_ u8);
+}
+mod _dynosaur_macro_dynsometrait {
+    use super::*;
+    trait ErasedSomeTrait {
+        fn multiple_elided_lifetimes<'life0, 'life1, 'life2,
+        'dynosaur>(&'life0 self, a: &'life1 u8, b: &'life2 u8)
+        ->
+            ::core::pin::Pin<Box<dyn ::core::future::Future<Output = ()> +
+            'dynosaur>>
+        where
+        'life0: 'dynosaur,
+        'life1: 'dynosaur,
+        'life2: 'dynosaur,
+        Self: 'dynosaur;
+        fn multiple_named_lifetimes<'a, 'b, 'life0, 'life1,
+        'dynosaur>(&'life0 self, a: &'a u8, b: &'b u8, c: &'life1 u8)
+        ->
+            ::core::pin::Pin<Box<dyn ::core::future::Future<Output = ()> +
+            'dynosaur>>
+        where
+        'a: 'dynosaur,
+        'b: 'dynosaur,
+        'life0: 'dynosaur,
+        'life1: 'dynosaur,
+        Self: 'dynosaur;
+        fn same_lifetimes_multiple_params<'a, 'life0, 'life1,
+        'dynosaur>(&'life0 self, a1: &'a u8, a2: &'a u8, c: &'life1 u8)
+        ->
+            ::core::pin::Pin<Box<dyn ::core::future::Future<Output = &'a u8> +
+            'dynosaur>>
+        where
+        'a: 'dynosaur,
+        'life0: 'dynosaur,
+        'life1: 'dynosaur,
+        Self: 'dynosaur;
+        fn multiple_static_and_anonymous<'life0, 'life1, 'life2,
+        'dynosaur>(&'life0 self, a: &'static u8, b: &'life1 u8, c: &'life2 u8)
+        ->
+            ::core::pin::Pin<Box<dyn ::core::future::Future<Output = ()> +
+            'dynosaur>>
+        where
+        'life0: 'dynosaur,
+        'life1: 'dynosaur,
+        'life2: 'dynosaur,
+        Self: 'dynosaur;
+    }
+    impl<DYNOSAUR: SomeTrait> ErasedSomeTrait for DYNOSAUR {
+        fn multiple_elided_lifetimes<'life0, 'life1, 'life2,
+            'dynosaur>(&'life0 self, a: &'life1 u8, b: &'life2 u8)
+            ->
+                ::core::pin::Pin<Box<dyn ::core::future::Future<Output = ()> +
+                'dynosaur>> where 'life0: 'dynosaur, 'life1: 'dynosaur,
+            'life2: 'dynosaur, Self: 'dynosaur {
+            Box::pin(<Self as
+                        SomeTrait>::multiple_elided_lifetimes(self, a, b))
+        }
+        fn multiple_named_lifetimes<'a, 'b, 'life0, 'life1,
+            'dynosaur>(&'life0 self, a: &'a u8, b: &'b u8, c: &'life1 u8)
+            ->
+                ::core::pin::Pin<Box<dyn ::core::future::Future<Output = ()> +
+                'dynosaur>> where 'a: 'dynosaur, 'b: 'dynosaur,
+            'life0: 'dynosaur, 'life1: 'dynosaur, Self: 'dynosaur {
+            Box::pin(<Self as
+                        SomeTrait>::multiple_named_lifetimes(self, a, b, c))
+        }
+        fn same_lifetimes_multiple_params<'a, 'life0, 'life1,
+            'dynosaur>(&'life0 self, a1: &'a u8, a2: &'a u8, c: &'life1 u8)
+            ->
+                ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
+                &'a u8> + 'dynosaur>> where 'a: 'dynosaur, 'life0: 'dynosaur,
+            'life1: 'dynosaur, Self: 'dynosaur {
+            Box::pin(<Self as
+                        SomeTrait>::same_lifetimes_multiple_params(self, a1, a2, c))
+        }
+        fn multiple_static_and_anonymous<'life0, 'life1, 'life2,
+            'dynosaur>(&'life0 self, a: &'static u8, b: &'life1 u8,
+            c: &'life2 u8)
+            ->
+                ::core::pin::Pin<Box<dyn ::core::future::Future<Output = ()> +
+                'dynosaur>> where 'life0: 'dynosaur, 'life1: 'dynosaur,
+            'life2: 'dynosaur, Self: 'dynosaur {
+            Box::pin(<Self as
+                        SomeTrait>::multiple_static_and_anonymous(self, a, b, c))
+        }
+    }
+    #[repr(transparent)]
+    pub struct DynSomeTrait<'dynosaur_struct> {
+        ptr: dyn ErasedSomeTrait + 'dynosaur_struct,
+    }
+    impl<'dynosaur_struct> SomeTrait for DynSomeTrait<'dynosaur_struct> {
+        fn multiple_elided_lifetimes(&self, a: &u8, b: &u8)
+            -> impl ::core::future::Future<Output = ()> {
+            let fut:
+                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
+                    ()> + '_>> = self.ptr.multiple_elided_lifetimes(a, b);
+            let fut:
+                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
+                    ()> + 'static>> = unsafe { ::core::mem::transmute(fut) };
+            fut
+        }
+        fn multiple_named_lifetimes<'a,
+            'b>(&self, a: &'a u8, b: &'b u8, c: &u8)
+            -> impl ::core::future::Future<Output = ()> {
+            let fut:
+                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
+                    ()> + '_>> = self.ptr.multiple_named_lifetimes(a, b, c);
+            let fut:
+                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
+                    ()> + 'static>> = unsafe { ::core::mem::transmute(fut) };
+            fut
+        }
+        fn same_lifetimes_multiple_params<'a>(&self, a1: &'a u8, a2: &'a u8,
+            c: &u8) -> impl ::core::future::Future<Output = &'a u8> {
+            let fut:
+                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
+                    &'a u8> + '_>> =
+                self.ptr.same_lifetimes_multiple_params(a1, a2, c);
+            let fut:
+                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
+                    &'a u8> + 'static>> =
+                unsafe { ::core::mem::transmute(fut) };
+            fut
+        }
+        fn multiple_static_and_anonymous(&self, a: &'static u8, b: &'_ u8,
+            c: &'_ u8) -> impl ::core::future::Future<Output = ()> {
+            let fut:
+                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
+                    ()> + '_>> =
+                self.ptr.multiple_static_and_anonymous(a, b, c);
+            let fut:
+                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
+                    ()> + 'static>> = unsafe { ::core::mem::transmute(fut) };
+            fut
+        }
+    }
+    impl<'dynosaur_struct> DynSomeTrait<'dynosaur_struct> {
+        pub fn boxed(value: impl SomeTrait + 'dynosaur_struct)
+            -> Box<DynSomeTrait<'dynosaur_struct>> {
+            let value = Box::new(value);
+            let value: Box<dyn ErasedSomeTrait + 'dynosaur_struct> = value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub fn from_ref(value: &(impl SomeTrait + 'dynosaur_struct))
+            -> &DynSomeTrait<'dynosaur_struct> {
+            let value: &(dyn ErasedSomeTrait + 'dynosaur_struct) = &*value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub fn from_mut(value: &mut (impl SomeTrait + 'dynosaur_struct))
+            -> &mut DynSomeTrait<'dynosaur_struct> {
+            let value: &mut (dyn ErasedSomeTrait + 'dynosaur_struct) =
+                &mut *value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+    }
+}
+use _dynosaur_macro_dynsometrait::DynSomeTrait;
+
+impl SomeTrait for () {
+    async fn multiple_elided_lifetimes(&self, a: &u8, b: &u8) {}
+    async fn multiple_named_lifetimes<'a,
+        'b>(&self, a: &'a u8, b: &'b u8, c: &u8) {}
+    async fn same_lifetimes_multiple_params<'a>(&self, a1: &'a u8, a2: &'a u8,
+        c: &u8) -> &'a u8 {
+        a2
+    }
+    async fn multiple_static_and_anonymous(&self, a: &'static u8, b: &'_ u8,
+        c: &'_ u8) {}
+}
+
+fn main() {}
