@@ -1,0 +1,98 @@
+#![feature(prelude_import)]
+#[prelude_import]
+use std::prelude::rust_2021::*;
+#[macro_use]
+extern crate std;
+trait SomeTrait<'a, 'b> {
+    async fn lotsa_lifetimes<'d, 'e,
+    'f>(&self, a: &'d u32, b: &'e u32, c: &'f u32)
+    -> &'a u32
+    where
+    'b: 'a;
+}
+mod _dynosaur_macro_dynsometrait {
+    use super::*;
+    trait ErasedSomeTrait<'a, 'b> {
+        fn lotsa_lifetimes<'d, 'e, 'f, 'life0,
+        'dynosaur>(&'life0 self, a: &'d u32, b: &'e u32, c: &'f u32)
+        ->
+            ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
+            &'a u32> + 'dynosaur>>
+        where
+        'b: 'a,
+        'd: 'dynosaur,
+        'e: 'dynosaur,
+        'f: 'dynosaur,
+        'a: 'dynosaur,
+        'b: 'dynosaur,
+        'life0: 'dynosaur,
+        Self: 'dynosaur;
+    }
+    impl<'a, 'b, DYNOSAUR: SomeTrait<'a, 'b>> ErasedSomeTrait<'a, 'b> for
+        DYNOSAUR {
+        fn lotsa_lifetimes<'d, 'e, 'f, 'life0,
+            'dynosaur>(&'life0 self, a: &'d u32, b: &'e u32, c: &'f u32)
+            ->
+                ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
+                &'a u32> + 'dynosaur>> where 'b: 'a, 'd: 'dynosaur,
+            'e: 'dynosaur, 'f: 'dynosaur, 'a: 'dynosaur, 'b: 'dynosaur,
+            'life0: 'dynosaur, Self: 'dynosaur {
+            Box::pin(<Self as
+                        SomeTrait<'a, 'b>>::lotsa_lifetimes(self, a, b, c))
+        }
+    }
+    #[repr(transparent)]
+    pub struct DynSomeTrait<'dynosaur_struct, 'a, 'b> {
+        ptr: dyn ErasedSomeTrait<'a, 'b> + 'dynosaur_struct,
+    }
+    impl<'dynosaur_struct, 'a, 'b> SomeTrait<'a, 'b> for
+        DynSomeTrait<'dynosaur_struct, 'a, 'b> {
+        fn lotsa_lifetimes<'d, 'e,
+            'f>(&self, a: &'d u32, b: &'e u32, c: &'f u32)
+            -> impl ::core::future::Future<Output = &'a u32> where 'b: 'a {
+            let fut:
+                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
+                    &'a u32> + '_>> = self.ptr.lotsa_lifetimes(a, b, c);
+            let fut:
+                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
+                    &'a u32> + 'static>> =
+                unsafe { ::core::mem::transmute(fut) };
+            fut
+        }
+    }
+    impl<'dynosaur_struct, 'a, 'b> DynSomeTrait<'dynosaur_struct, 'a, 'b> {
+        pub fn boxed(value: impl SomeTrait<'a, 'b> + 'dynosaur_struct)
+            -> Box<DynSomeTrait<'dynosaur_struct, 'a, 'b>> {
+            let value = Box::new(value);
+            let value: Box<dyn ErasedSomeTrait<'a, 'b> + 'dynosaur_struct> =
+                value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub fn from_ref(value: &(impl SomeTrait<'a, 'b> + 'dynosaur_struct))
+            -> &DynSomeTrait<'dynosaur_struct, 'a, 'b> {
+            let value: &(dyn ErasedSomeTrait<'a, 'b> + 'dynosaur_struct) =
+                &*value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub fn from_mut(value:
+                &mut (impl SomeTrait<'a, 'b> + 'dynosaur_struct))
+            -> &mut DynSomeTrait<'dynosaur_struct, 'a, 'b> {
+            let value: &mut (dyn ErasedSomeTrait<'a, 'b> + 'dynosaur_struct) =
+                &mut *value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+    }
+}
+use _dynosaur_macro_dynsometrait::DynSomeTrait;
+
+struct MyData<'a, 'b, 'c>(&'a u32, &'b u32, &'c u32) where 'b: 'a;
+
+impl<'a, 'b, 'c> SomeTrait<'a, 'b> for MyData<'a, 'b, 'c> {
+    async fn lotsa_lifetimes<'d, 'e,
+        'f>(&self, a: &'d u32, b: &'e u32, c: &'f u32) -> &'a u32 where
+        'b: 'a {
+        self.0
+    }
+}
+
+fn main() {}

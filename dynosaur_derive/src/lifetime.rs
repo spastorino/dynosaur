@@ -2,9 +2,8 @@ use proc_macro2::{Span, TokenStream};
 use std::mem;
 use syn::visit_mut::{self, VisitMut};
 use syn::{
-    parse_quote_spanned, token, Expr, GenericArgument, GenericParam, Generics, Lifetime,
-    LifetimeParam, Receiver, ReturnType, Token, Type, TypeBareFn, TypeImplTrait, TypeParen,
-    TypePtr, TypeReference,
+    parse_quote_spanned, token, Expr, GenericArgument, Lifetime, Receiver, ReturnType, Token, Type,
+    TypeBareFn, TypeImplTrait, TypeParen, TypePtr, TypeReference,
 };
 
 pub struct CollectLifetimes {
@@ -110,18 +109,4 @@ fn parenthesize_impl_trait(elem: &mut Type, paren_span: Span) {
             elem: Box::new(mem::replace(elem, placeholder)),
         });
     }
-}
-
-pub(crate) fn used_lifetimes<'a>(
-    generics: &'a Generics,
-    used: &'a [Lifetime],
-) -> impl Iterator<Item = &'a LifetimeParam> {
-    generics.params.iter().filter_map(move |param| {
-        if let GenericParam::Lifetime(param) = param {
-            if used.contains(&param.lifetime) {
-                return Some(param);
-            }
-        }
-        None
-    })
 }

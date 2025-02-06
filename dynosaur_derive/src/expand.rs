@@ -1,4 +1,4 @@
-use crate::lifetime::{used_lifetimes, AddLifetimeToImplTrait, CollectLifetimes};
+use crate::lifetime::{AddLifetimeToImplTrait, CollectLifetimes};
 use crate::receiver::has_self_in_sig;
 use crate::sig::{is_async, is_rpit};
 use crate::where_clauses::{has_where_self_sized, where_clause_or_default};
@@ -92,12 +92,18 @@ fn expand_fn_input(item_trait_generics: &Generics, sig: &mut Signature) {
         }
     }
 
-    for param in used_lifetimes(&item_trait_generics, &lifetimes.explicit) {
-        let param = &param.lifetime;
-        let span = param.span();
+    for lifetime in item_trait_generics
+        .params
+        .iter()
+        .filter_map(move |param| match param {
+            GenericParam::Lifetime(param) => Some(&param.lifetime),
+            _ => None,
+        })
+    {
+        let span = lifetime.span();
         where_clause_or_default(&mut sig.generics.where_clause)
             .predicates
-            .push(parse_quote_spanned!(span=> #param: 'dynosaur));
+            .push(parse_quote_spanned!(span=> #lifetime: 'dynosaur));
     }
 
     if sig.generics.lt_token.is_none() {
