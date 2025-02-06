@@ -13,16 +13,15 @@ mod _dynosaur_macro_dynmytrait {
     use super::*;
     trait ErasedMyTrait {
         fn foo<'life0, 'dynosaur>(&'life0 self)
-        -> ::core::pin::Pin<Box<dyn Send + 'dynosaur>>
+        -> Box<dyn Send + 'dynosaur>
         where
         'life0: 'dynosaur,
         Self: 'dynosaur;
     }
     impl<DYNOSAUR: MyTrait> ErasedMyTrait for DYNOSAUR {
-        fn foo<'life0, 'dynosaur>(&'life0 self)
-            -> ::core::pin::Pin<Box<dyn Send + 'dynosaur>> where
-            'life0: 'dynosaur, Self: 'dynosaur {
-            Box::pin(<Self as MyTrait>::foo(self))
+        fn foo<'life0, 'dynosaur>(&'life0 self) -> Box<dyn Send + 'dynosaur>
+            where 'life0: 'dynosaur, Self: 'dynosaur {
+            Box::new(<Self as MyTrait>::foo(self))
         }
     }
     #[repr(transparent)]
@@ -31,10 +30,10 @@ mod _dynosaur_macro_dynmytrait {
     }
     impl<'dynosaur_struct> MyTrait for DynMyTrait<'dynosaur_struct> {
         fn foo(&self) -> impl Send {
-            let fut: ::core::pin::Pin<Box<dyn Send + '_>> = self.ptr.foo();
-            let fut: ::core::pin::Pin<Box<dyn Send + 'static>> =
-                unsafe { ::core::mem::transmute(fut) };
-            fut
+            let ret: Box<dyn Send + '_> = self.ptr.foo();
+            let ret: Box<dyn Send + '_> =
+                unsafe { ::core::mem::transmute(ret) };
+            ret
         }
     }
     impl<'dynosaur_struct> DynMyTrait<'dynosaur_struct> {
