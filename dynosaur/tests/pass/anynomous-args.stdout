@@ -42,15 +42,15 @@ mod __dynosaur_macro_dynsometrait {
         fn multiple_elided_lifetimes(&self, __dynosaur_arg1: &u8,
             __dynosaur_arg2: &u8)
             -> impl ::core::future::Future<Output = ()> {
-            let fut:
+            let ret:
                     ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
                     ()> + '_>> =
                 self.ptr.multiple_elided_lifetimes(__dynosaur_arg1,
                     __dynosaur_arg2);
-            let fut:
+            let ret:
                     ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
-                    ()> + 'static>> = unsafe { ::core::mem::transmute(fut) };
-            fut
+                    ()> + 'static>> = unsafe { ::core::mem::transmute(ret) };
+            ret
         }
     }
     impl<'dynosaur_struct> DynSomeTrait<'dynosaur_struct> {

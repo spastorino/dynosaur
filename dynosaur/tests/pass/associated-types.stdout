@@ -40,14 +40,14 @@ mod __dynosaur_macro_dynfoo {
     impl<'dynosaur_struct, Bar: Baz> Foo for DynFoo<'dynosaur_struct, Bar> {
         type Bar = Bar;
         fn foo(&self) -> impl ::core::future::Future<Output = Self::Bar> {
-            let fut:
+            let ret:
                     ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
                     Self::Bar> + '_>> = self.ptr.foo();
-            let fut:
+            let ret:
                     ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
                     Self::Bar> + 'static>> =
-                unsafe { ::core::mem::transmute(fut) };
-            fut
+                unsafe { ::core::mem::transmute(ret) };
+            ret
         }
     }
     impl<'dynosaur_struct, Bar: Baz> DynFoo<'dynosaur_struct, Bar> {

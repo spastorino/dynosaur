@@ -40,13 +40,13 @@ mod __dynosaur_macro_dynmytrait {
             ::core::panicking::panic("internal error: entered unreachable code")
         }
         fn bar(&mut self) -> impl ::core::future::Future<Output = ()> {
-            let fut:
+            let ret:
                     ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
                     ()> + '_>> = self.ptr.bar();
-            let fut:
+            let ret:
                     ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
-                    ()> + 'static>> = unsafe { ::core::mem::transmute(fut) };
-            fut
+                    ()> + 'static>> = unsafe { ::core::mem::transmute(ret) };
+            ret
         }
     }
     impl<'dynosaur_struct> DynMyTrait<'dynosaur_struct> {

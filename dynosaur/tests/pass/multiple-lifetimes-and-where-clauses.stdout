@@ -50,14 +50,14 @@ mod __dynosaur_macro_dynsometrait {
         fn lotsa_lifetimes<'d, 'e,
             'f>(&self, a: &'d u32, b: &'e u32, c: &'f u32)
             -> impl ::core::future::Future<Output = &'a u32> where 'b: 'a {
-            let fut:
+            let ret:
                     ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
                     &'a u32> + '_>> = self.ptr.lotsa_lifetimes(a, b, c);
-            let fut:
+            let ret:
                     ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
                     &'a u32> + 'static>> =
-                unsafe { ::core::mem::transmute(fut) };
-            fut
+                unsafe { ::core::mem::transmute(ret) };
+            ret
         }
     }
     impl<'dynosaur_struct, 'a, 'b> DynSomeTrait<'dynosaur_struct, 'a, 'b> {

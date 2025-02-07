@@ -42,7 +42,11 @@ pub(crate) fn expand_fn_sig(item_trait_generics: &Generics, sig: &mut Signature)
 
     if is_async(sig) || is_rpit(sig) {
         expand_fn_input(item_trait_generics, sig);
-        sig.output = expand_sig_ret_ty(sig, "'dynosaur");
+        let ret_ty = expand_sig_ret_ty(sig, "'dynosaur");
+        if let Some(asyncness) = sig.asyncness.take() {
+            sig.fn_token.span = asyncness.span;
+        }
+        sig.output = parse_quote! { -> #ret_ty };
     }
 }
 
@@ -148,36 +152,33 @@ pub(crate) fn expand_arg_names(sig: &mut Signature) {
     }
 }
 
-pub(crate) fn expand_sig_ret_ty(sig: &mut Signature, lifetime_ident: &str) -> ReturnType {
+pub(crate) fn expand_sig_ret_ty(sig: &Signature, lifetime_ident: &str) -> Type {
     let is_async = is_async(sig);
     let is_rpit = is_rpit(sig);
 
     if is_async || is_rpit {
         let mut bounds = expand_ret_bounds(sig);
-        if let Some(asyncness) = sig.asyncness.take() {
-            sig.fn_token.span = asyncness.span;
-        }
         bounds.push(TypeParamBound::Lifetime(Lifetime::new(
             lifetime_ident,
             Span::call_site(),
         )));
 
         if is_async {
-            parse_quote! { -> ::core::pin::Pin<Box<dyn #bounds>> }
+            parse_quote! { ::core::pin::Pin<Box<dyn #bounds>> }
         } else {
-            parse_quote! { -> Box<dyn #bounds> }
+            parse_quote! { Box<dyn #bounds> }
         }
     } else {
-        sig.output.clone()
+        match &sig.output {
+            ReturnType::Default => parse_quote! { () },
+            ReturnType::Type(_, ty) => parse_quote! { #ty },
+        }
     }
 }
 
-pub(crate) fn expand_sig_ret_ty_to_rpit(sig: &mut Signature) -> ReturnType {
+pub(crate) fn expand_sig_ret_ty_to_rpit(sig: &Signature) -> Type {
     let bounds = expand_ret_bounds(sig);
-    if let Some(asyncness) = sig.asyncness.take() {
-        sig.fn_token.span = asyncness.span;
-    }
-    parse_quote! { -> impl #bounds }
+    parse_quote! { impl #bounds }
 }
 
 pub(crate) fn expand_ret_bounds(sig: &Signature) -> Punctuated<TypeParamBound, Token![+]> {
@@ -283,36 +284,41 @@ pub(crate) fn expand_dyn_struct_fn(sig: &Signature) -> TokenStream {
         }
     } else {
         let ident = &sig.ident;
+        let is_async = is_async(sig);
+        let is_rpit = is_rpit(sig);
 
         let mut sig = sig.clone();
         expand_arg_names(&mut sig);
         let args = expand_invoke_args(&sig, true);
 
-        if is_async(&sig) {
-            let bounds = expand_ret_bounds(&sig);
-            sig.output = expand_sig_ret_ty_to_rpit(&mut sig);
-
-            quote! {
-                #sig {
-                    let fut: ::core::pin::Pin<Box<dyn #bounds + '_>> = self.ptr.#ident(#(#args),*);
-                    let fut: ::core::pin::Pin<Box<dyn #bounds + 'static>> = unsafe { ::core::mem::transmute(fut) };
-                    fut
-                }
-            }
-        } else if is_rpit(&sig) {
-            let bounds = expand_ret_bounds(&sig);
-
-            quote! {
-                #sig {
-                    let ret: Box<dyn #bounds + '_> = self.ptr.#ident(#(#args),*);
-                    let ret: Box<dyn #bounds + '_> = unsafe { ::core::mem::transmute(ret) };
-                    ret
-                }
-            }
-        } else {
+        if !is_async && !is_rpit {
             quote! {
                 #sig {
                     self.ptr.#ident(#(#args),*)
+                }
+            }
+        } else {
+            let (ty1, ty2) = if is_async {
+                let ty1 = expand_sig_ret_ty(&sig, "'_");
+                let ty2 = expand_sig_ret_ty(&sig, "'static");
+                let sig_ret_ty = expand_sig_ret_ty_to_rpit(&mut sig);
+                sig.output = parse_quote! { -> #sig_ret_ty };
+                (ty1, ty2)
+            } else {
+                // is_rpit
+                let ty = expand_sig_ret_ty(&sig, "'_");
+                (ty.clone(), ty)
+            };
+
+            if let Some(asyncness) = sig.asyncness.take() {
+                sig.fn_token.span = asyncness.span;
+            }
+
+            quote! {
+                #sig {
+                    let ret: #ty1 = self.ptr.#ident(#(#args),*);
+                    let ret: #ty2 = unsafe { ::core::mem::transmute(ret) };
+                    ret
                 }
             }
         }

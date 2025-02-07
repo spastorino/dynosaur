@@ -104,47 +104,47 @@ mod __dynosaur_macro_dynsometrait {
     impl<'dynosaur_struct> SomeTrait for DynSomeTrait<'dynosaur_struct> {
         fn multiple_elided_lifetimes(&self, a: &u8, b: &u8)
             -> impl ::core::future::Future<Output = ()> {
-            let fut:
+            let ret:
                     ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
                     ()> + '_>> = self.ptr.multiple_elided_lifetimes(a, b);
-            let fut:
+            let ret:
                     ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
-                    ()> + 'static>> = unsafe { ::core::mem::transmute(fut) };
-            fut
+                    ()> + 'static>> = unsafe { ::core::mem::transmute(ret) };
+            ret
         }
         fn multiple_named_lifetimes<'a,
             'b>(&self, a: &'a u8, b: &'b u8, c: &u8)
             -> impl ::core::future::Future<Output = ()> {
-            let fut:
+            let ret:
                     ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
                     ()> + '_>> = self.ptr.multiple_named_lifetimes(a, b, c);
-            let fut:
+            let ret:
                     ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
-                    ()> + 'static>> = unsafe { ::core::mem::transmute(fut) };
-            fut
+                    ()> + 'static>> = unsafe { ::core::mem::transmute(ret) };
+            ret
         }
         fn same_lifetimes_multiple_params<'a>(&self, a1: &'a u8, a2: &'a u8,
             c: &u8) -> impl ::core::future::Future<Output = &'a u8> {
-            let fut:
+            let ret:
                     ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
                     &'a u8> + '_>> =
                 self.ptr.same_lifetimes_multiple_params(a1, a2, c);
-            let fut:
+            let ret:
                     ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
                     &'a u8> + 'static>> =
-                unsafe { ::core::mem::transmute(fut) };
-            fut
+                unsafe { ::core::mem::transmute(ret) };
+            ret
         }
         fn multiple_static_and_anonymous(&self, a: &'static u8, b: &'_ u8,
             c: &'_ u8) -> impl ::core::future::Future<Output = ()> {
-            let fut:
+            let ret:
                     ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
                     ()> + '_>> =
                 self.ptr.multiple_static_and_anonymous(a, b, c);
-            let fut:
+            let ret:
                     ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
-                    ()> + 'static>> = unsafe { ::core::mem::transmute(fut) };
-            fut
+                    ()> + 'static>> = unsafe { ::core::mem::transmute(ret) };
+            ret
         }
     }
     impl<'dynosaur_struct> DynSomeTrait<'dynosaur_struct> {

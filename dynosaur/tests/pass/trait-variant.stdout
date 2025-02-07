@@ -40,14 +40,14 @@ mod __dynosaur_macro_dynnext {
         type Item = Item;
         fn next(&mut self)
             -> impl ::core::future::Future<Output = Option<Self::Item>> {
-            let fut:
+            let ret:
                     ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
                     Option<Self::Item>> + '_>> = self.ptr.next();
-            let fut:
+            let ret:
                     ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
                     Option<Self::Item>> + 'static>> =
-                unsafe { ::core::mem::transmute(fut) };
-            fut
+                unsafe { ::core::mem::transmute(ret) };
+            ret
         }
     }
     impl<'dynosaur_struct, Item> DynNext<'dynosaur_struct, Item> {
@@ -112,14 +112,14 @@ mod __dynosaur_macro_dynsendnext {
             ->
                 impl ::core::future::Future<Output = Option<Self::Item>> +
                 Send {
-            let fut:
+            let ret:
                     ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
                     Option<Self::Item>> + Send + '_>> = self.ptr.next();
-            let fut:
+            let ret:
                     ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
                     Option<Self::Item>> + Send + 'static>> =
-                unsafe { ::core::mem::transmute(fut) };
-            fut
+                unsafe { ::core::mem::transmute(ret) };
+            ret
         }
     }
     impl<'dynosaur_struct, Item> DynSendNext<'dynosaur_struct, Item> {
