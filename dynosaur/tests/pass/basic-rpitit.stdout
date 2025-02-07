@@ -9,7 +9,7 @@ trait MyTrait {
     fn foo(&self)
     -> impl Send;
 }
-mod _dynosaur_macro_dynmytrait {
+mod __dynosaur_macro_dynmytrait {
     use super::*;
     trait ErasedMyTrait {
         fn foo<'life0, 'dynosaur>(&'life0 self)
@@ -56,6 +56,6 @@ mod _dynosaur_macro_dynmytrait {
         }
     }
 }
-use _dynosaur_macro_dynmytrait::DynMyTrait;
+use __dynosaur_macro_dynmytrait::DynMyTrait;
 
 fn main() {}

@@ -165,7 +165,7 @@ pub fn dynosaur(
 
     let dynosaur_mod = Ident::new(
         &format!(
-            "_dynosaur_macro_{}",
+            "__dynosaur_macro_{}",
             struct_ident.to_string().to_lowercase(),
         ),
         Span::call_site(),

@@ -6,7 +6,7 @@ extern crate std;
 trait SomeTrait {
     async fn multiple_elided_lifetimes(&self, _: &u8, _: &u8);
 }
-mod _dynosaur_macro_dynsometrait {
+mod __dynosaur_macro_dynsometrait {
     use super::*;
     trait ErasedSomeTrait {
         fn multiple_elided_lifetimes<'life0, 'life1, 'life2,
@@ -73,7 +73,7 @@ mod _dynosaur_macro_dynsometrait {
         }
     }
 }
-use _dynosaur_macro_dynsometrait::DynSomeTrait;
+use __dynosaur_macro_dynsometrait::DynSomeTrait;
 impl SomeTrait for () {
     async fn multiple_elided_lifetimes(&self, _: &u8, _: &u8) {}
 }

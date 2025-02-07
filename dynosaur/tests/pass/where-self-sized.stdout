@@ -11,7 +11,7 @@ trait MyTrait {
     Self: Sized;
     async fn bar(&mut self);
 }
-mod _dynosaur_macro_dynmytrait {
+mod __dynosaur_macro_dynmytrait {
     use super::*;
     trait ErasedMyTrait {
         fn bar<'life0, 'dynosaur>(&'life0 mut self)
@@ -69,5 +69,5 @@ mod _dynosaur_macro_dynmytrait {
         }
     }
 }
-use _dynosaur_macro_dynmytrait::DynMyTrait;
+use __dynosaur_macro_dynmytrait::DynMyTrait;
 fn main() {}

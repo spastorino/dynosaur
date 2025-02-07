@@ -11,7 +11,7 @@ trait MyTrait<T> {
     async fn foo(&self, x: &T)
     -> i32;
 }
-mod _dynosaur_macro_dynmytrait {
+mod __dynosaur_macro_dynmytrait {
     use super::*;
     trait ErasedMyTrait<T> {
         const N: i32;
@@ -81,6 +81,6 @@ mod _dynosaur_macro_dynmytrait {
         }
     }
 }
-use _dynosaur_macro_dynmytrait::DynMyTrait;
+use __dynosaur_macro_dynmytrait::DynMyTrait;
 
 fn main() {}

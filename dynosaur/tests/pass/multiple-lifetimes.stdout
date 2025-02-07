@@ -13,7 +13,7 @@ trait SomeTrait {
     async fn multiple_static_and_anonymous(&self, a: &'static u8, b: &'_ u8,
     c: &'_ u8);
 }
-mod _dynosaur_macro_dynsometrait {
+mod __dynosaur_macro_dynsometrait {
     use super::*;
     trait ErasedSomeTrait {
         fn multiple_elided_lifetimes<'life0, 'life1, 'life2,
@@ -167,7 +167,7 @@ mod _dynosaur_macro_dynsometrait {
         }
     }
 }
-use _dynosaur_macro_dynsometrait::DynSomeTrait;
+use __dynosaur_macro_dynsometrait::DynSomeTrait;
 
 impl SomeTrait for () {
     async fn multiple_elided_lifetimes(&self, a: &u8, b: &u8) {}

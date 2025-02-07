@@ -10,7 +10,7 @@ pub trait JobQueue {
     -> usize;
     async fn dispatch(&self);
 }
-mod _dynosaur_macro_dynjobqueue {
+mod __dynosaur_macro_dynjobqueue {
     use super::*;
     pub trait ErasedJobQueue {
         fn len(&self)
@@ -68,6 +68,6 @@ mod _dynosaur_macro_dynjobqueue {
         }
     }
 }
-pub use _dynosaur_macro_dynjobqueue::DynJobQueue;
+pub use __dynosaur_macro_dynjobqueue::DynJobQueue;
 
 fn main() {}

@@ -10,7 +10,7 @@ trait SomeTrait<'a, 'b> {
     where
     'b: 'a;
 }
-mod _dynosaur_macro_dynsometrait {
+mod __dynosaur_macro_dynsometrait {
     use super::*;
     trait ErasedSomeTrait<'a, 'b> {
         fn lotsa_lifetimes<'d, 'e, 'f, 'life0,
@@ -83,7 +83,7 @@ mod _dynosaur_macro_dynsometrait {
         }
     }
 }
-use _dynosaur_macro_dynsometrait::DynSomeTrait;
+use __dynosaur_macro_dynsometrait::DynSomeTrait;
 
 struct MyData<'a, 'b, 'c>(&'a u32, &'b u32, &'c u32) where 'b: 'a;
 

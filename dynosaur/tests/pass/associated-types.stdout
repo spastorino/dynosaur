@@ -11,7 +11,7 @@ trait Foo {
     async fn foo(&self)
     -> Self::Bar;
 }
-mod _dynosaur_macro_dynfoo {
+mod __dynosaur_macro_dynfoo {
     use super::*;
     trait ErasedFoo {
         type Bar: Baz;
@@ -72,4 +72,4 @@ mod _dynosaur_macro_dynfoo {
         }
     }
 }
-use _dynosaur_macro_dynfoo::DynFoo;
+use __dynosaur_macro_dynfoo::DynFoo;

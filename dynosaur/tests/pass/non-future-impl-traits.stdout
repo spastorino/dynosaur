@@ -7,7 +7,7 @@ trait SomeTrait {
     fn get_iter(&mut self)
     -> impl Iterator<Item = u8> + '_;
 }
-mod _dynosaur_macro_dynsometrait {
+mod __dynosaur_macro_dynsometrait {
     use super::*;
     trait ErasedSomeTrait {
         fn get_iter<'life0, 'dynosaur>(&'life0 mut self)
@@ -55,7 +55,7 @@ mod _dynosaur_macro_dynsometrait {
         }
     }
 }
-use _dynosaur_macro_dynsometrait::DynSomeTrait;
+use __dynosaur_macro_dynsometrait::DynSomeTrait;
 
 struct MyImpl([u8; 4]);
 
