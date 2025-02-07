@@ -10,8 +10,7 @@ use syn::token::RArrow;
 use syn::visit_mut::VisitMut;
 use syn::{
     parse_quote, parse_quote_spanned, Error, FnArg, GenericParam, Generics, Ident, ItemTrait, Pat,
-    PatIdent, PatType, ReturnType, Signature, Token, TraitItemFn, Type, TypeImplTrait,
-    TypeParamBound,
+    PatIdent, PatType, ReturnType, Signature, Token, Type, TypeImplTrait, TypeParamBound,
 };
 
 /// Expands the signature of each function on the trait, converting async fn into fn with return
@@ -38,9 +37,7 @@ use syn::{
 ///     Self: 'dynosaur;
 /// }
 /// ```
-pub(crate) fn expand_fn_sig(item_trait_generics: &Generics, trait_item_fn: &mut TraitItemFn) {
-    let sig = &mut trait_item_fn.sig;
-
+pub(crate) fn expand_fn_sig(item_trait_generics: &Generics, sig: &mut Signature) {
     expand_arg_names(sig);
 
     if is_async(sig) {
@@ -50,9 +47,6 @@ pub(crate) fn expand_fn_sig(item_trait_generics: &Generics, trait_item_fn: &mut 
         expand_fn_input(item_trait_generics, sig);
         expand_sig_ret_ty_to_box(sig);
     }
-
-    // Remove default method if any for the erased trait
-    trait_item_fn.default = None;
 }
 
 fn expand_fn_input(item_trait_generics: &Generics, sig: &mut Signature) {
@@ -213,15 +207,11 @@ pub(crate) fn expand_invoke_args(sig: &Signature, ufc: bool) -> Vec<TokenStream>
     args
 }
 
-pub(crate) fn expand_blanket_impl_fn(
-    item_trait: &ItemTrait,
-    trait_item_fn: &mut TraitItemFn,
-) -> TokenStream {
-    let is_async = is_async(&trait_item_fn.sig);
-    let is_rpit = is_rpit(&trait_item_fn.sig);
+pub(crate) fn expand_blanket_impl_fn(item_trait: &ItemTrait, sig: &mut Signature) -> TokenStream {
+    let is_async = is_async(sig);
+    let is_rpit = is_rpit(sig);
 
-    expand_fn_sig(&item_trait.generics, trait_item_fn);
-    let sig = &trait_item_fn.sig;
+    expand_fn_sig(&item_trait.generics, sig);
 
     let trait_ident = &item_trait.ident;
     let (_, trait_generics, _) = &item_trait.generics.split_for_impl();

@@ -193,7 +193,10 @@ fn mk_erased_trait(item_trait: &ItemTrait) -> ItemTrait {
         .cloned()
         .map(|mut trait_item| {
             if let TraitItem::Fn(ref mut trait_item_fn) = trait_item {
-                expand_fn_sig(&item_trait.generics, trait_item_fn);
+                // Remove default method if any for the erased trait
+                trait_item_fn.default = None;
+
+                expand_fn_sig(&item_trait.generics, &mut trait_item_fn.sig);
             }
 
             trait_item
@@ -227,7 +230,7 @@ fn mk_erased_trait_blanket_impl(item_trait: &ItemTrait) -> TokenStream {
                     }
                 }
                 TraitItem::Fn(mut trait_item_fn) => {
-                    expand_blanket_impl_fn(item_trait, &mut trait_item_fn)
+                    expand_blanket_impl_fn(item_trait, &mut trait_item_fn.sig)
                 }
                 TraitItem::Type(TraitItemType { ident, generics, .. }) => {
                     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
