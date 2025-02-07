@@ -8,8 +8,9 @@ use std::mem;
 use syn::punctuated::Punctuated;
 use syn::visit_mut::VisitMut;
 use syn::{
-    parse_quote, parse_quote_spanned, Error, FnArg, GenericParam, Generics, Ident, ItemTrait, Pat,
-    PatIdent, PatType, ReturnType, Signature, Token, Type, TypeImplTrait, TypeParamBound,
+    parse_quote, parse_quote_spanned, Error, FnArg, GenericParam, Generics, Ident, ItemTrait,
+    Lifetime, Pat, PatIdent, PatType, ReturnType, Signature, Token, Type, TypeImplTrait,
+    TypeParamBound,
 };
 
 /// Expands the signature of each function on the trait, converting async fn into fn with return
@@ -41,10 +42,10 @@ pub(crate) fn expand_fn_sig(item_trait_generics: &Generics, sig: &mut Signature)
 
     if is_async(sig) {
         expand_fn_input(item_trait_generics, sig);
-        expand_sig_ret_ty_to_pin_box(sig);
+        sig.output = expand_sig_ret_ty_to_pin_box(sig);
     } else if is_rpit(sig) {
         expand_fn_input(item_trait_generics, sig);
-        expand_sig_ret_ty_to_box(sig);
+        sig.output = expand_sig_ret_ty_to_box(sig);
     }
 }
 
@@ -150,28 +151,36 @@ pub(crate) fn expand_arg_names(sig: &mut Signature) {
     }
 }
 
-pub(crate) fn expand_sig_ret_ty_to_pin_box(sig: &mut Signature) {
-    let bounds = expand_ret_bounds(sig);
+pub(crate) fn expand_sig_ret_ty_to_pin_box(sig: &mut Signature) -> ReturnType {
+    let mut bounds = expand_ret_bounds(sig);
     if let Some(asyncness) = sig.asyncness.take() {
         sig.fn_token.span = asyncness.span;
     }
-    sig.output = parse_quote! { -> ::core::pin::Pin<Box<dyn #bounds + 'dynosaur>> };
+    bounds.push(TypeParamBound::Lifetime(Lifetime::new(
+        "'dynosaur",
+        Span::call_site(),
+    )));
+    parse_quote! { -> ::core::pin::Pin<Box<dyn #bounds>> }
 }
 
-pub(crate) fn expand_sig_ret_ty_to_box(sig: &mut Signature) {
-    let bounds = expand_ret_bounds(sig);
+pub(crate) fn expand_sig_ret_ty_to_box(sig: &mut Signature) -> ReturnType {
+    let mut bounds = expand_ret_bounds(sig);
     if let Some(asyncness) = sig.asyncness.take() {
         sig.fn_token.span = asyncness.span;
     }
-    sig.output = parse_quote! { -> Box<dyn #bounds + 'dynosaur> };
+    bounds.push(TypeParamBound::Lifetime(Lifetime::new(
+        "'dynosaur",
+        Span::call_site(),
+    )));
+    parse_quote! { -> Box<dyn #bounds> }
 }
 
-pub(crate) fn expand_sig_ret_ty_to_rpit(sig: &mut Signature) {
+pub(crate) fn expand_sig_ret_ty_to_rpit(sig: &mut Signature) -> ReturnType {
     let bounds = expand_ret_bounds(sig);
     if let Some(asyncness) = sig.asyncness.take() {
         sig.fn_token.span = asyncness.span;
     }
-    sig.output = parse_quote! { -> impl #bounds };
+    parse_quote! { -> impl #bounds }
 }
 
 pub(crate) fn expand_ret_bounds(sig: &Signature) -> Punctuated<TypeParamBound, Token![+]> {
@@ -284,7 +293,7 @@ pub(crate) fn expand_dyn_struct_fn(sig: &Signature) -> TokenStream {
 
         if is_async(&sig) {
             let bounds = expand_ret_bounds(&sig);
-            expand_sig_ret_ty_to_rpit(&mut sig);
+            sig.output = expand_sig_ret_ty_to_rpit(&mut sig);
 
             quote! {
                 #sig {
