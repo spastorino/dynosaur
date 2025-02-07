@@ -6,7 +6,6 @@ use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use std::mem;
 use syn::punctuated::Punctuated;
-use syn::token::RArrow;
 use syn::visit_mut::VisitMut;
 use syn::{
     parse_quote, parse_quote_spanned, Error, FnArg, GenericParam, Generics, Ident, ItemTrait, Pat,
@@ -152,31 +151,54 @@ pub(crate) fn expand_arg_names(sig: &mut Signature) {
 }
 
 pub(crate) fn expand_sig_ret_ty_to_pin_box(sig: &mut Signature) {
-    let (arrow, ret) = expand_arrow_ret_ty(sig);
+    let ret = expand_ret_ty(sig);
     if let Some(asyncness) = sig.asyncness.take() {
         sig.fn_token.span = asyncness.span;
     }
-    sig.output = parse_quote! { #arrow ::core::pin::Pin<Box<dyn #ret + 'dynosaur>> };
+    sig.output = parse_quote! { -> ::core::pin::Pin<Box<dyn #ret + 'dynosaur>> };
 }
 
 pub(crate) fn expand_sig_ret_ty_to_box(sig: &mut Signature) {
-    let (arrow, ret) = expand_arrow_ret_ty(sig);
+    let ret = expand_ret_ty(sig);
     if let Some(asyncness) = sig.asyncness.take() {
         sig.fn_token.span = asyncness.span;
     }
-    sig.output = parse_quote! { #arrow Box<dyn #ret + 'dynosaur> };
+    sig.output = parse_quote! { -> Box<dyn #ret + 'dynosaur> };
 }
 
 pub(crate) fn expand_sig_ret_ty_to_rpit(sig: &mut Signature) {
-    let (arrow, ret) = expand_arrow_ret_ty(sig);
+    let ret = expand_ret_ty(sig);
     if let Some(asyncness) = sig.asyncness.take() {
         sig.fn_token.span = asyncness.span;
     }
-    sig.output = parse_quote! { #arrow impl #ret };
+    sig.output = parse_quote! { -> impl #ret };
 }
 
 pub(crate) fn expand_ret_ty(sig: &Signature) -> TokenStream {
-    expand_arrow_ret_ty(sig).1
+    match (sig.asyncness.is_some(), &sig.output) {
+        (true, ReturnType::Default) => {
+            return quote! { ::core::future::Future<Output = ()> };
+        }
+        (true, ReturnType::Type(_, ret)) => {
+            return quote! { ::core::future::Future<Output = #ret> };
+        }
+        (false, ReturnType::Type(_, ret)) => {
+            if let Type::ImplTrait(TypeImplTrait { bounds, .. }) = &**ret {
+                let mut ret_bounds: Punctuated<&TypeParamBound, Token![+]> = Punctuated::new();
+
+                for bound in bounds {
+                    if !matches!(bound, TypeParamBound::Lifetime(_)) {
+                        ret_bounds.push(bound);
+                    }
+                }
+
+                return quote! { #ret_bounds };
+            }
+        }
+        _ => {}
+    }
+
+    Error::new_spanned(&sig.output, "unsupported return type").to_compile_error()
 }
 
 pub(crate) fn expand_invoke_args(sig: &Signature, ufc: bool) -> Vec<TokenStream> {
@@ -281,37 +303,4 @@ pub(crate) fn expand_dyn_struct_fn(sig: &Signature) -> TokenStream {
             }
         }
     }
-}
-
-fn expand_arrow_ret_ty(sig: &Signature) -> (RArrow, TokenStream) {
-    match (sig.asyncness.is_some(), &sig.output) {
-        (true, ReturnType::Default) => {
-            return (
-                Token![->](Span::call_site()),
-                quote! { ::core::future::Future<Output = ()> },
-            );
-        }
-        (true, ReturnType::Type(arrow, ret)) => {
-            return (*arrow, quote! { ::core::future::Future<Output = #ret> });
-        }
-        (false, ReturnType::Type(arrow, ret)) => {
-            if let Type::ImplTrait(TypeImplTrait { bounds, .. }) = &**ret {
-                let mut ret_bounds: Punctuated<&TypeParamBound, Token![+]> = Punctuated::new();
-
-                for bound in bounds {
-                    if !matches!(bound, TypeParamBound::Lifetime(_)) {
-                        ret_bounds.push(bound);
-                    }
-                }
-
-                return (*arrow, quote! { #ret_bounds });
-            }
-        }
-        _ => {}
-    }
-
-    (
-        Token![->](Span::call_site()),
-        Error::new_spanned(&sig.output, "unsupported return type").to_compile_error(),
-    )
 }
