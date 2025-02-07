@@ -9,8 +9,9 @@ use syn::punctuated::Punctuated;
 use syn::token::RArrow;
 use syn::visit_mut::VisitMut;
 use syn::{
-    parse_quote, parse_quote_spanned, Error, FnArg, GenericParam, Generics, ItemTrait, Pat,
-    PatType, ReturnType, Signature, Token, TraitItemFn, Type, TypeImplTrait, TypeParamBound,
+    parse_quote, parse_quote_spanned, Error, FnArg, GenericParam, Generics, Ident, ItemTrait, Pat,
+    PatIdent, PatType, ReturnType, Signature, Token, TraitItemFn, Type, TypeImplTrait,
+    TypeParamBound,
 };
 
 /// Expands the signature of each function on the trait, converting async fn into fn with return
@@ -39,6 +40,8 @@ use syn::{
 /// ```
 pub(crate) fn expand_fn_sig(item_trait_generics: &Generics, trait_item_fn: &mut TraitItemFn) {
     let sig = &mut trait_item_fn.sig;
+
+    expand_arg_names(sig);
 
     if is_async(sig) {
         expand_fn_input(item_trait_generics, sig);
@@ -124,6 +127,26 @@ fn expand_fn_input(item_trait_generics: &Generics, sig: &mut Signature) {
     for arg in &mut sig.inputs {
         if let FnArg::Typed(arg) = arg {
             AddLifetimeToImplTrait.visit_type_mut(&mut arg.ty);
+        }
+    }
+}
+
+pub(crate) fn expand_arg_names(sig: &mut Signature) {
+    let mut wild_id = 1;
+
+    for arg in &mut sig.inputs {
+        if let FnArg::Typed(arg) = arg {
+            if matches!(*arg.pat, Pat::Wild(_)) {
+                arg.pat = Box::new(Pat::Ident(PatIdent {
+                    attrs: Vec::new(),
+                    by_ref: None,
+                    mutability: None,
+                    ident: Ident::new(&format!("__dynosaur_arg{}", wild_id), Span::call_site()),
+                    subpat: None,
+                }));
+
+                wild_id += 1;
+            }
         }
     }
 }
@@ -228,11 +251,13 @@ pub(crate) fn expand_dyn_struct_fn(sig: &Signature) -> TokenStream {
         }
     } else {
         let ident = &sig.ident;
+
+        let mut sig = sig.clone();
+        expand_arg_names(&mut sig);
         let args = expand_invoke_args(&sig, true);
 
         if is_async(&sig) {
             let ret = expand_ret_ty(&sig);
-            let mut sig = sig.clone();
             expand_sig_ret_ty_to_rpit(&mut sig);
 
             quote! {
