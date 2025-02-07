@@ -40,12 +40,9 @@ use syn::{
 pub(crate) fn expand_fn_sig(item_trait_generics: &Generics, sig: &mut Signature) {
     expand_arg_names(sig);
 
-    if is_async(sig) {
+    if is_async(sig) || is_rpit(sig) {
         expand_fn_input(item_trait_generics, sig);
-        sig.output = expand_sig_ret_ty_to_pin_box(sig);
-    } else if is_rpit(sig) {
-        expand_fn_input(item_trait_generics, sig);
-        sig.output = expand_sig_ret_ty_to_box(sig);
+        sig.output = expand_sig_ret_ty(sig, "'dynosaur");
     }
 }
 
@@ -151,28 +148,28 @@ pub(crate) fn expand_arg_names(sig: &mut Signature) {
     }
 }
 
-pub(crate) fn expand_sig_ret_ty_to_pin_box(sig: &mut Signature) -> ReturnType {
-    let mut bounds = expand_ret_bounds(sig);
-    if let Some(asyncness) = sig.asyncness.take() {
-        sig.fn_token.span = asyncness.span;
-    }
-    bounds.push(TypeParamBound::Lifetime(Lifetime::new(
-        "'dynosaur",
-        Span::call_site(),
-    )));
-    parse_quote! { -> ::core::pin::Pin<Box<dyn #bounds>> }
-}
+pub(crate) fn expand_sig_ret_ty(sig: &mut Signature, lifetime_ident: &str) -> ReturnType {
+    let is_async = is_async(sig);
+    let is_rpit = is_rpit(sig);
 
-pub(crate) fn expand_sig_ret_ty_to_box(sig: &mut Signature) -> ReturnType {
-    let mut bounds = expand_ret_bounds(sig);
-    if let Some(asyncness) = sig.asyncness.take() {
-        sig.fn_token.span = asyncness.span;
+    if is_async || is_rpit {
+        let mut bounds = expand_ret_bounds(sig);
+        if let Some(asyncness) = sig.asyncness.take() {
+            sig.fn_token.span = asyncness.span;
+        }
+        bounds.push(TypeParamBound::Lifetime(Lifetime::new(
+            lifetime_ident,
+            Span::call_site(),
+        )));
+
+        if is_async {
+            parse_quote! { -> ::core::pin::Pin<Box<dyn #bounds>> }
+        } else {
+            parse_quote! { -> Box<dyn #bounds> }
+        }
+    } else {
+        sig.output.clone()
     }
-    bounds.push(TypeParamBound::Lifetime(Lifetime::new(
-        "'dynosaur",
-        Span::call_site(),
-    )));
-    parse_quote! { -> Box<dyn #bounds> }
 }
 
 pub(crate) fn expand_sig_ret_ty_to_rpit(sig: &mut Signature) -> ReturnType {
