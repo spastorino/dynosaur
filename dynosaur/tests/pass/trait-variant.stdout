@@ -9,7 +9,7 @@ trait Next {
     async fn next(&mut self)
     -> Option<Self::Item>;
 }
-mod _dynosaur_macro_dynnext {
+mod __dynosaur_macro_dynnext {
     use super::*;
     #[allow(async_fn_in_trait)]
     trait ErasedNext {
@@ -40,14 +40,14 @@ mod _dynosaur_macro_dynnext {
         type Item = Item;
         fn next(&mut self)
             -> impl ::core::future::Future<Output = Option<Self::Item>> {
-            let fut:
+            let ret:
                     ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
                     Option<Self::Item>> + '_>> = self.ptr.next();
-            let fut:
+            let ret:
                     ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
                     Option<Self::Item>> + 'static>> =
-                unsafe { ::core::mem::transmute(fut) };
-            fut
+                unsafe { ::core::mem::transmute(ret) };
+            ret
         }
     }
     impl<'dynosaur_struct, Item> DynNext<'dynosaur_struct, Item> {
@@ -73,13 +73,13 @@ mod _dynosaur_macro_dynnext {
         }
     }
 }
-use _dynosaur_macro_dynnext::DynNext;
+use __dynosaur_macro_dynnext::DynNext;
 trait SendNext: Send {
     type Item;
     fn next(&mut self)
     -> impl ::core::future::Future<Output = Option<Self::Item>> + Send;
 }
-mod _dynosaur_macro_dynsendnext {
+mod __dynosaur_macro_dynsendnext {
     use super::*;
     trait ErasedSendNext: Send {
         type Item;
@@ -112,14 +112,14 @@ mod _dynosaur_macro_dynsendnext {
             ->
                 impl ::core::future::Future<Output = Option<Self::Item>> +
                 Send {
-            let fut:
+            let ret:
                     ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
                     Option<Self::Item>> + Send + '_>> = self.ptr.next();
-            let fut:
+            let ret:
                     ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
                     Option<Self::Item>> + Send + 'static>> =
-                unsafe { ::core::mem::transmute(fut) };
-            fut
+                unsafe { ::core::mem::transmute(ret) };
+            ret
         }
     }
     impl<'dynosaur_struct, Item> DynSendNext<'dynosaur_struct, Item> {
@@ -148,7 +148,7 @@ mod _dynosaur_macro_dynsendnext {
         }
     }
 }
-use _dynosaur_macro_dynsendnext::DynSendNext;
+use __dynosaur_macro_dynsendnext::DynSendNext;
 impl<TraitVariantBlanketType: SendNext> Next for TraitVariantBlanketType {
     type Item = <Self as SendNext>::Item;
     async fn next(&mut self) -> Option<Self::Item> {

@@ -6,11 +6,10 @@ use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use std::mem;
 use syn::punctuated::Punctuated;
-use syn::token::RArrow;
 use syn::visit_mut::VisitMut;
 use syn::{
-    parse_quote, parse_quote_spanned, Error, FnArg, GenericParam, Generics, Ident, ItemTrait, Pat,
-    PatIdent, PatType, ReturnType, Signature, Token, TraitItemFn, Type, TypeImplTrait,
+    parse_quote, parse_quote_spanned, Error, FnArg, GenericParam, Generics, Ident, ItemTrait,
+    Lifetime, Pat, PatIdent, PatType, ReturnType, Signature, Token, Type, TypeImplTrait,
     TypeParamBound,
 };
 
@@ -38,21 +37,17 @@ use syn::{
 ///     Self: 'dynosaur;
 /// }
 /// ```
-pub(crate) fn expand_fn_sig(item_trait_generics: &Generics, trait_item_fn: &mut TraitItemFn) {
-    let sig = &mut trait_item_fn.sig;
-
+pub(crate) fn expand_fn_sig(item_trait_generics: &Generics, sig: &mut Signature) {
     expand_arg_names(sig);
 
-    if is_async(sig) {
+    if is_async(sig) || is_rpit(sig) {
         expand_fn_input(item_trait_generics, sig);
-        expand_sig_ret_ty_to_pin_box(sig);
-    } else if is_rpit(sig) {
-        expand_fn_input(item_trait_generics, sig);
-        expand_sig_ret_ty_to_box(sig);
+        let ret_ty = expand_sig_ret_ty(sig, "'dynosaur");
+        if let Some(asyncness) = sig.asyncness.take() {
+            sig.fn_token.span = asyncness.span;
+        }
+        sig.output = parse_quote! { -> #ret_ty };
     }
-
-    // Remove default method if any for the erased trait
-    trait_item_fn.default = None;
 }
 
 fn expand_fn_input(item_trait_generics: &Generics, sig: &mut Signature) {
@@ -157,32 +152,68 @@ pub(crate) fn expand_arg_names(sig: &mut Signature) {
     }
 }
 
-pub(crate) fn expand_sig_ret_ty_to_pin_box(sig: &mut Signature) {
-    let (arrow, ret) = expand_arrow_ret_ty(sig);
-    if let Some(asyncness) = sig.asyncness.take() {
-        sig.fn_token.span = asyncness.span;
+pub(crate) fn expand_sig_ret_ty(sig: &Signature, lifetime_ident: &str) -> Type {
+    let is_async = is_async(sig);
+    let is_rpit = is_rpit(sig);
+
+    if is_async || is_rpit {
+        let mut bounds = expand_ret_bounds(sig);
+        bounds.push(TypeParamBound::Lifetime(Lifetime::new(
+            lifetime_ident,
+            Span::call_site(),
+        )));
+
+        if is_async {
+            parse_quote! { ::core::pin::Pin<Box<dyn #bounds>> }
+        } else {
+            parse_quote! { Box<dyn #bounds> }
+        }
+    } else {
+        match &sig.output {
+            ReturnType::Default => parse_quote! { () },
+            ReturnType::Type(_, ty) => parse_quote! { #ty },
+        }
     }
-    sig.output = parse_quote! { #arrow ::core::pin::Pin<Box<dyn #ret + 'dynosaur>> };
 }
 
-pub(crate) fn expand_sig_ret_ty_to_box(sig: &mut Signature) {
-    let (arrow, ret) = expand_arrow_ret_ty(sig);
-    if let Some(asyncness) = sig.asyncness.take() {
-        sig.fn_token.span = asyncness.span;
-    }
-    sig.output = parse_quote! { #arrow Box<dyn #ret + 'dynosaur> };
+pub(crate) fn expand_sig_ret_ty_to_rpit(sig: &Signature) -> Type {
+    let bounds = expand_ret_bounds(sig);
+    parse_quote! { impl #bounds }
 }
 
-pub(crate) fn expand_sig_ret_ty_to_rpit(sig: &mut Signature) {
-    let (arrow, ret) = expand_arrow_ret_ty(sig);
-    if let Some(asyncness) = sig.asyncness.take() {
-        sig.fn_token.span = asyncness.span;
-    }
-    sig.output = parse_quote! { #arrow impl #ret };
-}
+pub(crate) fn expand_ret_bounds(sig: &Signature) -> Punctuated<TypeParamBound, Token![+]> {
+    let mut ret_bounds = Punctuated::new();
 
-pub(crate) fn expand_ret_ty(sig: &Signature) -> TokenStream {
-    expand_arrow_ret_ty(sig).1
+    match (sig.asyncness.is_some(), &sig.output) {
+        (true, ReturnType::Default) => {
+            ret_bounds.push(TypeParamBound::Verbatim(
+                quote! { ::core::future::Future<Output = ()> },
+            ));
+        }
+        (true, ReturnType::Type(_, ret)) => {
+            ret_bounds.push(TypeParamBound::Verbatim(
+                quote! { ::core::future::Future<Output = #ret> },
+            ));
+        }
+        (false, ReturnType::Type(_, ret)) => {
+            if let Type::ImplTrait(TypeImplTrait { bounds, .. }) = &**ret {
+                for bound in bounds {
+                    if !matches!(bound, TypeParamBound::Lifetime(_)) {
+                        ret_bounds.push(bound.clone());
+                    }
+                }
+            }
+        }
+        _ => {}
+    }
+
+    if ret_bounds.is_empty() {
+        ret_bounds.push(TypeParamBound::Verbatim(
+            Error::new_spanned(&sig.output, "unsupported return type").to_compile_error(),
+        ));
+    }
+
+    ret_bounds
 }
 
 pub(crate) fn expand_invoke_args(sig: &Signature, ufc: bool) -> Vec<TokenStream> {
@@ -213,15 +244,11 @@ pub(crate) fn expand_invoke_args(sig: &Signature, ufc: bool) -> Vec<TokenStream>
     args
 }
 
-pub(crate) fn expand_blanket_impl_fn(
-    item_trait: &ItemTrait,
-    trait_item_fn: &mut TraitItemFn,
-) -> TokenStream {
-    let is_async = is_async(&trait_item_fn.sig);
-    let is_rpit = is_rpit(&trait_item_fn.sig);
+pub(crate) fn expand_blanket_impl_fn(item_trait: &ItemTrait, sig: &mut Signature) -> TokenStream {
+    let is_async = is_async(sig);
+    let is_rpit = is_rpit(sig);
 
-    expand_fn_sig(&item_trait.generics, trait_item_fn);
-    let sig = &trait_item_fn.sig;
+    expand_fn_sig(&item_trait.generics, sig);
 
     let trait_ident = &item_trait.ident;
     let (_, trait_generics, _) = &item_trait.generics.split_for_impl();
@@ -257,71 +284,43 @@ pub(crate) fn expand_dyn_struct_fn(sig: &Signature) -> TokenStream {
         }
     } else {
         let ident = &sig.ident;
+        let is_async = is_async(sig);
+        let is_rpit = is_rpit(sig);
 
         let mut sig = sig.clone();
         expand_arg_names(&mut sig);
         let args = expand_invoke_args(&sig, true);
 
-        if is_async(&sig) {
-            let ret = expand_ret_ty(&sig);
-            expand_sig_ret_ty_to_rpit(&mut sig);
-
-            quote! {
-                #sig {
-                    let fut: ::core::pin::Pin<Box<dyn #ret + '_>> = self.ptr.#ident(#(#args),*);
-                    let fut: ::core::pin::Pin<Box<dyn #ret + 'static>> = unsafe { ::core::mem::transmute(fut) };
-                    fut
-                }
-            }
-        } else if is_rpit(&sig) {
-            let ret = expand_ret_ty(&sig);
-
-            quote! {
-                #sig {
-                    let ret: Box<dyn #ret + '_> = self.ptr.#ident(#(#args),*);
-                    let ret: Box<dyn #ret + '_> = unsafe { ::core::mem::transmute(ret) };
-                    ret
-                }
-            }
-        } else {
+        if !is_async && !is_rpit {
             quote! {
                 #sig {
                     self.ptr.#ident(#(#args),*)
                 }
             }
-        }
-    }
-}
+        } else {
+            let (ty1, ty2) = if is_async {
+                let ty1 = expand_sig_ret_ty(&sig, "'_");
+                let ty2 = expand_sig_ret_ty(&sig, "'static");
+                let sig_ret_ty = expand_sig_ret_ty_to_rpit(&mut sig);
+                sig.output = parse_quote! { -> #sig_ret_ty };
+                (ty1, ty2)
+            } else {
+                // is_rpit
+                let ty = expand_sig_ret_ty(&sig, "'_");
+                (ty.clone(), ty)
+            };
 
-fn expand_arrow_ret_ty(sig: &Signature) -> (RArrow, TokenStream) {
-    match (sig.asyncness.is_some(), &sig.output) {
-        (true, ReturnType::Default) => {
-            return (
-                Token![->](Span::call_site()),
-                quote! { ::core::future::Future<Output = ()> },
-            );
-        }
-        (true, ReturnType::Type(arrow, ret)) => {
-            return (*arrow, quote! { ::core::future::Future<Output = #ret> });
-        }
-        (false, ReturnType::Type(arrow, ret)) => {
-            if let Type::ImplTrait(TypeImplTrait { bounds, .. }) = &**ret {
-                let mut ret_bounds: Punctuated<&TypeParamBound, Token![+]> = Punctuated::new();
+            if let Some(asyncness) = sig.asyncness.take() {
+                sig.fn_token.span = asyncness.span;
+            }
 
-                for bound in bounds {
-                    if !matches!(bound, TypeParamBound::Lifetime(_)) {
-                        ret_bounds.push(bound);
-                    }
+            quote! {
+                #sig {
+                    let ret: #ty1 = self.ptr.#ident(#(#args),*);
+                    let ret: #ty2 = unsafe { ::core::mem::transmute(ret) };
+                    ret
                 }
-
-                return (*arrow, quote! { #ret_bounds });
             }
         }
-        _ => {}
     }
-
-    (
-        Token![->](Span::call_site()),
-        Error::new_spanned(&sig.output, "unsupported return type").to_compile_error(),
-    )
 }

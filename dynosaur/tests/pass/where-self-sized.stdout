@@ -11,7 +11,7 @@ trait MyTrait {
     Self: Sized;
     async fn bar(&mut self);
 }
-mod _dynosaur_macro_dynmytrait {
+mod __dynosaur_macro_dynmytrait {
     use super::*;
     trait ErasedMyTrait {
         fn bar<'life0, 'dynosaur>(&'life0 mut self)
@@ -40,13 +40,13 @@ mod _dynosaur_macro_dynmytrait {
             ::core::panicking::panic("internal error: entered unreachable code")
         }
         fn bar(&mut self) -> impl ::core::future::Future<Output = ()> {
-            let fut:
+            let ret:
                     ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
                     ()> + '_>> = self.ptr.bar();
-            let fut:
+            let ret:
                     ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
-                    ()> + 'static>> = unsafe { ::core::mem::transmute(fut) };
-            fut
+                    ()> + 'static>> = unsafe { ::core::mem::transmute(ret) };
+            ret
         }
     }
     impl<'dynosaur_struct> DynMyTrait<'dynosaur_struct> {
@@ -69,5 +69,5 @@ mod _dynosaur_macro_dynmytrait {
         }
     }
 }
-use _dynosaur_macro_dynmytrait::DynMyTrait;
+use __dynosaur_macro_dynmytrait::DynMyTrait;
 fn main() {}

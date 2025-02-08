@@ -10,7 +10,7 @@ pub trait JobQueue {
     -> usize;
     async fn dispatch(&self);
 }
-mod _dynosaur_macro_dynjobqueue {
+mod __dynosaur_macro_dynjobqueue {
     use super::*;
     pub trait ErasedJobQueue {
         fn len(&self)
@@ -39,13 +39,13 @@ mod _dynosaur_macro_dynjobqueue {
     impl<'dynosaur_struct> JobQueue for DynJobQueue<'dynosaur_struct> {
         fn len(&self) -> usize { self.ptr.len() }
         fn dispatch(&self) -> impl ::core::future::Future<Output = ()> {
-            let fut:
+            let ret:
                     ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
                     ()> + '_>> = self.ptr.dispatch();
-            let fut:
+            let ret:
                     ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
-                    ()> + 'static>> = unsafe { ::core::mem::transmute(fut) };
-            fut
+                    ()> + 'static>> = unsafe { ::core::mem::transmute(ret) };
+            ret
         }
     }
     impl<'dynosaur_struct> DynJobQueue<'dynosaur_struct> {
@@ -68,6 +68,6 @@ mod _dynosaur_macro_dynjobqueue {
         }
     }
 }
-pub use _dynosaur_macro_dynjobqueue::DynJobQueue;
+pub use __dynosaur_macro_dynjobqueue::DynJobQueue;
 
 fn main() {}

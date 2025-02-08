@@ -10,7 +10,7 @@ trait MyTrait {
     async fn foo(&self)
     -> Self::Item;
 }
-mod _dynosaur_macro_dynmytrait {
+mod __dynosaur_macro_dynmytrait {
     use super::*;
     trait ErasedMyTrait {
         type Item;
@@ -40,14 +40,14 @@ mod _dynosaur_macro_dynmytrait {
         DynMyTrait<'dynosaur_struct, Item> {
         type Item = Item;
         fn foo(&self) -> impl ::core::future::Future<Output = Self::Item> {
-            let fut:
+            let ret:
                     ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
                     Self::Item> + '_>> = self.ptr.foo();
-            let fut:
+            let ret:
                     ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
                     Self::Item> + 'static>> =
-                unsafe { ::core::mem::transmute(fut) };
-            fut
+                unsafe { ::core::mem::transmute(ret) };
+            ret
         }
     }
     impl<'dynosaur_struct, Item> DynMyTrait<'dynosaur_struct, Item> {
@@ -76,6 +76,6 @@ mod _dynosaur_macro_dynmytrait {
         }
     }
 }
-use _dynosaur_macro_dynmytrait::DynMyTrait;
+use __dynosaur_macro_dynmytrait::DynMyTrait;
 
 fn main() {}
