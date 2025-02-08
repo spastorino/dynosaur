@@ -21,7 +21,7 @@ trait-variant = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true }
-ui_test = "0.24"
+ui_test = "0.28"
 
 [[example]]
 name = "next"
