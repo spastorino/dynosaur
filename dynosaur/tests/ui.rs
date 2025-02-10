@@ -12,27 +12,24 @@ enum Mode {
 }
 
 fn cfg(path: &Path, mode: Mode) -> Config {
-    let mut program = CommandBuilder::rustc();
-
-    let exit_status = match mode {
-        Mode::Expand => {
-            program.args.push("-Zunpretty=expanded".into());
-            0
-        }
-
-        Mode::Compile => 0,
-
-        Mode::Panic => 101,
-    };
-
     let mut config = Config {
-        program,
+        program: CommandBuilder::rustc(),
         ..Config::rustc(path)
     };
 
-    if matches!(mode, Mode::Compile) {
-        config.output_conflict_handling = ignore_output_conflict;
-    }
+    let exit_status = match mode {
+        Mode::Expand => {
+            config.program.args.push("-Zunpretty=expanded".into());
+            0
+        }
+
+        Mode::Compile => {
+            config.output_conflict_handling = ignore_output_conflict;
+            0
+        }
+
+        Mode::Panic => 101,
+    };
 
     let require_annotations = false; // we're not showing errors in a specific line anyway
     config.comment_defaults.base().exit_status = Spanned::dummy(exit_status).into();
