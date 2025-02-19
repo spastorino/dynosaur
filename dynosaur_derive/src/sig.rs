@@ -38,7 +38,7 @@ pub(crate) fn is_rpit(sig: &Signature) -> bool {
     match sig {
         Signature {
             asyncness: Some(_), ..
-        } => true,
+        } => false,
         Signature {
             asyncness: None,
             output: ReturnType::Type(_, ret),

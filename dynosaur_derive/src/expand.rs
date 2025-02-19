@@ -276,10 +276,20 @@ pub(crate) fn expand_blanket_impl_fn(item_trait: &ItemTrait, sig: &mut Signature
 }
 
 pub(crate) fn expand_dyn_struct_fn(sig: &Signature) -> TokenStream {
-    if has_where_self_sized(&sig) {
-        quote! {
-            #sig {
-                unreachable!()
+    if has_where_self_sized(sig) {
+        if is_rpit(sig) {
+            let ty = expand_sig_ret_ty(&sig, "'static");
+            quote! {
+                #[allow(unreachable_code)]
+                #sig {
+                    unreachable!() as #ty
+                }
+            }
+        } else {
+            quote! {
+                #sig {
+                    unreachable!()
+                }
             }
         }
     } else {
