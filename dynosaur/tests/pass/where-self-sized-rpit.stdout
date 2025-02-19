@@ -1,0 +1,80 @@
+#![feature(prelude_import)]
+#[prelude_import]
+use std::prelude::rust_2021::*;
+#[macro_use]
+extern crate std;
+use dynosaur::dynosaur;
+
+trait MyTrait {
+    fn foo(&mut self)
+    -> impl ::core::future::Future<Output = ()>
+    where
+    Self: Sized;
+    async fn bar(&mut self);
+}
+mod __dynosaur_macro_dynmytrait {
+    use super::*;
+    trait ErasedMyTrait {
+        fn bar<'life0, 'dynosaur>(&'life0 mut self)
+        ->
+            ::core::pin::Pin<Box<dyn ::core::future::Future<Output = ()> +
+            'dynosaur>>
+        where
+        'life0: 'dynosaur,
+        Self: 'dynosaur;
+    }
+    impl<DYNOSAUR: MyTrait> ErasedMyTrait for DYNOSAUR {
+        fn bar<'life0, 'dynosaur>(&'life0 mut self)
+            ->
+                ::core::pin::Pin<Box<dyn ::core::future::Future<Output = ()> +
+                'dynosaur>> where 'life0: 'dynosaur, Self: 'dynosaur {
+            Box::pin(<Self as MyTrait>::bar(self))
+        }
+    }
+    #[repr(transparent)]
+    pub struct DynMyTrait<'dynosaur_struct> {
+        ptr: dyn ErasedMyTrait + 'dynosaur_struct,
+    }
+    impl<'dynosaur_struct> MyTrait for DynMyTrait<'dynosaur_struct> {
+        #[allow(unreachable_code)]
+        fn foo(&mut self) -> impl ::core::future::Future<Output = ()> where
+            Self: Sized {
+
+
+                ::core::panicking::panic("internal error: entered unreachable code")
+                as
+                ::core::pin::Pin<Box<dyn ::core::future::Future<Output = ()> +
+                'static>>
+        }
+        fn bar(&mut self) -> impl ::core::future::Future<Output = ()> {
+            let ret:
+                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
+                    ()> + '_>> = self.ptr.bar();
+            let ret:
+                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
+                    ()> + 'static>> = unsafe { ::core::mem::transmute(ret) };
+            ret
+        }
+    }
+    impl<'dynosaur_struct> DynMyTrait<'dynosaur_struct> {
+        pub fn boxed(value: impl MyTrait + 'dynosaur_struct)
+            -> Box<DynMyTrait<'dynosaur_struct>> {
+            let value = Box::new(value);
+            let value: Box<dyn ErasedMyTrait + 'dynosaur_struct> = value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub fn from_ref(value: &(impl MyTrait + 'dynosaur_struct))
+            -> &DynMyTrait<'dynosaur_struct> {
+            let value: &(dyn ErasedMyTrait + 'dynosaur_struct) = &*value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub fn from_mut(value: &mut (impl MyTrait + 'dynosaur_struct))
+            -> &mut DynMyTrait<'dynosaur_struct> {
+            let value: &mut (dyn ErasedMyTrait + 'dynosaur_struct) =
+                &mut *value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+    }
+}
+use __dynosaur_macro_dynmytrait::DynMyTrait;
+fn main() {}
