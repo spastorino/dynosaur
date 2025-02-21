@@ -68,6 +68,6 @@ mod __dynosaur_macro_dynjobqueue {
         }
     }
 }
-pub use __dynosaur_macro_dynjobqueue::DynJobQueue;
+use __dynosaur_macro_dynjobqueue::DynJobQueue;
 
 fn main() {}

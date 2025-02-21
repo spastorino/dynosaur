@@ -6,7 +6,7 @@ use syn::{
     parse_macro_input, parse_quote,
     punctuated::Punctuated,
     Error, GenericParam, Ident, ItemTrait, Result, Token, TraitItem, TraitItemConst, TraitItemFn,
-    TraitItemType, TypeParam,
+    TraitItemType, TypeParam, Visibility,
 };
 use traits::{
     dyn_compatible_items, struct_trait_params, trait_item_erased_name, StructTraitParams,
@@ -20,6 +20,7 @@ mod traits;
 mod where_clauses;
 
 struct Attrs {
+    vis: Visibility,
     ident: Ident,
     target: Option<Target>,
 }
@@ -31,6 +32,7 @@ struct Target {
 impl Parse for Attrs {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Attrs {
+            vis: input.parse()?,
             ident: input.parse()?,
             target: if input.peek(Token![=]) {
                 input.parse::<Token![=]>()?;
@@ -154,7 +156,7 @@ pub fn dynosaur(
         }
     }
 
-    let vis = &item_trait.vis;
+    let vis = &attrs.vis;
     let struct_ident = &attrs.ident;
 
     let erased_trait = mk_erased_trait(&item_trait);
