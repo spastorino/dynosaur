@@ -22,6 +22,10 @@ pub(crate) fn is_async(sig: &Signature) -> bool {
                                 && (segments[0].ident == "core" || segments[0].ident == "std")
                                 && segments[1].ident == "future"
                                 && segments[2].ident == "Future"
+                                || segments.len() == 2
+                                    && segments[0].ident == "future"
+                                    && segments[1].ident == "Future"
+                                || segments.len() == 1 && segments[0].ident == "Future"
                         }
                         _ => false,
                     })

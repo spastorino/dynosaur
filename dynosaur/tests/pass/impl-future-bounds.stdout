@@ -1,0 +1,71 @@
+#![feature(prelude_import)]
+#[prelude_import]
+use std::prelude::rust_2021::*;
+#[macro_use]
+extern crate std;
+use std::future::Future;
+
+trait Foo: Send {
+    fn foo(&self)
+    -> impl Future<Output = i32> + Send;
+}
+mod __dynosaur_macro_dynfoo {
+    use super::*;
+    trait ErasedFoo: Send {
+        fn foo<'life0, 'dynosaur>(&'life0 self)
+        -> ::core::pin::Pin<Box<dyn Future<Output = i32> + Send + 'dynosaur>>
+        where
+        'life0: 'dynosaur,
+        Self: 'dynosaur;
+    }
+    impl<DYNOSAUR: Foo> ErasedFoo for DYNOSAUR {
+        fn foo<'life0, 'dynosaur>(&'life0 self)
+            ->
+                ::core::pin::Pin<Box<dyn Future<Output = i32> + Send +
+                'dynosaur>> where 'life0: 'dynosaur, Self: 'dynosaur {
+            Box::pin(<Self as Foo>::foo(self))
+        }
+    }
+    #[repr(transparent)]
+    pub struct DynFoo<'dynosaur_struct> {
+        ptr: dyn ErasedFoo + 'dynosaur_struct,
+    }
+    impl<'dynosaur_struct> Foo for DynFoo<'dynosaur_struct> {
+        fn foo(&self) -> impl Future<Output = i32> + Send {
+            let ret:
+                    ::core::pin::Pin<Box<dyn Future<Output = i32> + Send +
+                    '_>> = self.ptr.foo();
+            let ret:
+                    ::core::pin::Pin<Box<dyn Future<Output = i32> + Send +
+                    'static>> = unsafe { ::core::mem::transmute(ret) };
+            ret
+        }
+    }
+    impl<'dynosaur_struct> DynFoo<'dynosaur_struct> {
+        pub fn boxed(value: impl Foo + 'dynosaur_struct)
+            -> Box<DynFoo<'dynosaur_struct>> {
+            let value = Box::new(value);
+            let value: Box<dyn ErasedFoo + 'dynosaur_struct> = value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub fn from_ref(value: &(impl Foo + 'dynosaur_struct))
+            -> &DynFoo<'dynosaur_struct> {
+            let value: &(dyn ErasedFoo + 'dynosaur_struct) = &*value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub fn from_mut(value: &mut (impl Foo + 'dynosaur_struct))
+            -> &mut DynFoo<'dynosaur_struct> {
+            let value: &mut (dyn ErasedFoo + 'dynosaur_struct) = &mut *value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+    }
+}
+use __dynosaur_macro_dynfoo::DynFoo;
+
+struct FooImpl;
+
+impl Foo for FooImpl {
+    async fn foo(&self) -> i32 { 1 }
+}
+
+fn main() {}
