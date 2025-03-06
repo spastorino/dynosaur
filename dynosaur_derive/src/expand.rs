@@ -1,6 +1,6 @@
 use crate::lifetime::{AddLifetimeToImplTrait, CollectLifetimes};
 use crate::receiver::has_self_in_sig;
-use crate::sig::{is_async, is_rpit};
+use crate::sig::{is_async, is_future, is_rpit};
 use crate::where_clauses::{has_where_self_sized, where_clause_or_default};
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
@@ -55,9 +55,14 @@ fn expand_apits(sig: &mut Signature) {
 
     for arg in &mut sig.inputs {
         if let FnArg::Typed(arg) = arg {
-            if let Type::ImplTrait(TypeImplTrait { bounds, .. }) = &*arg.ty {
-                let bounds = expand_bounds(bounds, Some(lifetime_ident));
-                arg.ty = parse_quote! { Box<dyn #bounds> };
+            if let Type::ImplTrait(type_impl_trait) = &*arg.ty {
+                let bounds = expand_bounds(&type_impl_trait.bounds, Some(lifetime_ident));
+
+                arg.ty = if is_future(type_impl_trait) {
+                    parse_quote! { ::core::pin::Pin<Box<dyn #bounds>> }
+                } else {
+                    parse_quote! { Box<dyn #bounds> }
+                };
             }
         }
     }
@@ -265,8 +270,12 @@ pub(crate) fn expand_invoke_args(sig: &Signature, ufc: bool) -> Vec<TokenStream>
             }
             FnArg::Typed(pat_type) => match &*pat_type.pat {
                 Pat::Ident(arg) => {
-                    if let Type::ImplTrait(_) = &*pat_type.ty {
-                        args.push(quote! { Box::new(#arg) });
+                    if let Type::ImplTrait(type_impl_trait) = &*pat_type.ty {
+                        if is_future(type_impl_trait) {
+                            args.push(quote! { Box::pin(#arg) });
+                        } else {
+                            args.push(quote! { Box::new(#arg) });
+                        }
                     } else {
                         args.push(quote! { #arg });
                     }
