@@ -1,6 +1,6 @@
 use crate::lifetime::{AddLifetimeToImplTrait, CollectLifetimes};
 use crate::receiver::has_self_in_sig;
-use crate::sig::{is_async, is_rpit};
+use crate::sig::{is_async, is_future, is_rpit};
 use crate::where_clauses::{has_where_self_sized, where_clause_or_default};
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
@@ -9,8 +9,7 @@ use syn::punctuated::Punctuated;
 use syn::visit_mut::VisitMut;
 use syn::{
     parse_quote, parse_quote_spanned, Error, FnArg, GenericParam, Generics, Ident, ItemTrait,
-    Lifetime, Pat, PatIdent, PatType, ReturnType, Signature, Token, Type, TypeImplTrait,
-    TypeParamBound,
+    Lifetime, Pat, PatIdent, ReturnType, Signature, Token, Type, TypeImplTrait, TypeParamBound,
 };
 
 /// Expands the signature of each function on the trait, converting async fn into fn with return
@@ -39,6 +38,7 @@ use syn::{
 /// ```
 pub(crate) fn expand_fn_sig(item_trait_generics: &Generics, sig: &mut Signature) {
     expand_arg_names(sig);
+    expand_apits(sig);
 
     if is_async(sig) || is_rpit(sig) {
         expand_fn_input(item_trait_generics, sig);
@@ -47,6 +47,24 @@ pub(crate) fn expand_fn_sig(item_trait_generics: &Generics, sig: &mut Signature)
             sig.fn_token.span = asyncness.span;
         }
         sig.output = parse_quote! { -> #ret_ty };
+    }
+}
+
+fn expand_apits(sig: &mut Signature) {
+    let lifetime_ident = if is_async(sig) { "'dynosaur" } else { "'_" };
+
+    for arg in &mut sig.inputs {
+        if let FnArg::Typed(arg) = arg {
+            if let Type::ImplTrait(type_impl_trait) = &*arg.ty {
+                let bounds = expand_bounds(&type_impl_trait.bounds, Some(lifetime_ident));
+
+                arg.ty = if is_future(type_impl_trait) {
+                    parse_quote! { ::core::pin::Pin<Box<dyn #bounds>> }
+                } else {
+                    parse_quote! { Box<dyn #bounds> }
+                };
+            }
+        }
     }
 }
 
@@ -157,11 +175,7 @@ pub(crate) fn expand_sig_ret_ty(sig: &Signature, lifetime_ident: &str) -> Type {
     let is_rpit = is_rpit(sig);
 
     if is_async || is_rpit {
-        let mut bounds = expand_ret_bounds(sig);
-        bounds.push(TypeParamBound::Lifetime(Lifetime::new(
-            lifetime_ident,
-            Span::call_site(),
-        )));
+        let bounds = expand_ret_bounds(sig, Some(lifetime_ident));
 
         if is_async {
             parse_quote! { ::core::pin::Pin<Box<dyn #bounds>> }
@@ -177,40 +191,67 @@ pub(crate) fn expand_sig_ret_ty(sig: &Signature, lifetime_ident: &str) -> Type {
 }
 
 pub(crate) fn expand_sig_ret_ty_to_rpit(sig: &Signature) -> Type {
-    let bounds = expand_ret_bounds(sig);
+    let bounds = expand_ret_bounds(sig, None);
     parse_quote! { impl #bounds }
 }
 
-pub(crate) fn expand_ret_bounds(sig: &Signature) -> Punctuated<TypeParamBound, Token![+]> {
+pub(crate) fn expand_ret_bounds(
+    sig: &Signature,
+    lifetime: Option<&str>,
+) -> Punctuated<TypeParamBound, Token![+]> {
     let mut ret_bounds = Punctuated::new();
 
-    match (sig.asyncness.is_some(), &sig.output) {
+    let ret_bounds = match (sig.asyncness.is_some(), &sig.output) {
         (true, ReturnType::Default) => {
             ret_bounds.push(TypeParamBound::Verbatim(
                 quote! { ::core::future::Future<Output = ()> },
             ));
+            &ret_bounds
         }
         (true, ReturnType::Type(_, ret)) => {
             ret_bounds.push(TypeParamBound::Verbatim(
                 quote! { ::core::future::Future<Output = #ret> },
             ));
+            &ret_bounds
         }
         (false, ReturnType::Type(_, ret)) => {
             if let Type::ImplTrait(TypeImplTrait { bounds, .. }) = &**ret {
-                for bound in bounds {
-                    if !matches!(bound, TypeParamBound::Lifetime(_)) {
-                        ret_bounds.push(bound.clone());
-                    }
-                }
+                bounds
+            } else {
+                ret_bounds.push(TypeParamBound::Verbatim(
+                    Error::new_spanned(&sig.output, "unsupported return type").to_compile_error(),
+                ));
+                &ret_bounds
             }
         }
-        _ => {}
+        _ => {
+            ret_bounds.push(TypeParamBound::Verbatim(
+                Error::new_spanned(&sig.output, "unsupported return type").to_compile_error(),
+            ));
+            &ret_bounds
+        }
+    };
+
+    expand_bounds(&ret_bounds, lifetime)
+}
+
+fn expand_bounds(
+    bounds: &Punctuated<TypeParamBound, Token![+]>,
+    lifetime: Option<&str>,
+) -> Punctuated<TypeParamBound, Token![+]> {
+    let mut ret_bounds = Punctuated::new();
+
+    for bound in bounds {
+        if !matches!(bound, TypeParamBound::Lifetime(_)) {
+            ret_bounds.push(bound.clone());
+        }
     }
 
-    if ret_bounds.is_empty() {
-        ret_bounds.push(TypeParamBound::Verbatim(
-            Error::new_spanned(&sig.output, "unsupported return type").to_compile_error(),
-        ));
+    if let Some(lifetime) = lifetime {
+        ret_bounds.push(TypeParamBound::Lifetime(Lifetime::new(
+            lifetime,
+            Span::call_site(),
+        )));
     }
 
     ret_bounds
@@ -227,14 +268,25 @@ pub(crate) fn expand_invoke_args(sig: &Signature, ufc: bool) -> Vec<TokenStream>
                     args.push(quote! { self });
                 }
             }
-            FnArg::Typed(PatType { pat, .. }) => match &**pat {
+            FnArg::Typed(pat_type) => match &*pat_type.pat {
                 Pat::Ident(arg) => {
-                    args.push(quote! { #arg });
+                    if let Type::ImplTrait(type_impl_trait) = &*pat_type.ty {
+                        if is_future(type_impl_trait) {
+                            args.push(quote! { Box::pin(#arg) });
+                        } else {
+                            args.push(quote! { Box::new(#arg) });
+                        }
+                    } else {
+                        args.push(quote! { #arg });
+                    }
                 }
                 _ => {
                     args.push(
-                        Error::new_spanned(pat, "patterns are not supported in arguments")
-                            .to_compile_error(),
+                        Error::new_spanned(
+                            &pat_type.pat,
+                            "patterns are not supported in arguments",
+                        )
+                        .to_compile_error(),
                     );
                 }
             },
