@@ -52,8 +52,8 @@ impl Parse for Attrs {
 ///
 /// ```
 /// # mod dynosaur { pub use dynosaur_derive::dynosaur; }
-/// #[dynosaur::dynosaur(DynNext)]
-/// trait Next {
+/// #[dynosaur::dynosaur(pub DynNext)]
+/// pub trait Next {
 ///     type Item;
 ///     async fn next(&self) -> Option<Self::Item>;
 /// }
