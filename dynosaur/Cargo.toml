@@ -1,6 +1,6 @@
 [package]
 name = "dynosaur"
-version = "0.1.3"
+version = "0.2.0"
 authors = [
     "Santiago Pastorino <spastorino@gmail.com>",
     "Tyler Mandry <tmandry@google.com>",
@@ -16,7 +16,7 @@ edition = "2021"
 rust-version = "1.75"
 
 [dependencies]
-dynosaur_derive = { version = "0.1", path = "../dynosaur_derive" }
+dynosaur_derive = { version = "0.2", path = "../dynosaur_derive" }
 trait-variant = { workspace = true }
 
 [dev-dependencies]
