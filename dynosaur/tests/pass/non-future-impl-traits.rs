@@ -12,7 +12,7 @@ impl SomeTrait for MyImpl {
 }
 
 fn main() {
-    let mut st = DynSomeTrait::boxed(MyImpl([3,2,4,1]));
+    let mut st = DynSomeTrait::new_box(MyImpl([3, 2, 4, 1]));
     for x in st.get_iter() {
         println!("{}", x);
     }

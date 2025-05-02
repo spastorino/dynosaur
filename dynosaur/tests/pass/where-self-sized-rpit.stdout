@@ -57,7 +57,7 @@ mod __dynosaur_macro_dynmytrait {
         }
     }
     impl<'dynosaur_struct> DynMyTrait<'dynosaur_struct> {
-        pub fn boxed(value: impl MyTrait + 'dynosaur_struct)
+        pub fn new_box(value: impl MyTrait + 'dynosaur_struct)
             -> Box<DynMyTrait<'dynosaur_struct>> {
             let value = Box::new(value);
             let value: Box<dyn ErasedMyTrait + 'dynosaur_struct> = value;

@@ -49,7 +49,7 @@ mod __dynosaur_macro_dynjobqueue {
         }
     }
     impl<'dynosaur_struct> DynJobQueue<'dynosaur_struct> {
-        pub fn boxed(value: impl JobQueue + 'dynosaur_struct)
+        pub fn new_box(value: impl JobQueue + 'dynosaur_struct)
             -> Box<DynJobQueue<'dynosaur_struct>> {
             let value = Box::new(value);
             let value: Box<dyn ErasedJobQueue + 'dynosaur_struct> = value;

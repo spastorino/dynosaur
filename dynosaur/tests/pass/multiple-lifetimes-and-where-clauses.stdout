@@ -61,7 +61,7 @@ mod __dynosaur_macro_dynsometrait {
         }
     }
     impl<'dynosaur_struct, 'a, 'b> DynSomeTrait<'dynosaur_struct, 'a, 'b> {
-        pub fn boxed(value: impl SomeTrait<'a, 'b> + 'dynosaur_struct)
+        pub fn new_box(value: impl SomeTrait<'a, 'b> + 'dynosaur_struct)
             -> Box<DynSomeTrait<'dynosaur_struct, 'a, 'b>> {
             let value = Box::new(value);
             let value: Box<dyn ErasedSomeTrait<'a, 'b> + 'dynosaur_struct> =

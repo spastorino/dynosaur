@@ -41,15 +41,15 @@ async fn static_dispatch_local(mut iter: impl Next<Item = i32>) {
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
     let v = [1, 2, 3];
-    dyn_dispatch(&mut DynSendNext::boxed(from_iter(v))).await;
-    dyn_dispatch(&mut DynSendNext::boxed(from_iter(v))).await;
+    dyn_dispatch(&mut DynSendNext::new_box(from_iter(v))).await;
+    dyn_dispatch(&mut DynSendNext::new_box(from_iter(v))).await;
     dyn_dispatch_local(DynNext::from_mut(&mut from_iter(v))).await;
     dyn_dispatch_local(DynNext::from_mut(&mut from_iter(v))).await;
     static_dispatch(from_iter(v)).await;
     static_dispatch_local(from_iter(v)).await;
-    static_dispatch(DynSendNext::boxed(from_iter(v))).await;
+    static_dispatch(DynSendNext::new_box(from_iter(v))).await;
     static_dispatch(DynSendNext::from_mut(&mut from_iter(v))).await;
-    static_dispatch_local(DynNext::boxed(from_iter(v))).await;
+    static_dispatch_local(DynNext::new_box(from_iter(v))).await;
     static_dispatch_local(DynNext::from_mut(&mut from_iter(v))).await;
 }
 

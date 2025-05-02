@@ -51,7 +51,7 @@ mod __dynosaur_macro_dynfoo {
         }
     }
     impl<'dynosaur_struct, Bar: Baz> DynFoo<'dynosaur_struct, Bar> {
-        pub fn boxed(value: impl Foo<Bar = Bar> + 'dynosaur_struct)
+        pub fn new_box(value: impl Foo<Bar = Bar> + 'dynosaur_struct)
             -> Box<DynFoo<'dynosaur_struct, Bar>> {
             let value = Box::new(value);
             let value: Box<dyn ErasedFoo<Bar = Bar> + 'dynosaur_struct> =

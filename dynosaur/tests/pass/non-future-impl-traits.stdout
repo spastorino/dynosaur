@@ -36,7 +36,7 @@ mod __dynosaur_macro_dynsometrait {
         }
     }
     impl<'dynosaur_struct> DynSomeTrait<'dynosaur_struct> {
-        pub fn boxed(value: impl SomeTrait + 'dynosaur_struct)
+        pub fn new_box(value: impl SomeTrait + 'dynosaur_struct)
             -> Box<DynSomeTrait<'dynosaur_struct>> {
             let value = Box::new(value);
             let value: Box<dyn ErasedSomeTrait + 'dynosaur_struct> = value;
@@ -66,7 +66,7 @@ impl SomeTrait for MyImpl {
 }
 
 fn main() {
-    let mut st = DynSomeTrait::boxed(MyImpl([3, 2, 4, 1]));
+    let mut st = DynSomeTrait::new_box(MyImpl([3, 2, 4, 1]));
     for x in st.get_iter() {
         { ::std::io::_print(format_args!("{0}\n", x)); };
     }

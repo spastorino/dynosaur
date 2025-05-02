@@ -51,7 +51,7 @@ mod __dynosaur_macro_dynnext {
         }
     }
     impl<'dynosaur_struct, Item> DynNext<'dynosaur_struct, Item> {
-        pub fn boxed(value: impl Next<Item = Item> + 'dynosaur_struct)
+        pub fn new_box(value: impl Next<Item = Item> + 'dynosaur_struct)
             -> Box<DynNext<'dynosaur_struct, Item>> {
             let value = Box::new(value);
             let value: Box<dyn ErasedNext<Item = Item> + 'dynosaur_struct> =
@@ -123,7 +123,7 @@ mod __dynosaur_macro_dynsendnext {
         }
     }
     impl<'dynosaur_struct, Item> DynSendNext<'dynosaur_struct, Item> {
-        pub fn boxed(value: impl SendNext<Item = Item> + 'dynosaur_struct)
+        pub fn new_box(value: impl SendNext<Item = Item> + 'dynosaur_struct)
             -> Box<DynSendNext<'dynosaur_struct, Item>> {
             let value = Box::new(value);
             let value:
