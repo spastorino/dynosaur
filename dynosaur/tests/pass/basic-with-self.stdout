@@ -59,6 +59,22 @@ mod __dynosaur_macro_dynmytrait {
                 value;
             unsafe { ::core::mem::transmute(value) }
         }
+        pub fn new_arc(value: impl MyTrait<Item = Item> + 'dynosaur_struct)
+            -> std::sync::Arc<DynMyTrait<'dynosaur_struct, Item>> {
+            let value = std::sync::Arc::new(value);
+            let value:
+                    std::sync::Arc<dyn ErasedMyTrait<Item = Item> +
+                    'dynosaur_struct> = value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub fn new_rc(value: impl MyTrait<Item = Item> + 'dynosaur_struct)
+            -> std::rc::Rc<DynMyTrait<'dynosaur_struct, Item>> {
+            let value = std::rc::Rc::new(value);
+            let value:
+                    std::rc::Rc<dyn ErasedMyTrait<Item = Item> +
+                    'dynosaur_struct> = value;
+            unsafe { ::core::mem::transmute(value) }
+        }
         pub fn from_ref(value:
                 &(impl MyTrait<Item = Item> + 'dynosaur_struct))
             -> &DynMyTrait<'dynosaur_struct, Item> {
