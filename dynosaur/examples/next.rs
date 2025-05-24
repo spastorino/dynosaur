@@ -23,10 +23,10 @@ async fn static_dispatch(mut iter: impl Next<Item = i32>) {
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
     let v = [1, 2, 3];
-    dyn_dispatch(&mut DynNext::boxed(from_iter(v))).await;
+    dyn_dispatch(&mut DynNext::new_box(from_iter(v))).await;
     dyn_dispatch(DynNext::from_mut(&mut from_iter(v))).await;
     static_dispatch(from_iter(v)).await;
-    static_dispatch(DynNext::boxed(from_iter(v))).await;
+    static_dispatch(DynNext::new_box(from_iter(v))).await;
     static_dispatch(DynNext::from_mut(&mut from_iter(v))).await;
 }
 

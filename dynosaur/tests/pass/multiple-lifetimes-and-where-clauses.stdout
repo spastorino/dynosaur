@@ -61,11 +61,27 @@ mod __dynosaur_macro_dynsometrait {
         }
     }
     impl<'dynosaur_struct, 'a, 'b> DynSomeTrait<'dynosaur_struct, 'a, 'b> {
-        pub fn boxed(value: impl SomeTrait<'a, 'b> + 'dynosaur_struct)
+        pub fn new_box(value: impl SomeTrait<'a, 'b> + 'dynosaur_struct)
             -> Box<DynSomeTrait<'dynosaur_struct, 'a, 'b>> {
             let value = Box::new(value);
             let value: Box<dyn ErasedSomeTrait<'a, 'b> + 'dynosaur_struct> =
                 value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub fn new_arc(value: impl SomeTrait<'a, 'b> + 'dynosaur_struct)
+            -> std::sync::Arc<DynSomeTrait<'dynosaur_struct, 'a, 'b>> {
+            let value = std::sync::Arc::new(value);
+            let value:
+                    std::sync::Arc<dyn ErasedSomeTrait<'a, 'b> +
+                    'dynosaur_struct> = value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub fn new_rc(value: impl SomeTrait<'a, 'b> + 'dynosaur_struct)
+            -> std::rc::Rc<DynSomeTrait<'dynosaur_struct, 'a, 'b>> {
+            let value = std::rc::Rc::new(value);
+            let value:
+                    std::rc::Rc<dyn ErasedSomeTrait<'a, 'b> +
+                    'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
         pub fn from_ref(value: &(impl SomeTrait<'a, 'b> + 'dynosaur_struct))

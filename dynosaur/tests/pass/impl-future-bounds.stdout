@@ -42,10 +42,23 @@ mod __dynosaur_macro_dynfoo {
         }
     }
     impl<'dynosaur_struct> DynFoo<'dynosaur_struct> {
-        pub fn boxed(value: impl Foo + 'dynosaur_struct)
+        pub fn new_box(value: impl Foo + 'dynosaur_struct)
             -> Box<DynFoo<'dynosaur_struct>> {
             let value = Box::new(value);
             let value: Box<dyn ErasedFoo + 'dynosaur_struct> = value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub fn new_arc(value: impl Foo + 'dynosaur_struct)
+            -> std::sync::Arc<DynFoo<'dynosaur_struct>> {
+            let value = std::sync::Arc::new(value);
+            let value: std::sync::Arc<dyn ErasedFoo + 'dynosaur_struct> =
+                value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub fn new_rc(value: impl Foo + 'dynosaur_struct)
+            -> std::rc::Rc<DynFoo<'dynosaur_struct>> {
+            let value = std::rc::Rc::new(value);
+            let value: std::rc::Rc<dyn ErasedFoo + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
         pub fn from_ref(value: &(impl Foo + 'dynosaur_struct))

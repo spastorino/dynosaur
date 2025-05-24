@@ -26,9 +26,9 @@ fn static_dispatch(f: impl Foo) {
 }
 
 fn main() {
-    dyn_dispatch(&mut DynFoo::boxed(1));
+    dyn_dispatch(&mut DynFoo::new_box(1));
     dyn_dispatch(DynFoo::from_mut(&mut 1));
     static_dispatch(1);
-    static_dispatch(DynFoo::boxed(1));
+    static_dispatch(DynFoo::new_box(1));
     static_dispatch(DynFoo::from_mut(&mut 1));
 }

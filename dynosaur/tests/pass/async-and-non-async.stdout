@@ -49,10 +49,24 @@ mod __dynosaur_macro_dynjobqueue {
         }
     }
     impl<'dynosaur_struct> DynJobQueue<'dynosaur_struct> {
-        pub fn boxed(value: impl JobQueue + 'dynosaur_struct)
+        pub fn new_box(value: impl JobQueue + 'dynosaur_struct)
             -> Box<DynJobQueue<'dynosaur_struct>> {
             let value = Box::new(value);
             let value: Box<dyn ErasedJobQueue + 'dynosaur_struct> = value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub fn new_arc(value: impl JobQueue + 'dynosaur_struct)
+            -> std::sync::Arc<DynJobQueue<'dynosaur_struct>> {
+            let value = std::sync::Arc::new(value);
+            let value: std::sync::Arc<dyn ErasedJobQueue + 'dynosaur_struct> =
+                value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub fn new_rc(value: impl JobQueue + 'dynosaur_struct)
+            -> std::rc::Rc<DynJobQueue<'dynosaur_struct>> {
+            let value = std::rc::Rc::new(value);
+            let value: std::rc::Rc<dyn ErasedJobQueue + 'dynosaur_struct> =
+                value;
             unsafe { ::core::mem::transmute(value) }
         }
         pub fn from_ref(value: &(impl JobQueue + 'dynosaur_struct))

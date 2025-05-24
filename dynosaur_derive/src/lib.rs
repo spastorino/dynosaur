@@ -100,8 +100,9 @@ impl Parse for Attrs {
 ///
 /// ```ignore
 /// impl<'a> DynTrait<'a> {
-///     fn new(from: Box<impl Trait>) -> Box<Self> { ... }
-///     fn boxed(from: impl Trait) -> Box<Self> { ... }
+///     fn new_box(from: impl Trait) -> Box<Self> { ... }
+///     fn new_arc(from: impl Trait) -> std::sync::Arc<Self> { ... }
+///     fn new_rc(from: impl Trait) -> std::rc::Rc<Self> { ... }
 ///     fn from_ref(from: &'a impl Trait) -> &'a Self { ... }
 ///     fn from_mut(from: &'a mut impl Trait) -> &'a mut Self { ... }
 /// }
@@ -350,9 +351,21 @@ fn mk_struct_inherent_impl(struct_ident: &Ident, item_trait: &ItemTrait) -> Toke
     quote! {
         impl #struct_with_bounds_params #struct_ident #struct_params
         {
-            pub fn boxed(value: impl #trait_ident #trait_params + 'dynosaur_struct) -> Box<#struct_ident #struct_params> {
+            pub fn new_box(value: impl #trait_ident #trait_params + 'dynosaur_struct) -> Box<#struct_ident #struct_params> {
                 let value = Box::new(value);
                 let value: Box<dyn #erased_trait_ident #trait_params + 'dynosaur_struct> = value;
+                unsafe { ::core::mem::transmute(value) }
+            }
+
+            pub fn new_arc(value: impl #trait_ident #trait_params + 'dynosaur_struct) -> std::sync::Arc<#struct_ident #struct_params> {
+                let value = std::sync::Arc::new(value);
+                let value: std::sync::Arc<dyn #erased_trait_ident #trait_params + 'dynosaur_struct> = value;
+                unsafe { ::core::mem::transmute(value) }
+            }
+
+            pub fn new_rc(value: impl #trait_ident #trait_params + 'dynosaur_struct) -> std::rc::Rc<#struct_ident #struct_params> {
+                let value = std::rc::Rc::new(value);
+                let value: std::rc::Rc<dyn #erased_trait_ident #trait_params + 'dynosaur_struct> = value;
                 unsafe { ::core::mem::transmute(value) }
             }
 
