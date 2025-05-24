@@ -227,6 +227,8 @@ fn mk_erased_trait_blanket_impl(item_trait: &ItemTrait) -> TokenStream {
                     ty,
                     ..
                 }) => {
+                    // const makes the trait not dyn compatible, so whatever we do here is going to fail.
+                    // We should probably do a better error handling at some point.
                     quote! {
                         const #ident #generics: #ty = <Self as #trait_ident #trait_generics>::#ident;
                     }
@@ -288,6 +290,8 @@ fn mk_dyn_struct_impl_item(struct_ident: &Ident, item_trait: &ItemTrait) -> Toke
             ty,
             ..
         }) => {
+            // const makes the trait not dyn compatible, so whatever we do here is going to fail.
+            // We should probably do a better error handling at some point.
             quote! {
                 const #ident #generics: #ty = <Self as #item_trait_ident #trait_generics>::#ident;
             }
