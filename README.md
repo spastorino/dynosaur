@@ -1,7 +1,8 @@
 [![Latest Version]][crates.io] [![Documentation]][docs.rs] [![GHA Status]][GitHub Actions] ![License]
 
-dynosaur lets you use dynamic dispatch on traits with `async fn` and
-methods returning `impl Trait`.
+Currently Rust does not support dynamic dispatch on traits that use `async fn` or methods returning `impl Trait`. Dynosaur is a proc macro that allows dynamic dispatch on these traits but uses static dispatch otherwise. It requires at least Rust 1.75.
+
+This removes the need for the use of the `async_trait` proc macro, giving users the performance benefits of static dispatch without giving up the flexibility of dynamic dispatch.
 
 ```rust,ignore
 #[dynosaur::dynosaur(DynNext)]
@@ -20,8 +21,36 @@ async fn dyn_dispatch(iter: &mut DynNext<'_, i32>) {
     }
 }
 
-let a = [1, 2, 3];
-dyn_dispatch(DynNext::from_mut(&mut a.into_iter())).await;
+let v = [1, 2, 3];
+dyn_dispatch(&mut DynNext::boxed(my_next_iter).await;
+dyn_dispatch(DynNext::from_mut(&mut my_next_iter)).await;
+```
+
+Where `my_next_iter` is a value of a type that you would create that implements `Next`. For example:
+
+```rust,ignore
+struct MyNextIter<T: Copy> {
+    v: Vec<T>,
+    i: usize,
+}
+
+impl<T: Copy> Next for MyNextIter<T> {
+    type Item = T;
+
+    async fn next(&mut self) -> Option<Self::Item> {
+        if self.i >= self.v.len() {
+            return None;
+        }
+        do_some_async_work().await;
+        let item = self.v[self.i];
+        self.i += 1;
+        Some(item)
+    }
+}
+
+async fn do_some_async_work() {
+     // do something :)
+}
 ```
 
 The general rule is that anywhere you would write `dyn Trait` (which would
@@ -29,6 +58,22 @@ result in a compiler error), you instead write `DynTrait`.
 
 Methods returning `impl Trait` box their return types when dispatched
 dynamically, but not when dispatched statically.
+
+For more examples, take a look at [`dynosaur/examples`](dynosaur/examples) and [`dynosaur/tests/pass`](dynosaur/tests/pass). In tests you would find `.rs` files with what the user would write and `.stdout` files with what dynosaur generates.
+
+## APIT Support
+
+Dynosaur supports dyn traits in argument position. In order to use them, the user needs an `impl<T: MyTrait> MyTrait for Box<T> {}` to be able to use impl MyTrait in argument position.
+
+TODO: In a future version, `dynosaur` will provide this impl for any trait with the `#[dynosaur]` attribute on the trait definition.
+
+## What will it take to implement this support in Rust?
+
+There are many design questions to be answered before building this support into the language. You can find more background here: <https://smallcultfollowing.com/babysteps/blog/2025/03/25/dyn-you-have-idea-for-dyn/>.
+
+## How does this crate solve this issue?
+
+Given a trait `MyTrait`, this crate generates a struct called `DynMyTrait` that implements `MyTrait` by delegating to the actual impls on the concrete type and wrapping the result in a box. For more details on what is exactly generated you may want to check `.stdout` files in [`dynosaur/tests/pass`](dynosaur/tests/pass).
 
 #### License
 
