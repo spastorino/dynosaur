@@ -1,7 +1,10 @@
 use crate::where_clauses::has_where_self_sized;
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
-use syn::{punctuated::Punctuated, Ident, ItemTrait, Token, TraitItem, TraitItemType};
+use syn::visit::Visit;
+use syn::{
+    punctuated::Punctuated, Ident, ItemTrait, Receiver, Token, TraitItem, TraitItemType, Type,
+};
 
 /// Remove Self: Sized fns
 pub(crate) fn dyn_compatible_items(
@@ -55,5 +58,64 @@ pub(crate) fn struct_trait_params(item_trait: &ItemTrait) -> StructTraitParams {
         } else {
             quote! { <#trait_params> }
         },
+    }
+}
+
+pub(crate) fn is_pin(item_trait: &ItemTrait) -> IsPin {
+    let mut visitor = PinVisitor(IsPin::Undefined);
+    visitor.visit_item_trait(item_trait);
+    visitor.0
+}
+
+#[derive(PartialEq, Eq)]
+pub(crate) enum IsPin {
+    PinOnly,
+    PinAndNonPin,
+    TypeNotPin,
+    Undefined,
+}
+
+impl IsPin {
+    fn mark_pin(&mut self) {
+        if *self == IsPin::Undefined {
+            *self = IsPin::PinOnly;
+        }
+
+        if *self == IsPin::TypeNotPin {
+            *self = IsPin::PinAndNonPin;
+        }
+    }
+
+    fn mark_as_type_not_pin(&mut self) {
+        if *self == IsPin::Undefined {
+            *self = IsPin::TypeNotPin;
+        }
+
+        if *self == IsPin::PinOnly {
+            *self = IsPin::PinAndNonPin;
+        }
+    }
+}
+
+struct PinVisitor(IsPin);
+
+impl Visit<'_> for PinVisitor {
+    fn visit_receiver(&mut self, arg: &Receiver) {
+        if let Type::Path(type_path) = &*arg.ty {
+            let segments = &type_path.path.segments;
+
+            if segments.len() == 3
+                && (segments[0].ident == "core" || segments[0].ident == "std")
+                && segments[1].ident == "pin"
+                && segments[2].ident == "Pin"
+                || segments.len() == 2 && segments[0].ident == "pin" && segments[1].ident == "Pin"
+                || segments.len() == 1 && segments[0].ident == "Pin"
+            {
+                self.0.mark_pin();
+                return;
+            }
+        }
+
+        self.0.mark_as_type_not_pin();
     }
 }

@@ -72,6 +72,11 @@ mod __dynosaur_macro_dynfoo {
             unsafe { ::core::mem::transmute(value) }
         }
     }
+    impl<DYNOSAUR: Foo> Foo for Box<DYNOSAUR> where DYNOSAUR: ?Sized {
+        fn foo(&self) -> impl Future<Output = i32> + Send {
+            DYNOSAUR::foo(self)
+        }
+    }
 }
 use __dynosaur_macro_dynfoo::DynFoo;
 

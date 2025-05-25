@@ -69,6 +69,9 @@ mod __dynosaur_macro_dynmytrait {
             unsafe { ::core::mem::transmute(value) }
         }
     }
+    impl<DYNOSAUR: MyTrait> MyTrait for Box<DYNOSAUR> where DYNOSAUR: ?Sized {
+        fn foo(&self) -> impl Send { DYNOSAUR::foo(self) }
+    }
 }
 use __dynosaur_macro_dynmytrait::DynMyTrait;
 

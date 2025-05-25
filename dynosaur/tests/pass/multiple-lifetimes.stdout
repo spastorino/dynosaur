@@ -181,6 +181,26 @@ mod __dynosaur_macro_dynsometrait {
             unsafe { ::core::mem::transmute(value) }
         }
     }
+    impl<DYNOSAUR: SomeTrait> SomeTrait for Box<DYNOSAUR> where
+        DYNOSAUR: ?Sized {
+        fn multiple_elided_lifetimes(&self, a: &u8, b: &u8)
+            -> impl ::core::future::Future<Output = ()> {
+            DYNOSAUR::multiple_elided_lifetimes(self, a, b)
+        }
+        fn multiple_named_lifetimes<'a,
+            'b>(&self, a: &'a u8, b: &'b u8, c: &u8)
+            -> impl ::core::future::Future<Output = ()> {
+            DYNOSAUR::multiple_named_lifetimes(self, a, b, c)
+        }
+        fn same_lifetimes_multiple_params<'a>(&self, a1: &'a u8, a2: &'a u8,
+            c: &u8) -> impl ::core::future::Future<Output = &'a u8> {
+            DYNOSAUR::same_lifetimes_multiple_params(self, a1, a2, c)
+        }
+        fn multiple_static_and_anonymous(&self, a: &'static u8, b: &'_ u8,
+            c: &'_ u8) -> impl ::core::future::Future<Output = ()> {
+            DYNOSAUR::multiple_static_and_anonymous(self, a, b, c)
+        }
+    }
 }
 use __dynosaur_macro_dynsometrait::DynSomeTrait;
 

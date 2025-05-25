@@ -89,6 +89,19 @@ mod __dynosaur_macro_dynmytrait {
             unsafe { ::core::mem::transmute(value) }
         }
     }
+    impl<DYNOSAUR: MyTrait> MyTrait for Box<DYNOSAUR> where DYNOSAUR: ?Sized {
+        #[allow(unreachable_code)]
+        fn foo(&mut self) -> impl ::core::future::Future<Output = ()> where
+            Self: Sized {
+            ::core::panicking::panic("internal error: entered unreachable code")
+                as
+                ::core::pin::Pin<Box<dyn ::core::future::Future<Output = ()> +
+                'static>>
+        }
+        fn bar(&mut self) -> impl ::core::future::Future<Output = ()> {
+            DYNOSAUR::bar(self)
+        }
+    }
 }
 use __dynosaur_macro_dynmytrait::DynMyTrait;
 fn main() {}
