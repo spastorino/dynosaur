@@ -14,6 +14,11 @@ enum Mode {
 fn cfg(path: &Path, mode: Mode) -> Config {
     let mut config = Config {
         program: CommandBuilder::rustc(),
+        output_conflict_handling: if std::env::var_os("BLESS").is_some() {
+            ui_test::bless_output_files
+        } else {
+            ui_test::error_on_output_conflict
+        },
         ..Config::rustc(path)
     };
 
