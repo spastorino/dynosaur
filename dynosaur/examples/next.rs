@@ -30,13 +30,6 @@ async fn main() {
     static_dispatch(DynNext::from_mut(&mut from_iter(v))).await;
 }
 
-impl<S: Next + ?Sized> Next for Box<S> {
-    type Item = S::Item;
-    fn next(&mut self) -> impl core::future::Future<Output = Option<Self::Item>> {
-        S::next(&mut *self)
-    }
-}
-
 impl<S: Next + ?Sized> Next for &mut S {
     type Item = S::Item;
     fn next(&mut self) -> impl core::future::Future<Output = Option<Self::Item>> {

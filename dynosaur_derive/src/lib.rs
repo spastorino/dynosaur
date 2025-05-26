@@ -1,4 +1,4 @@
-use expand::{expand_blanket_impl_fn, expand_dyn_struct_fn, expand_fn_sig};
+use expand::{expand_blanket_impl_fn, expand_dyn_struct_fn, expand_fn_sig, InvokeArgsMode};
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{
@@ -9,7 +9,8 @@ use syn::{
     TraitItemType, TypeParam, Visibility,
 };
 use traits::{
-    dyn_compatible_items, struct_trait_params, trait_item_erased_name, StructTraitParams,
+    dyn_compatible_items, is_pin, struct_trait_params, trait_item_erased_name, IsPin,
+    StructTraitParams,
 };
 
 mod expand;
@@ -119,7 +120,7 @@ impl Parse for Attrs {
 ///
 /// ```rust
 /// # pub mod dynosaur { pub use dynosaur_derive::dynosaur; }
-/// #[trait_variant::make(SendNext: Send)]
+/// // #[trait_variant::make(SendNext: Send)]
 /// #[dynosaur::dynosaur(DynNext = dyn Next)]
 /// #[dynosaur::dynosaur(DynSendNext = dyn SendNext)]
 /// trait Next {
@@ -165,6 +166,7 @@ pub fn dynosaur(
     let dyn_struct = mk_dyn_struct(&struct_ident, &item_trait);
     let dyn_struct_impl_item = mk_dyn_struct_impl_item(struct_ident, &item_trait);
     let struct_inherent_impl = mk_struct_inherent_impl(struct_ident, &item_trait);
+    let box_blanket_impl = mk_box_blanket_impl(&item_trait);
 
     let dynosaur_mod = Ident::new(
         &format!(
@@ -184,6 +186,7 @@ pub fn dynosaur(
             #dyn_struct
             #dyn_struct_impl_item
             #struct_inherent_impl
+            #box_blanket_impl
         }
 
         #vis use #dynosaur_mod::#struct_ident;
@@ -297,7 +300,9 @@ fn mk_dyn_struct_impl_item(struct_ident: &Ident, item_trait: &ItemTrait) -> Toke
                 const #ident #generics: #ty = <Self as #item_trait_ident #trait_generics>::#ident;
             }
         }
-        TraitItem::Fn(TraitItemFn { sig, .. }) => expand_dyn_struct_fn(sig),
+        TraitItem::Fn(TraitItemFn { sig, .. }) => {
+            expand_dyn_struct_fn(sig, InvokeArgsMode::DynamicUfc)
+        }
         TraitItem::Type(TraitItemType {
             ident, generics, ..
         }) => {
@@ -382,6 +387,77 @@ fn mk_struct_inherent_impl(struct_ident: &Ident, item_trait: &ItemTrait) -> Toke
                 let value: &mut (dyn #erased_trait_ident #trait_params + 'dynosaur_struct) = &mut *value;
                 unsafe { ::core::mem::transmute(value) }
             }
+        }
+    }
+}
+
+fn mk_box_blanket_impl(item_trait: &ItemTrait) -> TokenStream {
+    let item_trait_ident = &item_trait.ident;
+    let (_, trait_generics, _) = &item_trait.generics.split_for_impl();
+
+    let items = item_trait.items.iter().map(|item| match item {
+        TraitItem::Const(TraitItemConst {
+            ident,
+            generics,
+            ty,
+            ..
+        }) => {
+            quote! {
+                const #ident #generics: #ty = DYNOSAUR::#ident;
+            }
+        }
+        TraitItem::Fn(TraitItemFn { sig, .. }) => {
+            expand_dyn_struct_fn(sig, InvokeArgsMode::OnlyExpandSelf)
+        }
+        TraitItem::Type(TraitItemType {
+            ident, generics, ..
+        }) => {
+            let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+            quote! {
+                type #ident #impl_generics = DYNOSAUR::#ident #ty_generics #where_clause;
+            }
+        }
+        _ => Error::new_spanned(item, "unsupported item type").into_compile_error(),
+    });
+
+    let blanket_bound: TypeParam = parse_quote!(DYNOSAUR: #item_trait_ident #trait_generics);
+    let blanket = blanket_bound.ident.clone();
+    let mut blanket_generics = item_trait.generics.clone();
+    blanket_generics
+        .params
+        .push(GenericParam::Type(blanket_bound));
+    let (blanket_impl_generics, _, blanket_where_clause) = &blanket_generics.split_for_impl();
+
+    match is_pin(item_trait) {
+        IsPin::PinOnly => {
+            quote! {
+                impl #blanket_impl_generics #item_trait_ident #trait_generics for ::core::pin::Pin<Box<#blanket #blanket_where_clause>> where DYNOSAUR: ?Sized {
+                    #(#items)*
+                }
+            }
+        }
+        IsPin::TypeNotPin => {
+            quote! {
+                impl #blanket_impl_generics #item_trait_ident #trait_generics for Box<#blanket #blanket_where_clause> where DYNOSAUR: ?Sized {
+                    #(#items)*
+                }
+            }
+        }
+        IsPin::PinAndNonPin => {
+            let cloned_items = items.clone();
+
+            quote! {
+                impl #blanket_impl_generics #item_trait_ident #trait_generics for Box<#blanket #blanket_where_clause> where DYNOSAUR: ?Sized, DYNOSAUR: Unpin {
+                    #(#items)*
+                }
+
+                impl #blanket_impl_generics #item_trait_ident #trait_generics for ::core::pin::Pin<Box<#blanket #blanket_where_clause>> where DYNOSAUR: ?Sized, DYNOSAUR: Unpin {
+                    #(#cloned_items)*
+                }
+            }
+        }
+        IsPin::Undefined => {
+            quote! {}
         }
     }
 }

@@ -9,8 +9,6 @@ trait Foo {
 
 impl Foo for i32 {}
 
-impl<S: Foo + ?Sized> Foo for Box<S> {}
-
 impl<S: Foo + ?Sized> Foo for &mut S {}
 
 fn dyn_dispatch(f: &mut DynFoo<'_>) {
