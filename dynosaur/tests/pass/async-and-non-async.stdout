@@ -81,6 +81,26 @@ mod __dynosaur_macro_dynjobqueue {
             unsafe { ::core::mem::transmute(value) }
         }
     }
+    impl<DYNOSAUR: JobQueue> JobQueue for &DYNOSAUR where DYNOSAUR: ?Sized {
+        fn len(&self) -> usize { DYNOSAUR::len(self) }
+        fn dispatch(&self) -> impl ::core::future::Future<Output = ()> {
+            DYNOSAUR::dispatch(self)
+        }
+    }
+    impl<DYNOSAUR: JobQueue> JobQueue for &mut DYNOSAUR where DYNOSAUR: ?Sized
+        {
+        fn len(&self) -> usize { DYNOSAUR::len(self) }
+        fn dispatch(&self) -> impl ::core::future::Future<Output = ()> {
+            DYNOSAUR::dispatch(self)
+        }
+    }
+    impl<DYNOSAUR: JobQueue> JobQueue for Box<DYNOSAUR> where DYNOSAUR: ?Sized
+        {
+        fn len(&self) -> usize { DYNOSAUR::len(self) }
+        fn dispatch(&self) -> impl ::core::future::Future<Output = ()> {
+            DYNOSAUR::dispatch(self)
+        }
+    }
 }
 use __dynosaur_macro_dynjobqueue::DynJobQueue;
 

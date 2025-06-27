@@ -1,7 +1,7 @@
 use std::future::Future;
 
 #[dynosaur::dynosaur(DynFoo)]
-trait Foo: Send {
+trait Foo: Sync + Send {
     fn foo(&self) -> impl Future<Output = i32> + Send;
 }
 

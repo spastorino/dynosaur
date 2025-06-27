@@ -5,13 +5,13 @@ use std::prelude::rust_2021::*;
 extern crate std;
 use std::future::Future;
 
-trait Foo: Send {
+trait Foo: Sync + Send {
     fn foo(&self)
     -> impl Future<Output = i32> + Send;
 }
 mod __dynosaur_macro_dynfoo {
     use super::*;
-    trait ErasedFoo: Send {
+    trait ErasedFoo: Sync + Send {
         fn foo<'life0, 'dynosaur>(&'life0 self)
         -> ::core::pin::Pin<Box<dyn Future<Output = i32> + Send + 'dynosaur>>
         where
@@ -70,6 +70,21 @@ mod __dynosaur_macro_dynfoo {
             -> &mut DynFoo<'dynosaur_struct> {
             let value: &mut (dyn ErasedFoo + 'dynosaur_struct) = &mut *value;
             unsafe { ::core::mem::transmute(value) }
+        }
+    }
+    impl<DYNOSAUR: Foo> Foo for &DYNOSAUR where DYNOSAUR: ?Sized {
+        fn foo(&self) -> impl Future<Output = i32> + Send {
+            DYNOSAUR::foo(self)
+        }
+    }
+    impl<DYNOSAUR: Foo> Foo for &mut DYNOSAUR where DYNOSAUR: ?Sized {
+        fn foo(&self) -> impl Future<Output = i32> + Send {
+            DYNOSAUR::foo(self)
+        }
+    }
+    impl<DYNOSAUR: Foo> Foo for Box<DYNOSAUR> where DYNOSAUR: ?Sized {
+        fn foo(&self) -> impl Future<Output = i32> + Send {
+            DYNOSAUR::foo(self)
         }
     }
 }
