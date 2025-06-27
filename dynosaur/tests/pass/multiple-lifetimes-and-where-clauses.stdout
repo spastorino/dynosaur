@@ -99,6 +99,30 @@ mod __dynosaur_macro_dynsometrait {
             unsafe { ::core::mem::transmute(value) }
         }
     }
+    impl<'a, 'b, DYNOSAUR: SomeTrait<'a, 'b>> SomeTrait<'a, 'b> for &DYNOSAUR
+        where DYNOSAUR: ?Sized {
+        fn lotsa_lifetimes<'d, 'e,
+            'f>(&self, a: &'d u32, b: &'e u32, c: &'f u32)
+            -> impl ::core::future::Future<Output = &'a u32> where 'b: 'a {
+            DYNOSAUR::lotsa_lifetimes(self, a, b, c)
+        }
+    }
+    impl<'a, 'b, DYNOSAUR: SomeTrait<'a, 'b>> SomeTrait<'a, 'b> for
+        &mut DYNOSAUR where DYNOSAUR: ?Sized {
+        fn lotsa_lifetimes<'d, 'e,
+            'f>(&self, a: &'d u32, b: &'e u32, c: &'f u32)
+            -> impl ::core::future::Future<Output = &'a u32> where 'b: 'a {
+            DYNOSAUR::lotsa_lifetimes(self, a, b, c)
+        }
+    }
+    impl<'a, 'b, DYNOSAUR: SomeTrait<'a, 'b>> SomeTrait<'a, 'b> for
+        Box<DYNOSAUR> where DYNOSAUR: ?Sized {
+        fn lotsa_lifetimes<'d, 'e,
+            'f>(&self, a: &'d u32, b: &'e u32, c: &'f u32)
+            -> impl ::core::future::Future<Output = &'a u32> where 'b: 'a {
+            DYNOSAUR::lotsa_lifetimes(self, a, b, c)
+        }
+    }
 }
 use __dynosaur_macro_dynsometrait::DynSomeTrait;
 

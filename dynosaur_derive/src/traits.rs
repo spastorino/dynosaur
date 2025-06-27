@@ -1,7 +1,10 @@
 use crate::where_clauses::has_where_self_sized;
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
-use syn::{punctuated::Punctuated, Ident, ItemTrait, Token, TraitItem, TraitItemType};
+use syn::visit::Visit;
+use syn::{
+    punctuated::Punctuated, Ident, ItemTrait, Receiver, Token, TraitItem, TraitItemType, Type,
+};
 
 /// Remove Self: Sized fns
 pub(crate) fn dyn_compatible_items(
@@ -55,5 +58,100 @@ pub(crate) fn struct_trait_params(item_trait: &ItemTrait) -> StructTraitParams {
         } else {
             quote! { <#trait_params> }
         },
+    }
+}
+
+pub(crate) fn self_receiver(item_trait: &ItemTrait) -> SelfReceiver {
+    let mut visitor = ReceiverVisitor(SelfReceiver {
+        shared_ref: false,
+        mut_ref: false,
+        owned: false,
+        box_ref: false,
+        other: false,
+    });
+    visitor.visit_item_trait(item_trait);
+    visitor.0
+}
+
+#[derive(PartialEq, Eq)]
+pub(crate) struct SelfReceiver {
+    pub(crate) shared_ref: bool,
+    pub(crate) mut_ref: bool,
+    pub(crate) owned: bool,
+    pub(crate) box_ref: bool,
+    pub(crate) other: bool,
+}
+
+impl SelfReceiver {
+    pub(crate) fn should_gen_ref(&self) -> bool {
+        matches!(
+            *self,
+            SelfReceiver {
+                shared_ref: _,
+                mut_ref: false,
+                owned: false,
+                box_ref: false,
+                other: false,
+            }
+        )
+    }
+
+    pub(crate) fn should_gen_mut_ref(&self) -> bool {
+        matches!(
+            *self,
+            SelfReceiver {
+                shared_ref: _,
+                mut_ref: _,
+                owned: false,
+                box_ref: false,
+                other: false,
+            }
+        )
+    }
+
+    pub(crate) fn should_gen_box_self(&self) -> bool {
+        matches!(
+            *self,
+            SelfReceiver {
+                shared_ref: _,
+                mut_ref: _,
+                owned: _,
+                box_ref: _,
+                other: false,
+            }
+        )
+    }
+}
+
+struct ReceiverVisitor(SelfReceiver);
+
+impl Visit<'_> for ReceiverVisitor {
+    fn visit_receiver(&mut self, arg: &Receiver) {
+        // TODO: this doesn't handle self: &&Self or self: &mut Box<Self> for example.
+        match &*arg.ty {
+            Type::Reference(type_reference) => {
+                if type_reference.mutability.is_none() {
+                    self.0.shared_ref = true;
+                } else {
+                    self.0.mut_ref = true;
+                }
+            }
+
+            Type::Path(type_path) => {
+                let segments = &type_path.path.segments;
+
+                if segments.len() == 1 {
+                    if segments[0].ident == "Box" {
+                        self.0.box_ref = true;
+                    } else if segments[0].ident == "Self" {
+                        self.0.owned = true;
+                    } else {
+                        self.0.other = true;
+                    }
+                }
+            }
+
+            _ => {}
+        }
     }
 }

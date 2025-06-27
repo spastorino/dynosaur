@@ -259,6 +259,7 @@ fn expand_bounds(
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub(crate) enum InvokeArgsMode {
+    OnlyExpandSelf,
     DynamicNonUfc,
     DynamicUfc,
 }
@@ -269,21 +270,28 @@ fn expand_invoke_args(sig: &Signature, mode: InvokeArgsMode) -> Vec<TokenStream>
     for arg in &sig.inputs {
         match arg {
             FnArg::Receiver(_) => {
-                if mode == InvokeArgsMode::DynamicNonUfc {
+                if matches!(
+                    mode,
+                    InvokeArgsMode::OnlyExpandSelf | InvokeArgsMode::DynamicNonUfc
+                ) {
                     // Do not need & or &mut as this is at calling site
                     args.push(quote! { self });
                 }
             }
             FnArg::Typed(pat_type) => match &*pat_type.pat {
                 Pat::Ident(arg) => {
-                    if let Type::ImplTrait(type_impl_trait) = &*pat_type.ty {
-                        if is_future(type_impl_trait) {
-                            args.push(quote! { Box::pin(#arg) });
-                        } else {
-                            args.push(quote! { Box::new(#arg) });
-                        }
-                    } else {
+                    if mode == InvokeArgsMode::OnlyExpandSelf {
                         args.push(quote! { #arg });
+                    } else {
+                        if let Type::ImplTrait(type_impl_trait) = &*pat_type.ty {
+                            if is_future(type_impl_trait) {
+                                args.push(quote! { Box::pin(#arg) });
+                            } else {
+                                args.push(quote! { Box::new(#arg) });
+                            }
+                        } else {
+                            args.push(quote! { #arg });
+                        }
                     }
                 }
                 _ => {
@@ -333,7 +341,7 @@ pub(crate) fn expand_blanket_impl_fn(item_trait: &ItemTrait, sig: &mut Signature
     }
 }
 
-pub(crate) fn expand_dyn_struct_fn(sig: &Signature) -> TokenStream {
+pub(crate) fn expand_dyn_struct_fn(sig: &Signature, mode: InvokeArgsMode) -> TokenStream {
     if has_where_self_sized(sig) {
         if is_rpit(sig) {
             let ty = expand_sig_ret_ty(&sig, "'static");
@@ -357,36 +365,55 @@ pub(crate) fn expand_dyn_struct_fn(sig: &Signature) -> TokenStream {
 
         let mut sig = sig.clone();
         expand_arg_names(&mut sig);
-        let args = expand_invoke_args(&sig, InvokeArgsMode::DynamicUfc);
+        let args = expand_invoke_args(&sig, mode);
 
-        if !is_async && !is_rpit {
-            quote! {
-                #sig {
-                    self.ptr.#ident(#(#args),*)
-                }
-            }
-        } else {
-            let (ty1, ty2) = if is_async {
-                let ty1 = expand_sig_ret_ty(&sig, "'_");
-                let ty2 = expand_sig_ret_ty(&sig, "'static");
+        if mode == InvokeArgsMode::OnlyExpandSelf {
+            if is_async {
                 let sig_ret_ty = expand_sig_ret_ty_to_rpit(&mut sig);
                 sig.output = parse_quote! { -> #sig_ret_ty };
-                (ty1, ty2)
-            } else {
-                // is_rpit
-                let ty = expand_sig_ret_ty(&sig, "'_");
-                (ty.clone(), ty)
-            };
+            }
 
             if let Some(asyncness) = sig.asyncness.take() {
                 sig.fn_token.span = asyncness.span;
             }
 
+            let value = quote! { DYNOSAUR::#ident(#(#args),*) };
+
             quote! {
                 #sig {
-                    let ret: #ty1 = self.ptr.#ident(#(#args),*);
-                    let ret: #ty2 = unsafe { ::core::mem::transmute(ret) };
-                    ret
+                    #value
+                }
+            }
+        } else {
+            if !is_async && !is_rpit {
+                quote! {
+                    #sig {
+                        self.ptr.#ident(#(#args),*)
+                    }
+                }
+            } else {
+                let (ty1, ty2) = if is_async {
+                    let ty1 = expand_sig_ret_ty(&sig, "'_");
+                    let ty2 = expand_sig_ret_ty(&sig, "'static");
+                    let sig_ret_ty = expand_sig_ret_ty_to_rpit(&mut sig);
+                    sig.output = parse_quote! { -> #sig_ret_ty };
+                    (ty1, ty2)
+                } else {
+                    // is_rpit
+                    let ty = expand_sig_ret_ty(&sig, "'_");
+                    (ty.clone(), ty)
+                };
+
+                if let Some(asyncness) = sig.asyncness.take() {
+                    sig.fn_token.span = asyncness.span;
+                }
+
+                quote! {
+                    #sig {
+                        let ret: #ty1 = self.ptr.#ident(#(#args),*);
+                        let ret: #ty2 = unsafe { ::core::mem::transmute(ret) };
+                        ret
+                    }
                 }
             }
         }
