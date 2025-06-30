@@ -84,13 +84,14 @@ mod __dynosaur_macro_dynsometrait {
                     'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
-        pub fn from_ref(value: &(impl SomeTrait<'a, 'b> + 'dynosaur_struct))
+        pub const fn from_ref(value:
+                &(impl SomeTrait<'a, 'b> + 'dynosaur_struct))
             -> &DynSomeTrait<'dynosaur_struct, 'a, 'b> {
             let value: &(dyn ErasedSomeTrait<'a, 'b> + 'dynosaur_struct) =
                 &*value;
             unsafe { ::core::mem::transmute(value) }
         }
-        pub fn from_mut(value:
+        pub const fn from_mut(value:
                 &mut (impl SomeTrait<'a, 'b> + 'dynosaur_struct))
             -> &mut DynSomeTrait<'dynosaur_struct, 'a, 'b> {
             let value: &mut (dyn ErasedSomeTrait<'a, 'b> + 'dynosaur_struct) =

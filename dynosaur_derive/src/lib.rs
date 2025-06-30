@@ -373,12 +373,12 @@ fn mk_struct_inherent_impl(struct_ident: &Ident, item_trait: &ItemTrait) -> Toke
                 unsafe { ::core::mem::transmute(value) }
             }
 
-            pub fn from_ref(value: &(impl #trait_ident #trait_params + 'dynosaur_struct)) -> & #struct_ident #struct_params {
+            pub const fn from_ref(value: &(impl #trait_ident #trait_params + 'dynosaur_struct)) -> & #struct_ident #struct_params {
                 let value: &(dyn #erased_trait_ident #trait_params + 'dynosaur_struct) = &*value;
                 unsafe { ::core::mem::transmute(value) }
             }
 
-            pub fn from_mut(value: &mut (impl #trait_ident #trait_params + 'dynosaur_struct)) -> &mut #struct_ident #struct_params {
+            pub const fn from_mut(value: &mut (impl #trait_ident #trait_params + 'dynosaur_struct)) -> &mut #struct_ident #struct_params {
                 let value: &mut (dyn #erased_trait_ident #trait_params + 'dynosaur_struct) = &mut *value;
                 unsafe { ::core::mem::transmute(value) }
             }

@@ -77,12 +77,12 @@ mod __dynosaur_macro_dynmytrait {
                 value;
             unsafe { ::core::mem::transmute(value) }
         }
-        pub fn from_ref(value: &(impl MyTrait + 'dynosaur_struct))
+        pub const fn from_ref(value: &(impl MyTrait + 'dynosaur_struct))
             -> &DynMyTrait<'dynosaur_struct> {
             let value: &(dyn ErasedMyTrait + 'dynosaur_struct) = &*value;
             unsafe { ::core::mem::transmute(value) }
         }
-        pub fn from_mut(value: &mut (impl MyTrait + 'dynosaur_struct))
+        pub const fn from_mut(value: &mut (impl MyTrait + 'dynosaur_struct))
             -> &mut DynMyTrait<'dynosaur_struct> {
             let value: &mut (dyn ErasedMyTrait + 'dynosaur_struct) =
                 &mut *value;
