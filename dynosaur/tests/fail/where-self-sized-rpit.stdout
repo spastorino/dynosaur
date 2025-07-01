@@ -23,14 +23,6 @@ mod __dynosaur_macro_dynmytrait {
         'life0: 'dynosaur,
         Self: 'dynosaur;
     }
-    impl<DYNOSAUR: MyTrait> ErasedMyTrait for DYNOSAUR {
-        fn bar<'life0, 'dynosaur>(&'life0 mut self)
-            ->
-                ::core::pin::Pin<Box<dyn ::core::future::Future<Output = ()> +
-                'dynosaur>> where 'life0: 'dynosaur, Self: 'dynosaur {
-            Box::pin(<Self as MyTrait>::bar(self))
-        }
-    }
     #[repr(transparent)]
     pub struct DynMyTrait<'dynosaur_struct> {
         ptr: dyn ErasedMyTrait + 'dynosaur_struct,
