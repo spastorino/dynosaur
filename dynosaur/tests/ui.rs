@@ -33,7 +33,10 @@ fn cfg(path: &Path, mode: Mode) -> Config {
             0
         }
 
-        Mode::Panic => 101,
+        Mode::Panic => {
+            config.program.args.push("-Zunpretty=expanded".into());
+            1
+        }
     };
 
     let require_annotations = false; // we're not showing errors in a specific line anyway

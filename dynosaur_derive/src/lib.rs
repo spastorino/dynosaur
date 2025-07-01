@@ -430,6 +430,11 @@ fn mk_box_blanket_impl(item_trait: &ItemTrait) -> TokenStream {
 
     let self_receiver = self_receiver(item_trait);
 
+    if self_receiver.owned || self_receiver.box_ref {
+        return Error::new_spanned(item_trait, "By value Self and Box<Self> are unsupported")
+            .into_compile_error();
+    }
+
     let mut result = TokenStream::new();
 
     let mut where_bounds: Punctuated<_, Token![,]> = Punctuated::new();
