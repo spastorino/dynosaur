@@ -87,6 +87,32 @@ mod __dynosaur_macro_dynsometrait {
             unsafe { ::core::mem::transmute(value) }
         }
     }
+    impl<DYNOSAUR: SomeTrait> SomeTrait for &DYNOSAUR where DYNOSAUR: ?Sized {
+        fn multiple_elided_lifetimes(&self, __dynosaur_arg1: &u8,
+            __dynosaur_arg2: &u8)
+            -> impl ::core::future::Future<Output = ()> {
+            DYNOSAUR::multiple_elided_lifetimes(self, __dynosaur_arg1,
+                __dynosaur_arg2)
+        }
+    }
+    impl<DYNOSAUR: SomeTrait> SomeTrait for &mut DYNOSAUR where
+        DYNOSAUR: ?Sized {
+        fn multiple_elided_lifetimes(&self, __dynosaur_arg1: &u8,
+            __dynosaur_arg2: &u8)
+            -> impl ::core::future::Future<Output = ()> {
+            DYNOSAUR::multiple_elided_lifetimes(self, __dynosaur_arg1,
+                __dynosaur_arg2)
+        }
+    }
+    impl<DYNOSAUR: SomeTrait> SomeTrait for Box<DYNOSAUR> where
+        DYNOSAUR: ?Sized {
+        fn multiple_elided_lifetimes(&self, __dynosaur_arg1: &u8,
+            __dynosaur_arg2: &u8)
+            -> impl ::core::future::Future<Output = ()> {
+            DYNOSAUR::multiple_elided_lifetimes(self, __dynosaur_arg1,
+                __dynosaur_arg2)
+        }
+    }
 }
 use __dynosaur_macro_dynsometrait::DynSomeTrait;
 impl SomeTrait for () {

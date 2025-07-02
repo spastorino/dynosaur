@@ -1,0 +1,230 @@
+#![feature(prelude_import)]
+#[prelude_import]
+use std::prelude::rust_2021::*;
+#[macro_use]
+extern crate std;
+trait RefOnly {
+    fn ref_(&self);
+}
+mod __dynosaur_macro_dynrefonly {
+    use super::*;
+    trait ErasedRefOnly {
+        fn ref_(&self);
+    }
+    impl<DYNOSAUR: RefOnly> ErasedRefOnly for DYNOSAUR {
+        fn ref_(&self) { <Self as RefOnly>::ref_(self) }
+    }
+    #[repr(transparent)]
+    pub struct DynRefOnly<'dynosaur_struct> {
+        ptr: dyn ErasedRefOnly + 'dynosaur_struct,
+    }
+    impl<'dynosaur_struct> RefOnly for DynRefOnly<'dynosaur_struct> {
+        fn ref_(&self) { self.ptr.ref_() }
+    }
+    impl<'dynosaur_struct> DynRefOnly<'dynosaur_struct> {
+        pub fn new_box(value: impl RefOnly + 'dynosaur_struct)
+            -> Box<DynRefOnly<'dynosaur_struct>> {
+            let value = Box::new(value);
+            let value: Box<dyn ErasedRefOnly + 'dynosaur_struct> = value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub fn new_arc(value: impl RefOnly + 'dynosaur_struct)
+            -> std::sync::Arc<DynRefOnly<'dynosaur_struct>> {
+            let value = std::sync::Arc::new(value);
+            let value: std::sync::Arc<dyn ErasedRefOnly + 'dynosaur_struct> =
+                value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub fn new_rc(value: impl RefOnly + 'dynosaur_struct)
+            -> std::rc::Rc<DynRefOnly<'dynosaur_struct>> {
+            let value = std::rc::Rc::new(value);
+            let value: std::rc::Rc<dyn ErasedRefOnly + 'dynosaur_struct> =
+                value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub const fn from_ref(value: &(impl RefOnly + 'dynosaur_struct))
+            -> &DynRefOnly<'dynosaur_struct> {
+            let value: &(dyn ErasedRefOnly + 'dynosaur_struct) = &*value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub const fn from_mut(value: &mut (impl RefOnly + 'dynosaur_struct))
+            -> &mut DynRefOnly<'dynosaur_struct> {
+            let value: &mut (dyn ErasedRefOnly + 'dynosaur_struct) =
+                &mut *value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+    }
+    impl<DYNOSAUR: RefOnly> RefOnly for &DYNOSAUR where DYNOSAUR: ?Sized {
+        fn ref_(&self) { DYNOSAUR::ref_(self) }
+    }
+    impl<DYNOSAUR: RefOnly> RefOnly for &mut DYNOSAUR where DYNOSAUR: ?Sized {
+        fn ref_(&self) { DYNOSAUR::ref_(self) }
+    }
+    impl<DYNOSAUR: RefOnly> RefOnly for Box<DYNOSAUR> where DYNOSAUR: ?Sized {
+        fn ref_(&self) { DYNOSAUR::ref_(self) }
+    }
+}
+use __dynosaur_macro_dynrefonly::DynRefOnly;
+
+trait MutAndRef {
+    fn ref_mut(&mut self);
+    fn ref_(&self)
+    -> impl Send;
+}
+mod __dynosaur_macro_dynmutandref {
+    use super::*;
+    trait ErasedMutAndRef {
+        fn ref_mut(&mut self);
+        fn ref_<'life0, 'dynosaur>(&'life0 self)
+        -> Box<dyn Send + 'dynosaur>
+        where
+        'life0: 'dynosaur,
+        Self: 'dynosaur;
+    }
+    impl<DYNOSAUR: MutAndRef> ErasedMutAndRef for DYNOSAUR {
+        fn ref_mut(&mut self) { <Self as MutAndRef>::ref_mut(self) }
+        fn ref_<'life0, 'dynosaur>(&'life0 self) -> Box<dyn Send + 'dynosaur>
+            where 'life0: 'dynosaur, Self: 'dynosaur {
+            Box::new(<Self as MutAndRef>::ref_(self))
+        }
+    }
+    #[repr(transparent)]
+    pub struct DynMutAndRef<'dynosaur_struct> {
+        ptr: dyn ErasedMutAndRef + 'dynosaur_struct,
+    }
+    impl<'dynosaur_struct> MutAndRef for DynMutAndRef<'dynosaur_struct> {
+        fn ref_mut(&mut self) { self.ptr.ref_mut() }
+        fn ref_(&self) -> impl Send {
+            let ret: Box<dyn Send + '_> = self.ptr.ref_();
+            let ret: Box<dyn Send + '_> =
+                unsafe { ::core::mem::transmute(ret) };
+            ret
+        }
+    }
+    impl<'dynosaur_struct> DynMutAndRef<'dynosaur_struct> {
+        pub fn new_box(value: impl MutAndRef + 'dynosaur_struct)
+            -> Box<DynMutAndRef<'dynosaur_struct>> {
+            let value = Box::new(value);
+            let value: Box<dyn ErasedMutAndRef + 'dynosaur_struct> = value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub fn new_arc(value: impl MutAndRef + 'dynosaur_struct)
+            -> std::sync::Arc<DynMutAndRef<'dynosaur_struct>> {
+            let value = std::sync::Arc::new(value);
+            let value:
+                    std::sync::Arc<dyn ErasedMutAndRef + 'dynosaur_struct> =
+                value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub fn new_rc(value: impl MutAndRef + 'dynosaur_struct)
+            -> std::rc::Rc<DynMutAndRef<'dynosaur_struct>> {
+            let value = std::rc::Rc::new(value);
+            let value: std::rc::Rc<dyn ErasedMutAndRef + 'dynosaur_struct> =
+                value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub const fn from_ref(value: &(impl MutAndRef + 'dynosaur_struct))
+            -> &DynMutAndRef<'dynosaur_struct> {
+            let value: &(dyn ErasedMutAndRef + 'dynosaur_struct) = &*value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub const fn from_mut(value: &mut (impl MutAndRef + 'dynosaur_struct))
+            -> &mut DynMutAndRef<'dynosaur_struct> {
+            let value: &mut (dyn ErasedMutAndRef + 'dynosaur_struct) =
+                &mut *value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+    }
+    impl<DYNOSAUR: MutAndRef> MutAndRef for &mut DYNOSAUR where
+        DYNOSAUR: ?Sized {
+        fn ref_mut(&mut self) { DYNOSAUR::ref_mut(self) }
+        fn ref_(&self) -> impl Send { DYNOSAUR::ref_(self) }
+    }
+    impl<DYNOSAUR: MutAndRef> MutAndRef for Box<DYNOSAUR> where
+        DYNOSAUR: ?Sized {
+        fn ref_mut(&mut self) { DYNOSAUR::ref_mut(self) }
+        fn ref_(&self) -> impl Send { DYNOSAUR::ref_(self) }
+    }
+}
+use __dynosaur_macro_dynmutandref::DynMutAndRef;
+
+trait All {
+    fn ref_mut(&mut self);
+    fn ref_(&self)
+    -> impl Send;
+    //fn owned(self) -> impl Send;
+    //fn self_box(self: Box<Self>) -> impl Send;
+}
+mod __dynosaur_macro_dynall {
+    use super::*;
+    trait ErasedAll {
+        fn ref_mut(&mut self);
+        fn ref_<'life0, 'dynosaur>(&'life0 self)
+        -> Box<dyn Send + 'dynosaur>
+        where
+        'life0: 'dynosaur,
+        Self: 'dynosaur;
+    }
+    impl<DYNOSAUR: All> ErasedAll for DYNOSAUR {
+        fn ref_mut(&mut self) { <Self as All>::ref_mut(self) }
+        fn ref_<'life0, 'dynosaur>(&'life0 self) -> Box<dyn Send + 'dynosaur>
+            where 'life0: 'dynosaur, Self: 'dynosaur {
+            Box::new(<Self as All>::ref_(self))
+        }
+    }
+    #[repr(transparent)]
+    pub struct DynAll<'dynosaur_struct> {
+        ptr: dyn ErasedAll + 'dynosaur_struct,
+    }
+    impl<'dynosaur_struct> All for DynAll<'dynosaur_struct> {
+        fn ref_mut(&mut self) { self.ptr.ref_mut() }
+        fn ref_(&self) -> impl Send {
+            let ret: Box<dyn Send + '_> = self.ptr.ref_();
+            let ret: Box<dyn Send + '_> =
+                unsafe { ::core::mem::transmute(ret) };
+            ret
+        }
+    }
+    impl<'dynosaur_struct> DynAll<'dynosaur_struct> {
+        pub fn new_box(value: impl All + 'dynosaur_struct)
+            -> Box<DynAll<'dynosaur_struct>> {
+            let value = Box::new(value);
+            let value: Box<dyn ErasedAll + 'dynosaur_struct> = value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub fn new_arc(value: impl All + 'dynosaur_struct)
+            -> std::sync::Arc<DynAll<'dynosaur_struct>> {
+            let value = std::sync::Arc::new(value);
+            let value: std::sync::Arc<dyn ErasedAll + 'dynosaur_struct> =
+                value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub fn new_rc(value: impl All + 'dynosaur_struct)
+            -> std::rc::Rc<DynAll<'dynosaur_struct>> {
+            let value = std::rc::Rc::new(value);
+            let value: std::rc::Rc<dyn ErasedAll + 'dynosaur_struct> = value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub const fn from_ref(value: &(impl All + 'dynosaur_struct))
+            -> &DynAll<'dynosaur_struct> {
+            let value: &(dyn ErasedAll + 'dynosaur_struct) = &*value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub const fn from_mut(value: &mut (impl All + 'dynosaur_struct))
+            -> &mut DynAll<'dynosaur_struct> {
+            let value: &mut (dyn ErasedAll + 'dynosaur_struct) = &mut *value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+    }
+    impl<DYNOSAUR: All> All for &mut DYNOSAUR where DYNOSAUR: ?Sized {
+        fn ref_mut(&mut self) { DYNOSAUR::ref_mut(self) }
+        fn ref_(&self) -> impl Send { DYNOSAUR::ref_(self) }
+    }
+    impl<DYNOSAUR: All> All for Box<DYNOSAUR> where DYNOSAUR: ?Sized {
+        fn ref_mut(&mut self) { DYNOSAUR::ref_mut(self) }
+        fn ref_(&self) -> impl Send { DYNOSAUR::ref_(self) }
+    }
+}
+use __dynosaur_macro_dynall::DynAll;
+
+fn main() {}
