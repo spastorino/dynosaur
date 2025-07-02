@@ -443,12 +443,20 @@ fn mk_box_blanket_impl(item_trait: &ItemTrait) -> TokenStream {
 
     let self_receiver = self_receiver(item_trait);
 
-    if self_receiver.owned || self_receiver.box_self {
-        return Error::new_spanned(item_trait, "By value Self and Box<Self> are unsupported")
-            .into_compile_error();
+    let mut result = TokenStream::new();
+
+    if let Some(arg) = &self_receiver.other {
+        result.extend(Error::new_spanned(arg, "unsupported self type").into_compile_error());
     }
 
-    let mut result = TokenStream::new();
+    if let Some(arg) = &self_receiver.owned {
+        result
+            .extend(Error::new_spanned(arg, "By value Self is not supported").into_compile_error());
+    }
+
+    if let Some(arg) = &self_receiver.box_self {
+        result.extend(Error::new_spanned(arg, "Box<Self> is not supported").into_compile_error());
+    }
 
     let mut where_bounds: Punctuated<_, Token![,]> = Punctuated::new();
     where_bounds.push(quote! { DYNOSAUR: ?Sized });

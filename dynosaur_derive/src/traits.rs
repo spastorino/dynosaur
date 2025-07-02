@@ -65,21 +65,20 @@ pub(crate) fn self_receiver(item_trait: &ItemTrait) -> SelfReceiver {
     let mut visitor = ReceiverVisitor(SelfReceiver {
         shared_ref: false,
         mut_ref: false,
-        owned: false,
-        box_self: false,
-        other: false,
+        owned: None,
+        box_self: None,
+        other: None,
     });
     visitor.visit_item_trait(item_trait);
     visitor.0
 }
 
-#[derive(PartialEq, Eq)]
 pub(crate) struct SelfReceiver {
     pub(crate) shared_ref: bool,
     pub(crate) mut_ref: bool,
-    pub(crate) owned: bool,
-    pub(crate) box_self: bool,
-    pub(crate) other: bool,
+    pub(crate) owned: Option<Receiver>,
+    pub(crate) box_self: Option<Receiver>,
+    pub(crate) other: Option<Receiver>,
 }
 
 impl SelfReceiver {
@@ -89,9 +88,9 @@ impl SelfReceiver {
             SelfReceiver {
                 shared_ref: _,
                 mut_ref: false,
-                owned: false,
-                box_self: false,
-                other: false,
+                owned: None,
+                box_self: None,
+                other: None,
             }
         )
     }
@@ -102,9 +101,9 @@ impl SelfReceiver {
             SelfReceiver {
                 shared_ref: _,
                 mut_ref: _,
-                owned: false,
-                box_self: false,
-                other: false,
+                owned: None,
+                box_self: None,
+                other: None,
             }
         )
     }
@@ -117,7 +116,7 @@ impl SelfReceiver {
                 mut_ref: _,
                 owned: _,
                 box_self: _,
-                other: false,
+                other: None,
             }
         )
     }
@@ -130,10 +129,18 @@ impl Visit<'_> for ReceiverVisitor {
         // TODO: this doesn't handle self: &&Self or self: &mut Box<Self> for example.
         match &*arg.ty {
             Type::Reference(type_reference) => {
-                if type_reference.mutability.is_none() {
-                    self.0.shared_ref = true;
-                } else {
-                    self.0.mut_ref = true;
+                if let Type::Path(type_path) = &*type_reference.elem {
+                    let segments = &type_path.path.segments;
+
+                    if segments.len() == 1 && segments[0].ident == "Self" {
+                        if type_reference.mutability.is_none() {
+                            self.0.shared_ref = true;
+                        } else {
+                            self.0.mut_ref = true;
+                        }
+
+                        return;
+                    }
                 }
             }
 
@@ -142,16 +149,18 @@ impl Visit<'_> for ReceiverVisitor {
 
                 if segments.len() == 1 {
                     if segments[0].ident == "Box" {
-                        self.0.box_self = true;
+                        self.0.box_self = Some(arg.clone());
+                        return;
                     } else if segments[0].ident == "Self" {
-                        self.0.owned = true;
-                    } else {
-                        self.0.other = true;
+                        self.0.owned = Some(arg.clone());
+                        return;
                     }
                 }
             }
 
             _ => {}
         }
+
+        self.0.other = Some(arg.clone());
     }
 }
