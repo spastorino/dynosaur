@@ -1,0 +1,10 @@
+error: where Self: Sized is unsupported
+ --> tests/fail/where-self-sized-rpit.rs:5:5
+  |
+5 | /     fn foo(&mut self) -> impl ::core::future::Future<Output = ()>
+6 | |     where
+7 | |         Self: Sized;
+  | |____________________^
+
+error: aborting due to 1 previous error
+

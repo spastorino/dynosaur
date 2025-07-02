@@ -12,6 +12,7 @@ use traits::{
     dyn_compatible_items, self_receiver, struct_trait_params, trait_item_erased_name,
     StructTraitParams,
 };
+use where_clauses::has_where_self_sized;
 
 mod expand;
 mod lifetime;
@@ -217,6 +218,18 @@ fn mk_erased_trait(item_trait: &ItemTrait) -> ItemTrait {
 }
 
 fn mk_erased_trait_blanket_impl(item_trait: &ItemTrait) -> TokenStream {
+    // Check for where_self_sized and error, we need to remove this and properly handle where
+    // Self: Sized
+    for trait_item in &item_trait.items {
+        match trait_item {
+            TraitItem::Fn(trait_item_fn) if has_where_self_sized(&trait_item_fn.sig) => {
+                return Error::new_spanned(trait_item_fn, "where Self: Sized is unsupported")
+                    .into_compile_error()
+            }
+            _ => {}
+        }
+    }
+
     let trait_ident = &item_trait.ident;
     let erased_trait_ident = trait_item_erased_name(&trait_ident);
     let (_, trait_generics, _) = &item_trait.generics.split_for_impl();
@@ -429,6 +442,11 @@ fn mk_box_blanket_impl(item_trait: &ItemTrait) -> TokenStream {
     let (blanket_impl_generics, _, blanket_where_clause) = &blanket_generics.split_for_impl();
 
     let self_receiver = self_receiver(item_trait);
+
+    if self_receiver.owned || self_receiver.box_ref {
+        return Error::new_spanned(item_trait, "By value Self and Box<Self> are unsupported")
+            .into_compile_error();
+    }
 
     let mut result = TokenStream::new();
 

@@ -1,0 +1,10 @@
+error: where Self: Sized is unsupported
+ --> tests/fail/where-self-sized.rs:5:5
+  |
+5 | /     async fn foo(&mut self)
+6 | |     where
+7 | |         Self: Sized;
+  | |____________________^
+
+error: aborting due to 1 previous error
+
