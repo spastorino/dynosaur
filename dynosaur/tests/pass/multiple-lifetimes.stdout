@@ -26,7 +26,7 @@ mod __dynosaur_macro_dynsometrait {
         'life1: 'dynosaur,
         'life2: 'dynosaur,
         Self: 'dynosaur;
-        fn multiple_named_lifetimes<'a, 'b: 'a, 'life0, 'life1,
+        fn multiple_named_lifetimes<'a, 'b, 'life0, 'life1,
         'dynosaur>(&'life0 self, a: &'a u8, b: &'b u8, c: &'life1 u8)
         ->
             ::core::pin::Pin<Box<dyn ::core::future::Future<Output = ()> +
@@ -68,7 +68,7 @@ mod __dynosaur_macro_dynsometrait {
             Box::pin(<Self as
                         SomeTrait>::multiple_elided_lifetimes(self, a, b))
         }
-        fn multiple_named_lifetimes<'a, 'b: 'a, 'life0, 'life1,
+        fn multiple_named_lifetimes<'a, 'b, 'life0, 'life1,
             'dynosaur>(&'life0 self, a: &'a u8, b: &'b u8, c: &'life1 u8)
             ->
                 ::core::pin::Pin<Box<dyn ::core::future::Future<Output = ()> +

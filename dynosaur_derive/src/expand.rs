@@ -114,6 +114,18 @@ fn expand_fn_input(item_trait_generics: &Generics, sig: &mut Signature) {
         }
     }
 
+    for param in &mut sig.generics.params {
+        match param {
+            GenericParam::Type(param) => {
+                param.bounds = Punctuated::new();
+            }
+            GenericParam::Lifetime(param) => {
+                param.bounds = Punctuated::new();
+            }
+            GenericParam::Const(_) => {}
+        }
+    }
+
     if sig.generics.lt_token.is_none() {
         sig.generics.lt_token = Some(Token![<](sig.ident.span()));
     }
