@@ -105,18 +105,32 @@ fn expand_fn_input(item_trait_generics: &Generics, sig: &mut Signature) {
         }
     }
 
-    for lifetime in item_trait_generics
-        .params
-        .iter()
-        .filter_map(move |param| match param {
-            GenericParam::Lifetime(param) => Some(&param.lifetime),
-            _ => None,
-        })
-    {
-        let span = lifetime.span();
-        where_clause_or_default(&mut sig.generics.where_clause)
-            .predicates
-            .push(parse_quote_spanned!(span=> #lifetime: 'dynosaur));
+    for param in &item_trait_generics.params {
+        match param {
+            GenericParam::Type(param) => {
+                let param_name = &param.ident;
+                let span = match param.colon_token {
+                    Some(colon_token) => colon_token.span,
+                    None => param_name.span(),
+                };
+                let bounds = &param.bounds;
+                where_clause_or_default(&mut sig.generics.where_clause)
+                    .predicates
+                    .push(parse_quote_spanned!(span=> #param_name: 'dynosaur + #bounds));
+            }
+            GenericParam::Lifetime(param) => {
+                let param_name = &param.lifetime;
+                let span = match param.colon_token {
+                    Some(colon_token) => colon_token.span,
+                    None => param_name.span(),
+                };
+                let bounds = &param.bounds;
+                where_clause_or_default(&mut sig.generics.where_clause)
+                    .predicates
+                    .push(parse_quote_spanned!(span=> #param: 'dynosaur + #bounds));
+            }
+            GenericParam::Const(_) => {}
+        }
     }
 
     if sig.generics.lt_token.is_none() {
