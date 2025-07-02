@@ -1,13 +1,20 @@
-error: By value Self and Box<Self> are unsupported
- --> tests/fail/self_and_box_receivers.rs:2:1
+error: unsupported self type
+ --> tests/fail/self_and_box_receivers.rs:9:16
   |
-2 | / trait All {
-3 | |     fn ref_mut(&mut self);
-4 | |     fn ref_(&self) -> impl Send;
-5 | |     fn owned(self) -> impl Send;
-6 | |     fn self_box(self: Box<Self>) -> impl Send;
-7 | | }
-  | |_^
+9 |     fn self_rc(self: Rc<Self>) -> impl Send;
+  |                ^^^^^^^^^^^^^^
 
-error: aborting due to 1 previous error
+error: By value Self is not supported
+ --> tests/fail/self_and_box_receivers.rs:7:14
+  |
+7 |     fn owned(self) -> impl Send;
+  |              ^^^^
+
+error: Box<Self> is not supported
+ --> tests/fail/self_and_box_receivers.rs:8:17
+  |
+8 |     fn self_box(self: Box<Self>) -> impl Send;
+  |                 ^^^^^^^^^^^^^^^
+
+error: aborting due to 3 previous errors
 

@@ -3,6 +3,8 @@
 use std::prelude::rust_2021::*;
 #[macro_use]
 extern crate std;
+use std::rc::Rc;
+
 trait All {
     fn ref_mut(&mut self);
     fn ref_(&self)
@@ -10,6 +12,8 @@ trait All {
     fn owned(self)
     -> impl Send;
     fn self_box(self: Box<Self>)
+    -> impl Send;
+    fn self_rc(self: Rc<Self>)
     -> impl Send;
 }
 mod __dynosaur_macro_dynall {
@@ -29,6 +33,10 @@ mod __dynosaur_macro_dynall {
         -> Box<dyn Send + 'dynosaur>
         where
         Self: 'dynosaur;
+        fn self_rc<'dynosaur>(self: Rc<Self>)
+        -> Box<dyn Send + 'dynosaur>
+        where
+        Self: 'dynosaur;
     }
     impl<DYNOSAUR: All> ErasedAll for DYNOSAUR {
         fn ref_mut(&mut self) { <Self as All>::ref_mut(self) }
@@ -43,6 +51,10 @@ mod __dynosaur_macro_dynall {
         fn self_box<'dynosaur>(self: Box<Self>) -> Box<dyn Send + 'dynosaur>
             where Self: 'dynosaur {
             Box::new(<Self as All>::self_box(self))
+        }
+        fn self_rc<'dynosaur>(self: Rc<Self>) -> Box<dyn Send + 'dynosaur>
+            where Self: 'dynosaur {
+            Box::new(<Self as All>::self_rc(self))
         }
     }
     #[repr(transparent)]
@@ -65,6 +77,12 @@ mod __dynosaur_macro_dynall {
         }
         fn self_box(self: Box<Self>) -> impl Send {
             let ret: Box<dyn Send + '_> = self.ptr.self_box();
+            let ret: Box<dyn Send + '_> =
+                unsafe { ::core::mem::transmute(ret) };
+            ret
+        }
+        fn self_rc(self: Rc<Self>) -> impl Send {
+            let ret: Box<dyn Send + '_> = self.ptr.self_rc();
             let ret: Box<dyn Send + '_> =
                 unsafe { ::core::mem::transmute(ret) };
             ret
