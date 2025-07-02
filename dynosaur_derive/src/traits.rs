@@ -66,7 +66,7 @@ pub(crate) fn self_receiver(item_trait: &ItemTrait) -> SelfReceiver {
         shared_ref: false,
         mut_ref: false,
         owned: false,
-        box_ref: false,
+        box_self: false,
         other: false,
     });
     visitor.visit_item_trait(item_trait);
@@ -78,7 +78,7 @@ pub(crate) struct SelfReceiver {
     pub(crate) shared_ref: bool,
     pub(crate) mut_ref: bool,
     pub(crate) owned: bool,
-    pub(crate) box_ref: bool,
+    pub(crate) box_self: bool,
     pub(crate) other: bool,
 }
 
@@ -90,7 +90,7 @@ impl SelfReceiver {
                 shared_ref: _,
                 mut_ref: false,
                 owned: false,
-                box_ref: false,
+                box_self: false,
                 other: false,
             }
         )
@@ -103,7 +103,7 @@ impl SelfReceiver {
                 shared_ref: _,
                 mut_ref: _,
                 owned: false,
-                box_ref: false,
+                box_self: false,
                 other: false,
             }
         )
@@ -116,7 +116,7 @@ impl SelfReceiver {
                 shared_ref: _,
                 mut_ref: _,
                 owned: _,
-                box_ref: _,
+                box_self: _,
                 other: false,
             }
         )
@@ -142,7 +142,7 @@ impl Visit<'_> for ReceiverVisitor {
 
                 if segments.len() == 1 {
                     if segments[0].ident == "Box" {
-                        self.0.box_ref = true;
+                        self.0.box_self = true;
                     } else if segments[0].ident == "Self" {
                         self.0.owned = true;
                     } else {
