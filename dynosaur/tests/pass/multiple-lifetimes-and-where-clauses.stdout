@@ -20,11 +20,11 @@ mod __dynosaur_macro_dynsometrait {
             &'a u32> + 'dynosaur>>
         where
         'b: 'a,
+        'a: 'dynosaur,
+        'b: 'dynosaur,
         'd: 'dynosaur,
         'e: 'dynosaur,
         'f: 'dynosaur,
-        'a: 'dynosaur,
-        'b: 'dynosaur,
         'life0: 'dynosaur,
         Self: 'dynosaur;
     }
@@ -34,8 +34,8 @@ mod __dynosaur_macro_dynsometrait {
             'dynosaur>(&'life0 self, a: &'d u32, b: &'e u32, c: &'f u32)
             ->
                 ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
-                &'a u32> + 'dynosaur>> where 'b: 'a, 'd: 'dynosaur,
-            'e: 'dynosaur, 'f: 'dynosaur, 'a: 'dynosaur, 'b: 'dynosaur,
+                &'a u32> + 'dynosaur>> where 'b: 'a, 'a: 'dynosaur,
+            'b: 'dynosaur, 'd: 'dynosaur, 'e: 'dynosaur, 'f: 'dynosaur,
             'life0: 'dynosaur, Self: 'dynosaur {
             Box::pin(<Self as
                         SomeTrait<'a, 'b>>::lotsa_lifetimes(self, a, b, c))

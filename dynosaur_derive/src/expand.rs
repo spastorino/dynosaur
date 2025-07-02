@@ -4,12 +4,12 @@ use crate::sig::{is_async, is_future, is_rpit};
 use crate::where_clauses::{has_where_self_sized, where_clause_or_default};
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
-use std::mem;
 use syn::punctuated::Punctuated;
 use syn::visit_mut::VisitMut;
 use syn::{
     parse_quote, parse_quote_spanned, Error, FnArg, GenericParam, Generics, Ident, ItemTrait,
     Lifetime, Pat, PatIdent, ReturnType, Signature, Token, Type, TypeImplTrait, TypeParamBound,
+    WherePredicate,
 };
 
 /// Expands the signature of each function on the trait, converting async fn into fn with return
@@ -77,35 +77,11 @@ fn expand_fn_input(item_trait_generics: &Generics, sig: &mut Signature) {
         }
     }
 
-    for param in &mut sig.generics.params {
-        match param {
-            GenericParam::Type(param) => {
-                let param_name = &param.ident;
-                let span = match param.colon_token.take() {
-                    Some(colon_token) => colon_token.span,
-                    None => param_name.span(),
-                };
-                let bounds = mem::replace(&mut param.bounds, Punctuated::new());
-                where_clause_or_default(&mut sig.generics.where_clause)
-                    .predicates
-                    .push(parse_quote_spanned!(span=> #param_name: 'dynosaur + #bounds));
-            }
-            GenericParam::Lifetime(param) => {
-                let param_name = &param.lifetime;
-                let span = match param.colon_token.take() {
-                    Some(colon_token) => colon_token.span,
-                    None => param_name.span(),
-                };
-                let bounds = mem::replace(&mut param.bounds, Punctuated::new());
-                where_clause_or_default(&mut sig.generics.where_clause)
-                    .predicates
-                    .push(parse_quote_spanned!(span=> #param: 'dynosaur + #bounds));
-            }
-            GenericParam::Const(_) => {}
-        }
-    }
-
-    for param in &item_trait_generics.params {
+    for param in item_trait_generics
+        .params
+        .iter()
+        .chain(sig.generics.params.iter())
+    {
         match param {
             GenericParam::Type(param) => {
                 let param_name = &param.ident;
@@ -113,10 +89,14 @@ fn expand_fn_input(item_trait_generics: &Generics, sig: &mut Signature) {
                     Some(colon_token) => colon_token.span,
                     None => param_name.span(),
                 };
-                let bounds = &param.bounds;
+                let mut bounds = param.bounds.clone();
+                bounds.push(TypeParamBound::Lifetime(Lifetime::new(
+                    "'dynosaur",
+                    Span::call_site(),
+                )));
                 where_clause_or_default(&mut sig.generics.where_clause)
                     .predicates
-                    .push(parse_quote_spanned!(span=> #param_name: 'dynosaur + #bounds));
+                    .push(parse_quote_spanned!(span=> #param_name: #bounds));
             }
             GenericParam::Lifetime(param) => {
                 let param_name = &param.lifetime;
@@ -124,10 +104,11 @@ fn expand_fn_input(item_trait_generics: &Generics, sig: &mut Signature) {
                     Some(colon_token) => colon_token.span,
                     None => param_name.span(),
                 };
-                let bounds = &param.bounds;
+                let mut bounds = param.bounds.clone();
+                bounds.push(Lifetime::new("'dynosaur", Span::call_site()));
                 where_clause_or_default(&mut sig.generics.where_clause)
                     .predicates
-                    .push(parse_quote_spanned!(span=> #param: 'dynosaur + #bounds));
+                    .push(parse_quote_spanned!(span=> #param_name: #bounds));
             }
             GenericParam::Const(_) => {}
         }
