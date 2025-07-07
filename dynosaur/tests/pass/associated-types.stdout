@@ -90,19 +90,19 @@ mod __dynosaur_macro_dynfoo {
         }
     }
     impl<DYNOSAUR: Foo> Foo for &DYNOSAUR where DYNOSAUR: ?Sized {
-        type Bar = DYNOSAUR::Bar;
+        type Bar = <DYNOSAUR as Foo>::Bar;
         fn foo(&self) -> impl ::core::future::Future<Output = Self::Bar> {
             <DYNOSAUR as Foo>::foo(self)
         }
     }
     impl<DYNOSAUR: Foo> Foo for &mut DYNOSAUR where DYNOSAUR: ?Sized {
-        type Bar = DYNOSAUR::Bar;
+        type Bar = <DYNOSAUR as Foo>::Bar;
         fn foo(&self) -> impl ::core::future::Future<Output = Self::Bar> {
             <DYNOSAUR as Foo>::foo(self)
         }
     }
     impl<DYNOSAUR: Foo> Foo for Box<DYNOSAUR> where DYNOSAUR: ?Sized {
-        type Bar = DYNOSAUR::Bar;
+        type Bar = <DYNOSAUR as Foo>::Bar;
         fn foo(&self) -> impl ::core::future::Future<Output = Self::Bar> {
             <DYNOSAUR as Foo>::foo(self)
         }

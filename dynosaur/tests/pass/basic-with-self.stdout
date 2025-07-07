@@ -92,19 +92,19 @@ mod __dynosaur_macro_dynmytrait {
         }
     }
     impl<DYNOSAUR: MyTrait> MyTrait for &DYNOSAUR where DYNOSAUR: ?Sized {
-        type Item = DYNOSAUR::Item;
+        type Item = <DYNOSAUR as MyTrait>::Item;
         fn foo(&self) -> impl ::core::future::Future<Output = Self::Item> {
             <DYNOSAUR as MyTrait>::foo(self)
         }
     }
     impl<DYNOSAUR: MyTrait> MyTrait for &mut DYNOSAUR where DYNOSAUR: ?Sized {
-        type Item = DYNOSAUR::Item;
+        type Item = <DYNOSAUR as MyTrait>::Item;
         fn foo(&self) -> impl ::core::future::Future<Output = Self::Item> {
             <DYNOSAUR as MyTrait>::foo(self)
         }
     }
     impl<DYNOSAUR: MyTrait> MyTrait for Box<DYNOSAUR> where DYNOSAUR: ?Sized {
-        type Item = DYNOSAUR::Item;
+        type Item = <DYNOSAUR as MyTrait>::Item;
         fn foo(&self) -> impl ::core::future::Future<Output = Self::Item> {
             <DYNOSAUR as MyTrait>::foo(self)
         }

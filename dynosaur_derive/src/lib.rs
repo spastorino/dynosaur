@@ -205,8 +205,10 @@ pub fn dynosaur(
     let struct_inherent_impl = mk_struct_inherent_impl(struct_ident, &item_trait);
     let box_blanket_impl = match attrs.blanket {
         Some(Blanket::None) => quote!(),
-        Some(Blanket::Default) | None => mk_box_blanket_impl(&item_trait),
-        Some(Blanket::Dyn) => unimplemented!(),
+        Some(Blanket::Default) | None => {
+            mk_box_blanket_impl(&struct_ident, &item_trait, Blanket::Default)
+        }
+        Some(Blanket::Dyn) => mk_box_blanket_impl(&struct_ident, &item_trait, Blanket::Dyn),
     };
 
     let dynosaur_mod = Ident::new(
@@ -423,7 +425,11 @@ fn mk_struct_inherent_impl(struct_ident: &Ident, item_trait: &ItemTrait) -> Toke
     }
 }
 
-fn mk_box_blanket_impl(item_trait: &ItemTrait) -> TokenStream {
+fn mk_box_blanket_impl(
+    struct_ident: &Ident,
+    item_trait: &ItemTrait,
+    blanket: Blanket,
+) -> TokenStream {
     let item_trait_ident = &item_trait.ident;
     let (_, trait_generics, _) = &item_trait.generics.split_for_impl();
 
@@ -431,8 +437,19 @@ fn mk_box_blanket_impl(item_trait: &ItemTrait) -> TokenStream {
         TraitItem::Const(_) => Error::new_spanned(item, "consts make the trait not dyn compatible")
             .into_compile_error(),
         TraitItem::Fn(TraitItemFn { sig, .. }) => {
-            let self_ = quote! {
-                <DYNOSAUR as #item_trait_ident #trait_generics>
+            let self_ = match blanket {
+                Blanket::Default => {
+                    quote! {
+                        <DYNOSAUR as #item_trait_ident #trait_generics>
+                    }
+                }
+                Blanket::Dyn => {
+                    let StructTraitParams { struct_params, .. } = struct_trait_params(item_trait);
+                    quote! {
+                        <#struct_ident #struct_params as #item_trait_ident #trait_generics>
+                    }
+                }
+                Blanket::None => quote!(),
             };
             expand_dyn_struct_fn(sig, &InvokeArgsMode::DirectUfcs(self_))
         }
@@ -440,20 +457,79 @@ fn mk_box_blanket_impl(item_trait: &ItemTrait) -> TokenStream {
             ident, generics, ..
         }) => {
             let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+
+            let prefix = match blanket {
+                Blanket::Default => {
+                    quote! {
+                        <DYNOSAUR as #item_trait_ident #trait_generics>::
+                    }
+                }
+                Blanket::Dyn | Blanket::None => quote!(),
+            };
+
             quote! {
-                type #ident #impl_generics = DYNOSAUR::#ident #ty_generics #where_clause;
+                type #ident #impl_generics = #prefix #ident #ty_generics #where_clause;
             }
         }
         _ => Error::new_spanned(item, "unsupported item type").into_compile_error(),
     });
 
-    let blanket_bound: TypeParam = parse_quote!(DYNOSAUR: #item_trait_ident #trait_generics);
-    let blanket = blanket_bound.ident.clone();
-    let mut blanket_generics = item_trait.generics.clone();
-    blanket_generics
-        .params
-        .push(GenericParam::Type(blanket_bound));
-    let (blanket_impl_generics, _, blanket_where_clause) = &blanket_generics.split_for_impl();
+    let (
+        blanket_generics,
+        item_trait_ident,
+        trait_generics,
+        blanket,
+        blanket_params,
+        blanket_impl_generics,
+        where_bounds,
+    ) = match blanket {
+        Blanket::None => return quote!(),
+        Blanket::Default => {
+            let blanket_bound: TypeParam =
+                parse_quote!(DYNOSAUR: #item_trait_ident #trait_generics);
+            let blanket = blanket_bound.ident.clone();
+            let mut blanket_generics = item_trait.generics.clone();
+            blanket_generics
+                .params
+                .push(GenericParam::Type(blanket_bound));
+            let (blanket_impl_generics, _, _) = blanket_generics.split_for_impl();
+
+            let mut where_bounds: Punctuated<_, Token![,]> = Punctuated::new();
+            where_bounds.push(quote! { DYNOSAUR: ?Sized });
+
+            for supertrait in &item_trait.supertraits {
+                where_bounds.push(quote! { Self: #supertrait });
+            }
+
+            (
+                blanket_generics.clone(),
+                item_trait_ident,
+                trait_generics,
+                blanket,
+                quote!(),
+                quote! { #blanket_impl_generics },
+                quote! { where #where_bounds },
+            )
+        }
+        Blanket::Dyn => {
+            let StructTraitParams {
+                struct_params,
+                struct_with_bounds_params,
+                ..
+            } = struct_trait_params(item_trait);
+            (
+                item_trait.generics.clone(),
+                item_trait_ident,
+                trait_generics,
+                struct_ident.clone(),
+                struct_params,
+                struct_with_bounds_params,
+                quote!(),
+            )
+        }
+    };
+
+    let (_, _, blanket_where_clause) = blanket_generics.split_for_impl();
 
     let self_receiver = self_receiver(item_trait);
 
@@ -472,19 +548,12 @@ fn mk_box_blanket_impl(item_trait: &ItemTrait) -> TokenStream {
         result.extend(Error::new_spanned(arg, "Box<Self> is not supported").into_compile_error());
     }
 
-    let mut where_bounds: Punctuated<_, Token![,]> = Punctuated::new();
-    where_bounds.push(quote! { DYNOSAUR: ?Sized });
-
-    for supertrait in &item_trait.supertraits {
-        where_bounds.push(quote! { Self: #supertrait });
-    }
-
     if self_receiver.should_gen_ref() {
         let items = items.clone();
 
         result.extend(
             quote! {
-                impl #blanket_impl_generics #item_trait_ident #trait_generics for & #blanket #blanket_where_clause where #where_bounds {
+                impl #blanket_impl_generics #item_trait_ident #trait_generics for & #blanket #blanket_params #blanket_where_clause #where_bounds {
                     #(#items)*
                 }
             }
@@ -496,7 +565,7 @@ fn mk_box_blanket_impl(item_trait: &ItemTrait) -> TokenStream {
 
         result.extend(
             quote! {
-                impl #blanket_impl_generics #item_trait_ident #trait_generics for &mut #blanket #blanket_where_clause where #where_bounds {
+                impl #blanket_impl_generics #item_trait_ident #trait_generics for &mut #blanket #blanket_params #blanket_where_clause #where_bounds {
                     #(#items)*
                 }
             }
@@ -506,7 +575,7 @@ fn mk_box_blanket_impl(item_trait: &ItemTrait) -> TokenStream {
     if self_receiver.should_gen_box_self() {
         result.extend(
             quote! {
-                impl #blanket_impl_generics #item_trait_ident #trait_generics for Box<#blanket #blanket_where_clause> where #where_bounds {
+                impl #blanket_impl_generics #item_trait_ident #trait_generics for Box<#blanket #blanket_params #blanket_where_clause> #where_bounds {
                     #(#items)*
                 }
             }

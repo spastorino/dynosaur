@@ -117,8 +117,8 @@ mod __dynosaur_macro_dynservice {
     }
     impl<Request, DYNOSAUR: Service<Request>> Service<Request> for &DYNOSAUR
         where DYNOSAUR: ?Sized {
-        type Response = DYNOSAUR::Response;
-        type Error = DYNOSAUR::Error;
+        type Response = <DYNOSAUR as Service<Request>>::Response;
+        type Error = <DYNOSAUR as Service<Request>>::Error;
         fn call(&self, req: Request)
             -> impl Future<Output = Result<Self::Response, Self::Error>> {
             <DYNOSAUR as Service<Request>>::call(self, req)
@@ -126,8 +126,8 @@ mod __dynosaur_macro_dynservice {
     }
     impl<Request, DYNOSAUR: Service<Request>> Service<Request> for
         &mut DYNOSAUR where DYNOSAUR: ?Sized {
-        type Response = DYNOSAUR::Response;
-        type Error = DYNOSAUR::Error;
+        type Response = <DYNOSAUR as Service<Request>>::Response;
+        type Error = <DYNOSAUR as Service<Request>>::Error;
         fn call(&self, req: Request)
             -> impl Future<Output = Result<Self::Response, Self::Error>> {
             <DYNOSAUR as Service<Request>>::call(self, req)
@@ -135,8 +135,8 @@ mod __dynosaur_macro_dynservice {
     }
     impl<Request, DYNOSAUR: Service<Request>> Service<Request> for
         Box<DYNOSAUR> where DYNOSAUR: ?Sized {
-        type Response = DYNOSAUR::Response;
-        type Error = DYNOSAUR::Error;
+        type Response = <DYNOSAUR as Service<Request>>::Response;
+        type Error = <DYNOSAUR as Service<Request>>::Error;
         fn call(&self, req: Request)
             -> impl Future<Output = Result<Self::Response, Self::Error>> {
             <DYNOSAUR as Service<Request>>::call(self, req)
