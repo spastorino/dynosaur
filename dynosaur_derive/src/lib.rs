@@ -25,10 +25,17 @@ struct Attrs {
     vis: Visibility,
     ident: Ident,
     target: Option<Target>,
+    blanket: Option<Blanket>,
 }
 
 struct Target {
     trait_name: Ident,
+}
+
+enum Blanket {
+    None,
+    Default,
+    Dyn,
 }
 
 impl Parse for Attrs {
@@ -45,7 +52,36 @@ impl Parse for Attrs {
             } else {
                 None
             },
+            blanket: if input.peek(Token![,]) {
+                input.parse::<Token![,]>()?;
+                let blanket: Ident = input.parse()?;
+                if blanket != "blanket" {
+                    Err(input.error("unknown option"))?
+                }
+                input.parse::<Token![=]>()?;
+                Some(input.parse()?)
+            } else {
+                None
+            },
         })
+    }
+}
+
+impl Parse for Blanket {
+    fn parse(input: ParseStream) -> Result<Self> {
+        if input.peek(Token![dyn]) {
+            input.parse::<Token![dyn]>()?;
+            Ok(Blanket::Dyn)
+        } else {
+            let opt: Ident = input.parse()?;
+            Ok(if opt == "none" {
+                Blanket::None
+            } else if opt == "default" {
+                Blanket::Default
+            } else {
+                Err(input.error("unknown option"))?
+            })
+        }
     }
 }
 
@@ -167,7 +203,11 @@ pub fn dynosaur(
     let dyn_struct = mk_dyn_struct(&struct_ident, &item_trait);
     let dyn_struct_impl_item = mk_dyn_struct_impl_item(struct_ident, &item_trait);
     let struct_inherent_impl = mk_struct_inherent_impl(struct_ident, &item_trait);
-    let box_blanket_impl = mk_box_blanket_impl(&item_trait);
+    let box_blanket_impl = match attrs.blanket {
+        Some(Blanket::None) => quote!(),
+        Some(Blanket::Default) | None => mk_box_blanket_impl(&item_trait),
+        Some(Blanket::Dyn) => unimplemented!(),
+    };
 
     let dynosaur_mod = Ident::new(
         &format!(
