@@ -121,7 +121,7 @@ mod __dynosaur_macro_dynservice {
         type Error = DYNOSAUR::Error;
         fn call(&self, req: Request)
             -> impl Future<Output = Result<Self::Response, Self::Error>> {
-            DYNOSAUR::call(self, req)
+            <DYNOSAUR as Service<Request>>::call(self, req)
         }
     }
     impl<Request, DYNOSAUR: Service<Request>> Service<Request> for
@@ -130,7 +130,7 @@ mod __dynosaur_macro_dynservice {
         type Error = DYNOSAUR::Error;
         fn call(&self, req: Request)
             -> impl Future<Output = Result<Self::Response, Self::Error>> {
-            DYNOSAUR::call(self, req)
+            <DYNOSAUR as Service<Request>>::call(self, req)
         }
     }
     impl<Request, DYNOSAUR: Service<Request>> Service<Request> for
@@ -139,7 +139,7 @@ mod __dynosaur_macro_dynservice {
         type Error = DYNOSAUR::Error;
         fn call(&self, req: Request)
             -> impl Future<Output = Result<Self::Response, Self::Error>> {
-            DYNOSAUR::call(self, req)
+            <DYNOSAUR as Service<Request>>::call(self, req)
         }
     }
 }

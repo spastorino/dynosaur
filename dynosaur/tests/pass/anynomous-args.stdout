@@ -91,7 +91,8 @@ mod __dynosaur_macro_dynsometrait {
         fn multiple_elided_lifetimes(&self, __dynosaur_arg1: &u8,
             __dynosaur_arg2: &u8)
             -> impl ::core::future::Future<Output = ()> {
-            DYNOSAUR::multiple_elided_lifetimes(self, __dynosaur_arg1,
+            <DYNOSAUR as
+                    SomeTrait>::multiple_elided_lifetimes(self, __dynosaur_arg1,
                 __dynosaur_arg2)
         }
     }
@@ -100,7 +101,8 @@ mod __dynosaur_macro_dynsometrait {
         fn multiple_elided_lifetimes(&self, __dynosaur_arg1: &u8,
             __dynosaur_arg2: &u8)
             -> impl ::core::future::Future<Output = ()> {
-            DYNOSAUR::multiple_elided_lifetimes(self, __dynosaur_arg1,
+            <DYNOSAUR as
+                    SomeTrait>::multiple_elided_lifetimes(self, __dynosaur_arg1,
                 __dynosaur_arg2)
         }
     }
@@ -109,7 +111,8 @@ mod __dynosaur_macro_dynsometrait {
         fn multiple_elided_lifetimes(&self, __dynosaur_arg1: &u8,
             __dynosaur_arg2: &u8)
             -> impl ::core::future::Future<Output = ()> {
-            DYNOSAUR::multiple_elided_lifetimes(self, __dynosaur_arg1,
+            <DYNOSAUR as
+                    SomeTrait>::multiple_elided_lifetimes(self, __dynosaur_arg1,
                 __dynosaur_arg2)
         }
     }

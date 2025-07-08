@@ -91,7 +91,7 @@ mod __dynosaur_macro_dynmytrait {
                 'static>>
         }
         fn bar(&mut self) -> impl ::core::future::Future<Output = ()> {
-            DYNOSAUR::bar(self)
+            <DYNOSAUR as MyTrait>::bar(self)
         }
     }
     impl<DYNOSAUR: MyTrait> MyTrait for Box<DYNOSAUR> where DYNOSAUR: ?Sized {
@@ -104,7 +104,7 @@ mod __dynosaur_macro_dynmytrait {
                 'static>>
         }
         fn bar(&mut self) -> impl ::core::future::Future<Output = ()> {
-            DYNOSAUR::bar(self)
+            <DYNOSAUR as MyTrait>::bar(self)
         }
     }
 }

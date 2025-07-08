@@ -55,13 +55,13 @@ mod __dynosaur_macro_dynrefonly {
         }
     }
     impl<DYNOSAUR: RefOnly> RefOnly for &DYNOSAUR where DYNOSAUR: ?Sized {
-        fn ref_(&self) { DYNOSAUR::ref_(self) }
+        fn ref_(&self) { <DYNOSAUR as RefOnly>::ref_(self) }
     }
     impl<DYNOSAUR: RefOnly> RefOnly for &mut DYNOSAUR where DYNOSAUR: ?Sized {
-        fn ref_(&self) { DYNOSAUR::ref_(self) }
+        fn ref_(&self) { <DYNOSAUR as RefOnly>::ref_(self) }
     }
     impl<DYNOSAUR: RefOnly> RefOnly for Box<DYNOSAUR> where DYNOSAUR: ?Sized {
-        fn ref_(&self) { DYNOSAUR::ref_(self) }
+        fn ref_(&self) { <DYNOSAUR as RefOnly>::ref_(self) }
     }
 }
 use __dynosaur_macro_dynrefonly::DynRefOnly;
@@ -137,13 +137,13 @@ mod __dynosaur_macro_dynmutandref {
     }
     impl<DYNOSAUR: MutAndRef> MutAndRef for &mut DYNOSAUR where
         DYNOSAUR: ?Sized {
-        fn ref_mut(&mut self) { DYNOSAUR::ref_mut(self) }
-        fn ref_(&self) -> impl Send { DYNOSAUR::ref_(self) }
+        fn ref_mut(&mut self) { <DYNOSAUR as MutAndRef>::ref_mut(self) }
+        fn ref_(&self) -> impl Send { <DYNOSAUR as MutAndRef>::ref_(self) }
     }
     impl<DYNOSAUR: MutAndRef> MutAndRef for Box<DYNOSAUR> where
         DYNOSAUR: ?Sized {
-        fn ref_mut(&mut self) { DYNOSAUR::ref_mut(self) }
-        fn ref_(&self) -> impl Send { DYNOSAUR::ref_(self) }
+        fn ref_mut(&mut self) { <DYNOSAUR as MutAndRef>::ref_mut(self) }
+        fn ref_(&self) -> impl Send { <DYNOSAUR as MutAndRef>::ref_(self) }
     }
 }
 use __dynosaur_macro_dynmutandref::DynMutAndRef;
@@ -217,12 +217,12 @@ mod __dynosaur_macro_dynall {
         }
     }
     impl<DYNOSAUR: All> All for &mut DYNOSAUR where DYNOSAUR: ?Sized {
-        fn ref_mut(&mut self) { DYNOSAUR::ref_mut(self) }
-        fn ref_(&self) -> impl Send { DYNOSAUR::ref_(self) }
+        fn ref_mut(&mut self) { <DYNOSAUR as All>::ref_mut(self) }
+        fn ref_(&self) -> impl Send { <DYNOSAUR as All>::ref_(self) }
     }
     impl<DYNOSAUR: All> All for Box<DYNOSAUR> where DYNOSAUR: ?Sized {
-        fn ref_mut(&mut self) { DYNOSAUR::ref_mut(self) }
-        fn ref_(&self) -> impl Send { DYNOSAUR::ref_(self) }
+        fn ref_mut(&mut self) { <DYNOSAUR as All>::ref_mut(self) }
+        fn ref_(&self) -> impl Send { <DYNOSAUR as All>::ref_(self) }
     }
 }
 use __dynosaur_macro_dynall::DynAll;

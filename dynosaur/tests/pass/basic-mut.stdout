@@ -77,12 +77,12 @@ mod __dynosaur_macro_dynmytrait {
     }
     impl<DYNOSAUR: MyTrait> MyTrait for &mut DYNOSAUR where DYNOSAUR: ?Sized {
         fn foo(&mut self) -> impl ::core::future::Future<Output = ()> {
-            DYNOSAUR::foo(self)
+            <DYNOSAUR as MyTrait>::foo(self)
         }
     }
     impl<DYNOSAUR: MyTrait> MyTrait for Box<DYNOSAUR> where DYNOSAUR: ?Sized {
         fn foo(&mut self) -> impl ::core::future::Future<Output = ()> {
-            DYNOSAUR::foo(self)
+            <DYNOSAUR as MyTrait>::foo(self)
         }
     }
 }

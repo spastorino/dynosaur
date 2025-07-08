@@ -82,23 +82,23 @@ mod __dynosaur_macro_dynjobqueue {
         }
     }
     impl<DYNOSAUR: JobQueue> JobQueue for &DYNOSAUR where DYNOSAUR: ?Sized {
-        fn len(&self) -> usize { DYNOSAUR::len(self) }
+        fn len(&self) -> usize { <DYNOSAUR as JobQueue>::len(self) }
         fn dispatch(&self) -> impl ::core::future::Future<Output = ()> {
-            DYNOSAUR::dispatch(self)
+            <DYNOSAUR as JobQueue>::dispatch(self)
         }
     }
     impl<DYNOSAUR: JobQueue> JobQueue for &mut DYNOSAUR where DYNOSAUR: ?Sized
         {
-        fn len(&self) -> usize { DYNOSAUR::len(self) }
+        fn len(&self) -> usize { <DYNOSAUR as JobQueue>::len(self) }
         fn dispatch(&self) -> impl ::core::future::Future<Output = ()> {
-            DYNOSAUR::dispatch(self)
+            <DYNOSAUR as JobQueue>::dispatch(self)
         }
     }
     impl<DYNOSAUR: JobQueue> JobQueue for Box<DYNOSAUR> where DYNOSAUR: ?Sized
         {
-        fn len(&self) -> usize { DYNOSAUR::len(self) }
+        fn len(&self) -> usize { <DYNOSAUR as JobQueue>::len(self) }
         fn dispatch(&self) -> impl ::core::future::Future<Output = ()> {
-            DYNOSAUR::dispatch(self)
+            <DYNOSAUR as JobQueue>::dispatch(self)
         }
     }
 }

@@ -263,14 +263,14 @@ fn expand_bounds(
     ret_bounds
 }
 
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Clone)]
 pub(crate) enum InvokeArgsMode {
-    DirectNonUfc,
+    DirectNonUfc(TokenStream),
     DecoratedNonUfc,
     DecoratedUfc,
 }
 
-fn expand_invoke_args(sig: &Signature, mode: InvokeArgsMode) -> Vec<TokenStream> {
+fn expand_invoke_args(sig: &Signature, mode: &InvokeArgsMode) -> Vec<TokenStream> {
     let mut args = Vec::new();
 
     for arg in &sig.inputs {
@@ -278,7 +278,7 @@ fn expand_invoke_args(sig: &Signature, mode: InvokeArgsMode) -> Vec<TokenStream>
             FnArg::Receiver(_) => {
                 if matches!(
                     mode,
-                    InvokeArgsMode::DirectNonUfc | InvokeArgsMode::DecoratedNonUfc
+                    InvokeArgsMode::DirectNonUfc(_) | InvokeArgsMode::DecoratedNonUfc
                 ) {
                     // Do not need & or &mut as this is at calling site
                     args.push(quote! { self });
@@ -286,7 +286,7 @@ fn expand_invoke_args(sig: &Signature, mode: InvokeArgsMode) -> Vec<TokenStream>
             }
             FnArg::Typed(pat_type) => match &*pat_type.pat {
                 Pat::Ident(arg) => {
-                    if mode == InvokeArgsMode::DirectNonUfc {
+                    if matches!(mode, InvokeArgsMode::DirectNonUfc(_)) {
                         args.push(quote! { #arg });
                     } else {
                         if let Type::ImplTrait(type_impl_trait) = &*pat_type.ty {
@@ -325,7 +325,7 @@ pub(crate) fn expand_blanket_impl_fn(item_trait: &ItemTrait, sig: &mut Signature
     let trait_ident = &item_trait.ident;
     let (_, trait_generics, _) = &item_trait.generics.split_for_impl();
     let ident = &sig.ident;
-    let args = expand_invoke_args(sig, InvokeArgsMode::DecoratedNonUfc);
+    let args = expand_invoke_args(sig, &InvokeArgsMode::DecoratedNonUfc);
     let value = quote! { <Self as #trait_ident #trait_generics>::#ident(#(#args),*) };
 
     let value = if is_async {
@@ -347,7 +347,7 @@ pub(crate) fn expand_blanket_impl_fn(item_trait: &ItemTrait, sig: &mut Signature
     }
 }
 
-pub(crate) fn expand_dyn_struct_fn(sig: &Signature, mode: InvokeArgsMode) -> TokenStream {
+pub(crate) fn expand_dyn_struct_fn(sig: &Signature, mode: &InvokeArgsMode) -> TokenStream {
     if has_where_self_sized(sig) {
         if is_rpit(sig) {
             let ty = expand_sig_ret_ty(&sig, "'static");
@@ -373,7 +373,7 @@ pub(crate) fn expand_dyn_struct_fn(sig: &Signature, mode: InvokeArgsMode) -> Tok
         expand_arg_names(&mut sig);
         let args = expand_invoke_args(&sig, mode);
 
-        if mode == InvokeArgsMode::DirectNonUfc {
+        if let InvokeArgsMode::DirectNonUfc(self_) = mode {
             if is_async {
                 let sig_ret_ty = expand_sig_ret_ty_to_rpit(&mut sig);
                 sig.output = parse_quote! { -> #sig_ret_ty };
@@ -383,7 +383,7 @@ pub(crate) fn expand_dyn_struct_fn(sig: &Signature, mode: InvokeArgsMode) -> Tok
                 sig.fn_token.span = asyncness.span;
             }
 
-            let value = quote! { DYNOSAUR::#ident(#(#args),*) };
+            let value = quote! { #self_::#ident(#(#args),*) };
 
             quote! {
                 #sig {
