@@ -265,9 +265,9 @@ fn expand_bounds(
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub(crate) enum InvokeArgsMode {
-    OnlyExpandSelf,
-    DynamicNonUfc,
-    DynamicUfc,
+    DirectNonUfc,
+    DecoratedNonUfc,
+    DecoratedUfc,
 }
 
 fn expand_invoke_args(sig: &Signature, mode: InvokeArgsMode) -> Vec<TokenStream> {
@@ -278,7 +278,7 @@ fn expand_invoke_args(sig: &Signature, mode: InvokeArgsMode) -> Vec<TokenStream>
             FnArg::Receiver(_) => {
                 if matches!(
                     mode,
-                    InvokeArgsMode::OnlyExpandSelf | InvokeArgsMode::DynamicNonUfc
+                    InvokeArgsMode::DirectNonUfc | InvokeArgsMode::DecoratedNonUfc
                 ) {
                     // Do not need & or &mut as this is at calling site
                     args.push(quote! { self });
@@ -286,7 +286,7 @@ fn expand_invoke_args(sig: &Signature, mode: InvokeArgsMode) -> Vec<TokenStream>
             }
             FnArg::Typed(pat_type) => match &*pat_type.pat {
                 Pat::Ident(arg) => {
-                    if mode == InvokeArgsMode::OnlyExpandSelf {
+                    if mode == InvokeArgsMode::DirectNonUfc {
                         args.push(quote! { #arg });
                     } else {
                         if let Type::ImplTrait(type_impl_trait) = &*pat_type.ty {
@@ -325,7 +325,7 @@ pub(crate) fn expand_blanket_impl_fn(item_trait: &ItemTrait, sig: &mut Signature
     let trait_ident = &item_trait.ident;
     let (_, trait_generics, _) = &item_trait.generics.split_for_impl();
     let ident = &sig.ident;
-    let args = expand_invoke_args(sig, InvokeArgsMode::DynamicNonUfc);
+    let args = expand_invoke_args(sig, InvokeArgsMode::DecoratedNonUfc);
     let value = quote! { <Self as #trait_ident #trait_generics>::#ident(#(#args),*) };
 
     let value = if is_async {
@@ -373,7 +373,7 @@ pub(crate) fn expand_dyn_struct_fn(sig: &Signature, mode: InvokeArgsMode) -> Tok
         expand_arg_names(&mut sig);
         let args = expand_invoke_args(&sig, mode);
 
-        if mode == InvokeArgsMode::OnlyExpandSelf {
+        if mode == InvokeArgsMode::DirectNonUfc {
             if is_async {
                 let sig_ret_ty = expand_sig_ret_ty_to_rpit(&mut sig);
                 sig.output = parse_quote! { -> #sig_ret_ty };
