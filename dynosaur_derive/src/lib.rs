@@ -293,7 +293,7 @@ fn mk_dyn_struct_impl_item(struct_ident: &Ident, item_trait: &ItemTrait) -> Toke
         TraitItem::Const(_) => Error::new_spanned(item, "consts make the trait not dyn compatible")
             .into_compile_error(),
         TraitItem::Fn(TraitItemFn { sig, .. }) => {
-            expand_dyn_struct_fn(sig, InvokeArgsMode::DynamicUfc)
+            expand_dyn_struct_fn(sig, &InvokeArgsMode::DecoratedNonUfcs)
         }
         TraitItem::Type(TraitItemType {
             ident, generics, ..
@@ -391,7 +391,10 @@ fn mk_box_blanket_impl(item_trait: &ItemTrait) -> TokenStream {
         TraitItem::Const(_) => Error::new_spanned(item, "consts make the trait not dyn compatible")
             .into_compile_error(),
         TraitItem::Fn(TraitItemFn { sig, .. }) => {
-            expand_dyn_struct_fn(sig, InvokeArgsMode::OnlyExpandSelf)
+            let self_ = quote! {
+                <DYNOSAUR as #item_trait_ident #trait_generics>
+            };
+            expand_dyn_struct_fn(sig, &InvokeArgsMode::DirectUfcs(self_))
         }
         TraitItem::Type(TraitItemType {
             ident, generics, ..

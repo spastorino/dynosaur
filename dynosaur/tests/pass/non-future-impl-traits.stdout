@@ -72,13 +72,13 @@ mod __dynosaur_macro_dynsometrait {
     impl<DYNOSAUR: SomeTrait> SomeTrait for &mut DYNOSAUR where
         DYNOSAUR: ?Sized {
         fn get_iter(&mut self) -> impl Iterator<Item = u8> + '_ {
-            DYNOSAUR::get_iter(self)
+            <DYNOSAUR as SomeTrait>::get_iter(self)
         }
     }
     impl<DYNOSAUR: SomeTrait> SomeTrait for Box<DYNOSAUR> where
         DYNOSAUR: ?Sized {
         fn get_iter(&mut self) -> impl Iterator<Item = u8> + '_ {
-            DYNOSAUR::get_iter(self)
+            <DYNOSAUR as SomeTrait>::get_iter(self)
         }
     }
 }

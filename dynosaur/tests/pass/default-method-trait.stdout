@@ -70,10 +70,10 @@ mod __dynosaur_macro_dynmytrait {
         }
     }
     impl<DYNOSAUR: MyTrait> MyTrait for &mut DYNOSAUR where DYNOSAUR: ?Sized {
-        fn foo(&mut self) -> impl Send { DYNOSAUR::foo(self) }
+        fn foo(&mut self) -> impl Send { <DYNOSAUR as MyTrait>::foo(self) }
     }
     impl<DYNOSAUR: MyTrait> MyTrait for Box<DYNOSAUR> where DYNOSAUR: ?Sized {
-        fn foo(&mut self) -> impl Send { DYNOSAUR::foo(self) }
+        fn foo(&mut self) -> impl Send { <DYNOSAUR as MyTrait>::foo(self) }
     }
 }
 use __dynosaur_macro_dynmytrait::DynMyTrait;

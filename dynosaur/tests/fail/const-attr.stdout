@@ -69,13 +69,13 @@ mod __dynosaur_macro_dynfoo {
         }
     }
     impl<DYNOSAUR: Foo> Foo for &DYNOSAUR where DYNOSAUR: ?Sized {
-        fn foo(&self) -> impl Send { DYNOSAUR::foo(self) }
+        fn foo(&self) -> impl Send { <DYNOSAUR as Foo>::foo(self) }
     }
     impl<DYNOSAUR: Foo> Foo for &mut DYNOSAUR where DYNOSAUR: ?Sized {
-        fn foo(&self) -> impl Send { DYNOSAUR::foo(self) }
+        fn foo(&self) -> impl Send { <DYNOSAUR as Foo>::foo(self) }
     }
     impl<DYNOSAUR: Foo> Foo for Box<DYNOSAUR> where DYNOSAUR: ?Sized {
-        fn foo(&self) -> impl Send { DYNOSAUR::foo(self) }
+        fn foo(&self) -> impl Send { <DYNOSAUR as Foo>::foo(self) }
     }
 }
 use __dynosaur_macro_dynfoo::DynFoo;
