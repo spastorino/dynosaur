@@ -9,7 +9,6 @@ use syn::visit_mut::VisitMut;
 use syn::{
     parse_quote, parse_quote_spanned, Error, FnArg, GenericParam, Generics, Ident, ItemTrait,
     Lifetime, Pat, PatIdent, ReturnType, Signature, Token, Type, TypeImplTrait, TypeParamBound,
-    WherePredicate,
 };
 
 /// Expands the signature of each function on the trait, converting async fn into fn with return
