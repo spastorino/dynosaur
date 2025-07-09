@@ -1,0 +1,8 @@
+error: consts make the trait not dyn compatible
+ --> tests/fail/const-attr.rs:3:5
+  |
+3 |     const BAR: i32;
+  |     ^^^^^^^^^^^^^^^
+
+error: aborting due to 1 previous error
+

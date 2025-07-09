@@ -5,8 +5,8 @@ use syn::{
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote,
     punctuated::Punctuated,
-    Error, GenericParam, Ident, ItemTrait, Result, Token, TraitItem, TraitItemConst, TraitItemFn,
-    TraitItemType, TypeParam, Visibility,
+    Error, GenericParam, Ident, ItemTrait, Result, Token, TraitItem, TraitItemFn, TraitItemType,
+    TypeParam, Visibility,
 };
 use traits::{
     dyn_compatible_items, self_receiver, struct_trait_params, trait_item_erased_name,
@@ -238,18 +238,7 @@ fn mk_erased_trait_blanket_impl(item_trait: &ItemTrait) -> TokenStream {
         .cloned()
         .map(|trait_item| {
             match trait_item {
-                TraitItem::Const(TraitItemConst {
-                    ident,
-                    generics,
-                    ty,
-                    ..
-                }) => {
-                    // const makes the trait not dyn compatible, so whatever we do here is going to fail.
-                    // We should probably do a better error handling at some point.
-                    quote! {
-                        const #ident #generics: #ty = <Self as #trait_ident #trait_generics>::#ident;
-                    }
-                }
+                TraitItem::Const(_) => Error::new_spanned(trait_item, "consts make the trait not dyn compatible").into_compile_error(),
                 TraitItem::Fn(mut trait_item_fn) => {
                     expand_blanket_impl_fn(item_trait, &mut trait_item_fn.sig)
                 }
@@ -301,18 +290,8 @@ fn mk_dyn_struct_impl_item(struct_ident: &Ident, item_trait: &ItemTrait) -> Toke
     let (_, trait_generics, where_clause) = &item_trait.generics.split_for_impl();
 
     let items = item_trait.items.iter().map(|item| match item {
-        TraitItem::Const(TraitItemConst {
-            ident,
-            generics,
-            ty,
-            ..
-        }) => {
-            // const makes the trait not dyn compatible, so whatever we do here is going to fail.
-            // We should probably do a better error handling at some point.
-            quote! {
-                const #ident #generics: #ty = <Self as #item_trait_ident #trait_generics>::#ident;
-            }
-        }
+        TraitItem::Const(_) => Error::new_spanned(item, "consts make the trait not dyn compatible")
+            .into_compile_error(),
         TraitItem::Fn(TraitItemFn { sig, .. }) => {
             expand_dyn_struct_fn(sig, InvokeArgsMode::DynamicUfc)
         }
@@ -409,16 +388,8 @@ fn mk_box_blanket_impl(item_trait: &ItemTrait) -> TokenStream {
     let (_, trait_generics, _) = &item_trait.generics.split_for_impl();
 
     let items = item_trait.items.iter().map(|item| match item {
-        TraitItem::Const(TraitItemConst {
-            ident,
-            generics,
-            ty,
-            ..
-        }) => {
-            quote! {
-                const #ident #generics: #ty = DYNOSAUR::#ident;
-            }
-        }
+        TraitItem::Const(_) => Error::new_spanned(item, "consts make the trait not dyn compatible")
+            .into_compile_error(),
         TraitItem::Fn(TraitItemFn { sig, .. }) => {
             expand_dyn_struct_fn(sig, InvokeArgsMode::OnlyExpandSelf)
         }
