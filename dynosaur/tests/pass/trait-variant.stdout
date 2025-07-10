@@ -197,7 +197,7 @@ mod __dynosaur_macro_dynsendnext {
         }
     }
     impl<'dynosaur_struct, Item> SendNext for
-        &mut DynSendNext<'dynosaur_struct, Item> {
+        &mut DynSendNext<'dynosaur_struct, Item> where Self: Send {
         type Item = Item;
         fn next(&mut self)
             ->
@@ -207,7 +207,7 @@ mod __dynosaur_macro_dynsendnext {
         }
     }
     impl<'dynosaur_struct, Item> SendNext for
-        Box<DynSendNext<'dynosaur_struct, Item>> {
+        Box<DynSendNext<'dynosaur_struct, Item>> where Self: Send {
         type Item = Item;
         fn next(&mut self)
             ->
