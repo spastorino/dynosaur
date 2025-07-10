@@ -335,7 +335,7 @@ fn mk_dyn_struct_impl_item(struct_ident: &Ident, item_trait: &ItemTrait) -> Toke
         TraitItem::Const(_) => Error::new_spanned(item, "consts make the trait not dyn compatible")
             .into_compile_error(),
         TraitItem::Fn(TraitItemFn { sig, .. }) => {
-            expand_dyn_struct_fn(sig, &InvokeArgsMode::DecoratedNonUfcs)
+            expand_dyn_struct_fn(sig, &InvokeArgsMode::MaybeBoxedNonUfcs)
         }
         TraitItem::Type(TraitItemType {
             ident, generics, ..
