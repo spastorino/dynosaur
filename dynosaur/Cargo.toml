@@ -26,6 +26,9 @@ ui_test = "0.28"
 [[example]]
 name = "next"
 
+[[example]]
+name = "trait_variant"
+
 [[test]]
 name = "ui"
 harness = false
