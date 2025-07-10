@@ -517,6 +517,19 @@ fn mk_box_blanket_impl(
                 struct_with_bounds_params,
                 ..
             } = struct_trait_params(item_trait);
+
+            let mut where_bounds: Punctuated<_, Token![,]> = Punctuated::new();
+
+            for supertrait in &item_trait.supertraits {
+                where_bounds.push(quote! { Self: #supertrait });
+            }
+
+            let where_bounds = if where_bounds.is_empty() {
+                quote!()
+            } else {
+                quote! { where #where_bounds }
+            };
+
             (
                 item_trait.generics.clone(),
                 item_trait_ident,
@@ -524,7 +537,7 @@ fn mk_box_blanket_impl(
                 struct_ident.clone(),
                 struct_params,
                 struct_with_bounds_params,
-                quote!(),
+                where_bounds,
             )
         }
     };
