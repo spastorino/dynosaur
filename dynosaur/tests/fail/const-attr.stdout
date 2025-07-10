@@ -68,14 +68,20 @@ mod __dynosaur_macro_dynfoo {
             unsafe { ::core::mem::transmute(value) }
         }
     }
-    impl<DYNOSAUR: Foo> Foo for &DYNOSAUR where DYNOSAUR: ?Sized {
-        fn foo(&self) -> impl Send { <DYNOSAUR as Foo>::foo(self) }
+    impl<'dynosaur_struct> Foo for &DynFoo<'dynosaur_struct> {
+        fn foo(&self) -> impl Send {
+            <DynFoo<'dynosaur_struct> as Foo>::foo(self)
+        }
     }
-    impl<DYNOSAUR: Foo> Foo for &mut DYNOSAUR where DYNOSAUR: ?Sized {
-        fn foo(&self) -> impl Send { <DYNOSAUR as Foo>::foo(self) }
+    impl<'dynosaur_struct> Foo for &mut DynFoo<'dynosaur_struct> {
+        fn foo(&self) -> impl Send {
+            <DynFoo<'dynosaur_struct> as Foo>::foo(self)
+        }
     }
-    impl<DYNOSAUR: Foo> Foo for Box<DYNOSAUR> where DYNOSAUR: ?Sized {
-        fn foo(&self) -> impl Send { <DYNOSAUR as Foo>::foo(self) }
+    impl<'dynosaur_struct> Foo for Box<DynFoo<'dynosaur_struct>> {
+        fn foo(&self) -> impl Send {
+            <DynFoo<'dynosaur_struct> as Foo>::foo(self)
+        }
     }
 }
 use __dynosaur_macro_dynfoo::DynFoo;

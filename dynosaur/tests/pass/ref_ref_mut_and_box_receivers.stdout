@@ -54,14 +54,20 @@ mod __dynosaur_macro_dynrefonly {
             unsafe { ::core::mem::transmute(value) }
         }
     }
-    impl<DYNOSAUR: RefOnly> RefOnly for &DYNOSAUR where DYNOSAUR: ?Sized {
-        fn ref_(&self) { <DYNOSAUR as RefOnly>::ref_(self) }
+    impl<'dynosaur_struct> RefOnly for &DynRefOnly<'dynosaur_struct> {
+        fn ref_(&self) {
+            <DynRefOnly<'dynosaur_struct> as RefOnly>::ref_(self)
+        }
     }
-    impl<DYNOSAUR: RefOnly> RefOnly for &mut DYNOSAUR where DYNOSAUR: ?Sized {
-        fn ref_(&self) { <DYNOSAUR as RefOnly>::ref_(self) }
+    impl<'dynosaur_struct> RefOnly for &mut DynRefOnly<'dynosaur_struct> {
+        fn ref_(&self) {
+            <DynRefOnly<'dynosaur_struct> as RefOnly>::ref_(self)
+        }
     }
-    impl<DYNOSAUR: RefOnly> RefOnly for Box<DYNOSAUR> where DYNOSAUR: ?Sized {
-        fn ref_(&self) { <DYNOSAUR as RefOnly>::ref_(self) }
+    impl<'dynosaur_struct> RefOnly for Box<DynRefOnly<'dynosaur_struct>> {
+        fn ref_(&self) {
+            <DynRefOnly<'dynosaur_struct> as RefOnly>::ref_(self)
+        }
     }
 }
 use __dynosaur_macro_dynrefonly::DynRefOnly;
@@ -135,15 +141,21 @@ mod __dynosaur_macro_dynmutandref {
             unsafe { ::core::mem::transmute(value) }
         }
     }
-    impl<DYNOSAUR: MutAndRef> MutAndRef for &mut DYNOSAUR where
-        DYNOSAUR: ?Sized {
-        fn ref_mut(&mut self) { <DYNOSAUR as MutAndRef>::ref_mut(self) }
-        fn ref_(&self) -> impl Send { <DYNOSAUR as MutAndRef>::ref_(self) }
+    impl<'dynosaur_struct> MutAndRef for &mut DynMutAndRef<'dynosaur_struct> {
+        fn ref_mut(&mut self) {
+            <DynMutAndRef<'dynosaur_struct> as MutAndRef>::ref_mut(self)
+        }
+        fn ref_(&self) -> impl Send {
+            <DynMutAndRef<'dynosaur_struct> as MutAndRef>::ref_(self)
+        }
     }
-    impl<DYNOSAUR: MutAndRef> MutAndRef for Box<DYNOSAUR> where
-        DYNOSAUR: ?Sized {
-        fn ref_mut(&mut self) { <DYNOSAUR as MutAndRef>::ref_mut(self) }
-        fn ref_(&self) -> impl Send { <DYNOSAUR as MutAndRef>::ref_(self) }
+    impl<'dynosaur_struct> MutAndRef for Box<DynMutAndRef<'dynosaur_struct>> {
+        fn ref_mut(&mut self) {
+            <DynMutAndRef<'dynosaur_struct> as MutAndRef>::ref_mut(self)
+        }
+        fn ref_(&self) -> impl Send {
+            <DynMutAndRef<'dynosaur_struct> as MutAndRef>::ref_(self)
+        }
     }
 }
 use __dynosaur_macro_dynmutandref::DynMutAndRef;
@@ -216,13 +228,21 @@ mod __dynosaur_macro_dynall {
             unsafe { ::core::mem::transmute(value) }
         }
     }
-    impl<DYNOSAUR: All> All for &mut DYNOSAUR where DYNOSAUR: ?Sized {
-        fn ref_mut(&mut self) { <DYNOSAUR as All>::ref_mut(self) }
-        fn ref_(&self) -> impl Send { <DYNOSAUR as All>::ref_(self) }
+    impl<'dynosaur_struct> All for &mut DynAll<'dynosaur_struct> {
+        fn ref_mut(&mut self) {
+            <DynAll<'dynosaur_struct> as All>::ref_mut(self)
+        }
+        fn ref_(&self) -> impl Send {
+            <DynAll<'dynosaur_struct> as All>::ref_(self)
+        }
     }
-    impl<DYNOSAUR: All> All for Box<DYNOSAUR> where DYNOSAUR: ?Sized {
-        fn ref_mut(&mut self) { <DYNOSAUR as All>::ref_mut(self) }
-        fn ref_(&self) -> impl Send { <DYNOSAUR as All>::ref_(self) }
+    impl<'dynosaur_struct> All for Box<DynAll<'dynosaur_struct>> {
+        fn ref_mut(&mut self) {
+            <DynAll<'dynosaur_struct> as All>::ref_mut(self)
+        }
+        fn ref_(&self) -> impl Send {
+            <DynAll<'dynosaur_struct> as All>::ref_(self)
+        }
     }
 }
 use __dynosaur_macro_dynall::DynAll;

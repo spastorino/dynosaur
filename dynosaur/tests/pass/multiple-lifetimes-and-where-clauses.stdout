@@ -99,28 +99,31 @@ mod __dynosaur_macro_dynsometrait {
             unsafe { ::core::mem::transmute(value) }
         }
     }
-    impl<'a, 'b, DYNOSAUR: SomeTrait<'a, 'b>> SomeTrait<'a, 'b> for &DYNOSAUR
-        where DYNOSAUR: ?Sized {
+    impl<'dynosaur_struct, 'a, 'b> SomeTrait<'a, 'b> for
+        &DynSomeTrait<'dynosaur_struct, 'a, 'b> {
         fn lotsa_lifetimes<'d, 'e,
             'f>(&self, a: &'d u32, b: &'e u32, c: &'f u32)
             -> impl ::core::future::Future<Output = &'a u32> where 'b: 'a {
-            <DYNOSAUR as SomeTrait<'a, 'b>>::lotsa_lifetimes(self, a, b, c)
+            <DynSomeTrait<'dynosaur_struct, 'a, 'b> as
+                    SomeTrait<'a, 'b>>::lotsa_lifetimes(self, a, b, c)
         }
     }
-    impl<'a, 'b, DYNOSAUR: SomeTrait<'a, 'b>> SomeTrait<'a, 'b> for
-        &mut DYNOSAUR where DYNOSAUR: ?Sized {
+    impl<'dynosaur_struct, 'a, 'b> SomeTrait<'a, 'b> for
+        &mut DynSomeTrait<'dynosaur_struct, 'a, 'b> {
         fn lotsa_lifetimes<'d, 'e,
             'f>(&self, a: &'d u32, b: &'e u32, c: &'f u32)
             -> impl ::core::future::Future<Output = &'a u32> where 'b: 'a {
-            <DYNOSAUR as SomeTrait<'a, 'b>>::lotsa_lifetimes(self, a, b, c)
+            <DynSomeTrait<'dynosaur_struct, 'a, 'b> as
+                    SomeTrait<'a, 'b>>::lotsa_lifetimes(self, a, b, c)
         }
     }
-    impl<'a, 'b, DYNOSAUR: SomeTrait<'a, 'b>> SomeTrait<'a, 'b> for
-        Box<DYNOSAUR> where DYNOSAUR: ?Sized {
+    impl<'dynosaur_struct, 'a, 'b> SomeTrait<'a, 'b> for
+        Box<DynSomeTrait<'dynosaur_struct, 'a, 'b>> {
         fn lotsa_lifetimes<'d, 'e,
             'f>(&self, a: &'d u32, b: &'e u32, c: &'f u32)
             -> impl ::core::future::Future<Output = &'a u32> where 'b: 'a {
-            <DYNOSAUR as SomeTrait<'a, 'b>>::lotsa_lifetimes(self, a, b, c)
+            <DynSomeTrait<'dynosaur_struct, 'a, 'b> as
+                    SomeTrait<'a, 'b>>::lotsa_lifetimes(self, a, b, c)
         }
     }
 }

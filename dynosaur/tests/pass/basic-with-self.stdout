@@ -91,22 +91,25 @@ mod __dynosaur_macro_dynmytrait {
             unsafe { ::core::mem::transmute(value) }
         }
     }
-    impl<DYNOSAUR: MyTrait> MyTrait for &DYNOSAUR where DYNOSAUR: ?Sized {
-        type Item = <DYNOSAUR as MyTrait>::Item;
+    impl<'dynosaur_struct, Item> MyTrait for
+        &DynMyTrait<'dynosaur_struct, Item> {
+        type Item = Item;
         fn foo(&self) -> impl ::core::future::Future<Output = Self::Item> {
-            <DYNOSAUR as MyTrait>::foo(self)
+            <DynMyTrait<'dynosaur_struct, Item> as MyTrait>::foo(self)
         }
     }
-    impl<DYNOSAUR: MyTrait> MyTrait for &mut DYNOSAUR where DYNOSAUR: ?Sized {
-        type Item = <DYNOSAUR as MyTrait>::Item;
+    impl<'dynosaur_struct, Item> MyTrait for
+        &mut DynMyTrait<'dynosaur_struct, Item> {
+        type Item = Item;
         fn foo(&self) -> impl ::core::future::Future<Output = Self::Item> {
-            <DYNOSAUR as MyTrait>::foo(self)
+            <DynMyTrait<'dynosaur_struct, Item> as MyTrait>::foo(self)
         }
     }
-    impl<DYNOSAUR: MyTrait> MyTrait for Box<DYNOSAUR> where DYNOSAUR: ?Sized {
-        type Item = <DYNOSAUR as MyTrait>::Item;
+    impl<'dynosaur_struct, Item> MyTrait for
+        Box<DynMyTrait<'dynosaur_struct, Item>> {
+        type Item = Item;
         fn foo(&self) -> impl ::core::future::Future<Output = Self::Item> {
-            <DYNOSAUR as MyTrait>::foo(self)
+            <DynMyTrait<'dynosaur_struct, Item> as MyTrait>::foo(self)
         }
     }
 }

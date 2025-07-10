@@ -81,24 +81,28 @@ mod __dynosaur_macro_dynjobqueue {
             unsafe { ::core::mem::transmute(value) }
         }
     }
-    impl<DYNOSAUR: JobQueue> JobQueue for &DYNOSAUR where DYNOSAUR: ?Sized {
-        fn len(&self) -> usize { <DYNOSAUR as JobQueue>::len(self) }
+    impl<'dynosaur_struct> JobQueue for &DynJobQueue<'dynosaur_struct> {
+        fn len(&self) -> usize {
+            <DynJobQueue<'dynosaur_struct> as JobQueue>::len(self)
+        }
         fn dispatch(&self) -> impl ::core::future::Future<Output = ()> {
-            <DYNOSAUR as JobQueue>::dispatch(self)
+            <DynJobQueue<'dynosaur_struct> as JobQueue>::dispatch(self)
         }
     }
-    impl<DYNOSAUR: JobQueue> JobQueue for &mut DYNOSAUR where DYNOSAUR: ?Sized
-        {
-        fn len(&self) -> usize { <DYNOSAUR as JobQueue>::len(self) }
+    impl<'dynosaur_struct> JobQueue for &mut DynJobQueue<'dynosaur_struct> {
+        fn len(&self) -> usize {
+            <DynJobQueue<'dynosaur_struct> as JobQueue>::len(self)
+        }
         fn dispatch(&self) -> impl ::core::future::Future<Output = ()> {
-            <DYNOSAUR as JobQueue>::dispatch(self)
+            <DynJobQueue<'dynosaur_struct> as JobQueue>::dispatch(self)
         }
     }
-    impl<DYNOSAUR: JobQueue> JobQueue for Box<DYNOSAUR> where DYNOSAUR: ?Sized
-        {
-        fn len(&self) -> usize { <DYNOSAUR as JobQueue>::len(self) }
+    impl<'dynosaur_struct> JobQueue for Box<DynJobQueue<'dynosaur_struct>> {
+        fn len(&self) -> usize {
+            <DynJobQueue<'dynosaur_struct> as JobQueue>::len(self)
+        }
         fn dispatch(&self) -> impl ::core::future::Future<Output = ()> {
-            <DYNOSAUR as JobQueue>::dispatch(self)
+            <DynJobQueue<'dynosaur_struct> as JobQueue>::dispatch(self)
         }
     }
 }
