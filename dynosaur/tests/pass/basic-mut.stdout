@@ -75,14 +75,14 @@ mod __dynosaur_macro_dynmytrait {
             unsafe { ::core::mem::transmute(value) }
         }
     }
-    impl<DYNOSAUR: MyTrait> MyTrait for &mut DYNOSAUR where DYNOSAUR: ?Sized {
+    impl<'dynosaur_struct> MyTrait for &mut DynMyTrait<'dynosaur_struct> {
         fn foo(&mut self) -> impl ::core::future::Future<Output = ()> {
-            <DYNOSAUR as MyTrait>::foo(self)
+            <DynMyTrait<'dynosaur_struct> as MyTrait>::foo(self)
         }
     }
-    impl<DYNOSAUR: MyTrait> MyTrait for Box<DYNOSAUR> where DYNOSAUR: ?Sized {
+    impl<'dynosaur_struct> MyTrait for Box<DynMyTrait<'dynosaur_struct>> {
         fn foo(&mut self) -> impl ::core::future::Future<Output = ()> {
-            <DYNOSAUR as MyTrait>::foo(self)
+            <DynMyTrait<'dynosaur_struct> as MyTrait>::foo(self)
         }
     }
 }

@@ -208,10 +208,8 @@ pub fn dynosaur(
     let struct_inherent_impl = mk_struct_inherent_impl(struct_ident, &item_trait);
     let box_blanket_impl = match attrs.bridge {
         Some(Bridge::None) => quote!(),
-        Some(Bridge::Static) | None => {
-            mk_box_blanket_impl(&struct_ident, &item_trait, Bridge::Static)
-        }
-        Some(Bridge::Dyn) => mk_box_blanket_impl(&struct_ident, &item_trait, Bridge::Dyn),
+        Some(Bridge::Static) => mk_box_blanket_impl(&struct_ident, &item_trait, Bridge::Static),
+        Some(Bridge::Dyn) | None => mk_box_blanket_impl(&struct_ident, &item_trait, Bridge::Dyn),
     };
 
     let dynosaur_mod = Ident::new(

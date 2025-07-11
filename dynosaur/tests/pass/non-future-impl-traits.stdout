@@ -69,16 +69,14 @@ mod __dynosaur_macro_dynsometrait {
             unsafe { ::core::mem::transmute(value) }
         }
     }
-    impl<DYNOSAUR: SomeTrait> SomeTrait for &mut DYNOSAUR where
-        DYNOSAUR: ?Sized {
+    impl<'dynosaur_struct> SomeTrait for &mut DynSomeTrait<'dynosaur_struct> {
         fn get_iter(&mut self) -> impl Iterator<Item = u8> + '_ {
-            <DYNOSAUR as SomeTrait>::get_iter(self)
+            <DynSomeTrait<'dynosaur_struct> as SomeTrait>::get_iter(self)
         }
     }
-    impl<DYNOSAUR: SomeTrait> SomeTrait for Box<DYNOSAUR> where
-        DYNOSAUR: ?Sized {
+    impl<'dynosaur_struct> SomeTrait for Box<DynSomeTrait<'dynosaur_struct>> {
         fn get_iter(&mut self) -> impl Iterator<Item = u8> + '_ {
-            <DYNOSAUR as SomeTrait>::get_iter(self)
+            <DynSomeTrait<'dynosaur_struct> as SomeTrait>::get_iter(self)
         }
     }
 }

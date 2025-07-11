@@ -81,7 +81,7 @@ mod __dynosaur_macro_dynmytrait {
             unsafe { ::core::mem::transmute(value) }
         }
     }
-    impl<DYNOSAUR: MyTrait> MyTrait for &mut DYNOSAUR where DYNOSAUR: ?Sized {
+    impl<'dynosaur_struct> MyTrait for &mut DynMyTrait<'dynosaur_struct> {
         #[allow(unreachable_code)]
         fn foo(&mut self) -> impl ::core::future::Future<Output = ()> where
             Self: Sized {
@@ -91,10 +91,10 @@ mod __dynosaur_macro_dynmytrait {
                 'static>>
         }
         fn bar(&mut self) -> impl ::core::future::Future<Output = ()> {
-            <DYNOSAUR as MyTrait>::bar(self)
+            <DynMyTrait<'dynosaur_struct> as MyTrait>::bar(self)
         }
     }
-    impl<DYNOSAUR: MyTrait> MyTrait for Box<DYNOSAUR> where DYNOSAUR: ?Sized {
+    impl<'dynosaur_struct> MyTrait for Box<DynMyTrait<'dynosaur_struct>> {
         #[allow(unreachable_code)]
         fn foo(&mut self) -> impl ::core::future::Future<Output = ()> where
             Self: Sized {
@@ -104,7 +104,7 @@ mod __dynosaur_macro_dynmytrait {
                 'static>>
         }
         fn bar(&mut self) -> impl ::core::future::Future<Output = ()> {
-            <DYNOSAUR as MyTrait>::bar(self)
+            <DynMyTrait<'dynosaur_struct> as MyTrait>::bar(self)
         }
     }
 }

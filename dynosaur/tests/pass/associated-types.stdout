@@ -89,22 +89,24 @@ mod __dynosaur_macro_dynfoo {
             unsafe { ::core::mem::transmute(value) }
         }
     }
-    impl<DYNOSAUR: Foo> Foo for &DYNOSAUR where DYNOSAUR: ?Sized {
-        type Bar = <DYNOSAUR as Foo>::Bar;
+    impl<'dynosaur_struct, Bar: Baz> Foo for &DynFoo<'dynosaur_struct, Bar> {
+        type Bar = Bar;
         fn foo(&self) -> impl ::core::future::Future<Output = Self::Bar> {
-            <DYNOSAUR as Foo>::foo(self)
+            <DynFoo<'dynosaur_struct, Bar> as Foo>::foo(self)
         }
     }
-    impl<DYNOSAUR: Foo> Foo for &mut DYNOSAUR where DYNOSAUR: ?Sized {
-        type Bar = <DYNOSAUR as Foo>::Bar;
+    impl<'dynosaur_struct, Bar: Baz> Foo for
+        &mut DynFoo<'dynosaur_struct, Bar> {
+        type Bar = Bar;
         fn foo(&self) -> impl ::core::future::Future<Output = Self::Bar> {
-            <DYNOSAUR as Foo>::foo(self)
+            <DynFoo<'dynosaur_struct, Bar> as Foo>::foo(self)
         }
     }
-    impl<DYNOSAUR: Foo> Foo for Box<DYNOSAUR> where DYNOSAUR: ?Sized {
-        type Bar = <DYNOSAUR as Foo>::Bar;
+    impl<'dynosaur_struct, Bar: Baz> Foo for
+        Box<DynFoo<'dynosaur_struct, Bar>> {
+        type Bar = Bar;
         fn foo(&self) -> impl ::core::future::Future<Output = Self::Bar> {
-            <DYNOSAUR as Foo>::foo(self)
+            <DynFoo<'dynosaur_struct, Bar> as Foo>::foo(self)
         }
     }
 }

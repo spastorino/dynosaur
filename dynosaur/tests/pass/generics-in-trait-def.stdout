@@ -115,31 +115,34 @@ mod __dynosaur_macro_dynservice {
             unsafe { ::core::mem::transmute(value) }
         }
     }
-    impl<Request, DYNOSAUR: Service<Request>> Service<Request> for &DYNOSAUR
-        where DYNOSAUR: ?Sized {
-        type Response = <DYNOSAUR as Service<Request>>::Response;
-        type Error = <DYNOSAUR as Service<Request>>::Error;
+    impl<'dynosaur_struct, Request, Response, Error> Service<Request> for
+        &DynService<'dynosaur_struct, Request, Response, Error> {
+        type Response = Response;
+        type Error = Error;
         fn call(&self, req: Request)
             -> impl Future<Output = Result<Self::Response, Self::Error>> {
-            <DYNOSAUR as Service<Request>>::call(self, req)
+            <DynService<'dynosaur_struct, Request, Response, Error> as
+                    Service<Request>>::call(self, req)
         }
     }
-    impl<Request, DYNOSAUR: Service<Request>> Service<Request> for
-        &mut DYNOSAUR where DYNOSAUR: ?Sized {
-        type Response = <DYNOSAUR as Service<Request>>::Response;
-        type Error = <DYNOSAUR as Service<Request>>::Error;
+    impl<'dynosaur_struct, Request, Response, Error> Service<Request> for
+        &mut DynService<'dynosaur_struct, Request, Response, Error> {
+        type Response = Response;
+        type Error = Error;
         fn call(&self, req: Request)
             -> impl Future<Output = Result<Self::Response, Self::Error>> {
-            <DYNOSAUR as Service<Request>>::call(self, req)
+            <DynService<'dynosaur_struct, Request, Response, Error> as
+                    Service<Request>>::call(self, req)
         }
     }
-    impl<Request, DYNOSAUR: Service<Request>> Service<Request> for
-        Box<DYNOSAUR> where DYNOSAUR: ?Sized {
-        type Response = <DYNOSAUR as Service<Request>>::Response;
-        type Error = <DYNOSAUR as Service<Request>>::Error;
+    impl<'dynosaur_struct, Request, Response, Error> Service<Request> for
+        Box<DynService<'dynosaur_struct, Request, Response, Error>> {
+        type Response = Response;
+        type Error = Error;
         fn call(&self, req: Request)
             -> impl Future<Output = Result<Self::Response, Self::Error>> {
-            <DYNOSAUR as Service<Request>>::call(self, req)
+            <DynService<'dynosaur_struct, Request, Response, Error> as
+                    Service<Request>>::call(self, req)
         }
     }
 }
