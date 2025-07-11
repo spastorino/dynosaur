@@ -2,6 +2,7 @@ use expand::{expand_blanket_impl_fn, expand_dyn_struct_fn, expand_fn_sig, Invoke
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{
+    parenthesized,
     parse::{Parse, ParseStream},
     parse_macro_input, parse_quote,
     punctuated::Punctuated,
@@ -25,16 +26,16 @@ struct Attrs {
     vis: Visibility,
     ident: Ident,
     target: Option<Target>,
-    blanket: Option<Blanket>,
+    bridge: Option<Bridge>,
 }
 
 struct Target {
     trait_name: Ident,
 }
 
-enum Blanket {
+enum Bridge {
     None,
-    Default,
+    Static,
     Dyn,
 }
 
@@ -52,14 +53,15 @@ impl Parse for Attrs {
             } else {
                 None
             },
-            blanket: if input.peek(Token![,]) {
+            bridge: if input.peek(Token![,]) {
                 input.parse::<Token![,]>()?;
                 let blanket: Ident = input.parse()?;
-                if blanket != "blanket" {
+                if blanket != "bridge" {
                     Err(input.error("unknown option"))?
                 }
-                input.parse::<Token![=]>()?;
-                Some(input.parse()?)
+                let bridge;
+                _ = parenthesized!(bridge in input);
+                Some(bridge.parse()?)
             } else {
                 None
             },
@@ -67,17 +69,18 @@ impl Parse for Attrs {
     }
 }
 
-impl Parse for Blanket {
+impl Parse for Bridge {
     fn parse(input: ParseStream) -> Result<Self> {
         if input.peek(Token![dyn]) {
             input.parse::<Token![dyn]>()?;
-            Ok(Blanket::Dyn)
+            Ok(Bridge::Dyn)
+        } else if input.peek(Token![static]) {
+            input.parse::<Token![static]>()?;
+            Ok(Bridge::Static)
         } else {
             let opt: Ident = input.parse()?;
             Ok(if opt == "none" {
-                Blanket::None
-            } else if opt == "default" {
-                Blanket::Default
+                Bridge::None
             } else {
                 Err(input.error("unknown option"))?
             })
@@ -158,8 +161,8 @@ impl Parse for Blanket {
 /// ```rust
 /// # pub mod dynosaur { pub use dynosaur_derive::dynosaur; }
 /// #[trait_variant::make(SendNext: Send)]
-/// // #[dynosaur::dynosaur(DynNext = dyn Next)]
-/// // #[dynosaur::dynosaur(DynSendNext = dyn SendNext)]
+/// #[dynosaur::dynosaur(DynNext = dyn Next, bridge(dyn))]
+/// #[dynosaur::dynosaur(DynSendNext = dyn SendNext, bridge(dyn))]
 /// trait Next {
 ///     type Item;
 ///     async fn next(&mut self) -> Option<Self::Item>;
@@ -203,12 +206,12 @@ pub fn dynosaur(
     let dyn_struct = mk_dyn_struct(&struct_ident, &item_trait);
     let dyn_struct_impl_item = mk_dyn_struct_impl_item(struct_ident, &item_trait);
     let struct_inherent_impl = mk_struct_inherent_impl(struct_ident, &item_trait);
-    let box_blanket_impl = match attrs.blanket {
-        Some(Blanket::None) => quote!(),
-        Some(Blanket::Default) | None => {
-            mk_box_blanket_impl(&struct_ident, &item_trait, Blanket::Default)
+    let box_blanket_impl = match attrs.bridge {
+        Some(Bridge::None) => quote!(),
+        Some(Bridge::Static) | None => {
+            mk_box_blanket_impl(&struct_ident, &item_trait, Bridge::Static)
         }
-        Some(Blanket::Dyn) => mk_box_blanket_impl(&struct_ident, &item_trait, Blanket::Dyn),
+        Some(Bridge::Dyn) => mk_box_blanket_impl(&struct_ident, &item_trait, Bridge::Dyn),
     };
 
     let dynosaur_mod = Ident::new(
@@ -428,7 +431,7 @@ fn mk_struct_inherent_impl(struct_ident: &Ident, item_trait: &ItemTrait) -> Toke
 fn mk_box_blanket_impl(
     struct_ident: &Ident,
     item_trait: &ItemTrait,
-    blanket: Blanket,
+    blanket: Bridge,
 ) -> TokenStream {
     let item_trait_ident = &item_trait.ident;
     let (_, trait_generics, _) = &item_trait.generics.split_for_impl();
@@ -438,18 +441,18 @@ fn mk_box_blanket_impl(
             .into_compile_error(),
         TraitItem::Fn(TraitItemFn { sig, .. }) => {
             let self_ = match blanket {
-                Blanket::Default => {
+                Bridge::Static => {
                     quote! {
                         <DYNOSAUR as #item_trait_ident #trait_generics>
                     }
                 }
-                Blanket::Dyn => {
+                Bridge::Dyn => {
                     let StructTraitParams { struct_params, .. } = struct_trait_params(item_trait);
                     quote! {
                         <#struct_ident #struct_params as #item_trait_ident #trait_generics>
                     }
                 }
-                Blanket::None => quote!(),
+                Bridge::None => quote!(),
             };
             expand_dyn_struct_fn(sig, &InvokeArgsMode::DirectUfcs(self_))
         }
@@ -459,12 +462,12 @@ fn mk_box_blanket_impl(
             let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
             let prefix = match blanket {
-                Blanket::Default => {
+                Bridge::Static => {
                     quote! {
                         <DYNOSAUR as #item_trait_ident #trait_generics>::
                     }
                 }
-                Blanket::Dyn | Blanket::None => quote!(),
+                Bridge::Dyn | Bridge::None => quote!(),
             };
 
             quote! {
@@ -483,8 +486,8 @@ fn mk_box_blanket_impl(
         blanket_impl_generics,
         where_bounds,
     ) = match blanket {
-        Blanket::None => return quote!(),
-        Blanket::Default => {
+        Bridge::None => return quote!(),
+        Bridge::Static => {
             let blanket_bound: TypeParam =
                 parse_quote!(DYNOSAUR: #item_trait_ident #trait_generics);
             let blanket = blanket_bound.ident.clone();
@@ -511,7 +514,7 @@ fn mk_box_blanket_impl(
                 quote! { where #where_bounds },
             )
         }
-        Blanket::Dyn => {
+        Bridge::Dyn => {
             let StructTraitParams {
                 struct_params,
                 struct_with_bounds_params,
