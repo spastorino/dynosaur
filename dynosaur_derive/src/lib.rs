@@ -139,13 +139,15 @@ impl Parse for Bridge {
 ///
 /// The `Dyn` struct produced by this macro has the following constructors:
 ///
-/// ```ignore
+/// ```
+/// # struct DynTrait<'a>(&'a i32);
+/// # trait Trait {}
 /// impl<'a> DynTrait<'a> {
-///     fn new_box(from: impl Trait) -> Box<Self> { ... }
-///     fn new_arc(from: impl Trait) -> std::sync::Arc<Self> { ... }
-///     fn new_rc(from: impl Trait) -> std::rc::Rc<Self> { ... }
-///     fn from_ref(from: &'a impl Trait) -> &'a Self { ... }
-///     fn from_mut(from: &'a mut impl Trait) -> &'a mut Self { ... }
+///     fn new_box(from: impl Trait) -> Box<Self> { todo!() }
+///     fn new_arc(from: impl Trait) -> std::sync::Arc<Self> { todo!() }
+///     fn new_rc(from: impl Trait) -> std::rc::Rc<Self> { todo!() }
+///     fn from_ref(from: &'a impl Trait) -> &'a Self { todo!() }
+///     fn from_mut(from: &'a mut impl Trait) -> &'a mut Self { todo!() }
 /// }
 /// ```
 ///
@@ -153,13 +155,53 @@ impl Parse for Bridge {
 /// When using the `Dyn` struct created by this macro, such conversions must be
 /// done explicitly with the provided constructors.
 ///
+/// ## Bridge impls
+///
+/// Dynosaur writes the following *bridge implementations* for your trait:
+///
+/// ```
+/// # trait Trait {}
+/// // Always:
+/// impl<T: Trait> Trait for Box<T> { }
+/// // If all method receivers are `&mut self` or `&self`:
+/// impl<T: Trait> Trait for &mut T { }
+/// // If all method receivers are `&self`:
+/// impl<T: Trait> Trait for &T { }
+/// ```
+///
+/// This can be controlled with the `bridge` option.
+///
+/// ```
+/// # mod dynosaur { pub use dynosaur_derive::dynosaur; }
+/// # fn main() {}
+/// #[dynosaur::dynosaur(pub DynNext, bridge(none))]
+/// pub trait Next {
+///     type Item;
+///     async fn next(&self) -> Option<Self::Item>;
+/// }
+///
+/// // Bridge impls are disabled above, so this does not conflict.
+/// impl<T: Next + Clone> Next for Box<T> {
+///     type Item = T::Item;
+///     async fn next(&self) -> Option<Self::Item> {
+///         T::next(&self.clone()).await
+///     }
+/// }
+/// ```
+///
+/// The following options are supported for `bridge`:
+///
+/// * `bridge(static)`: The default impls listed above.
+/// * `bridge(dyn)`: The impls listed above, except with `T` replaced with `DynTrait`. This can prevent some cases of overlapping impls.
+/// * `bridge(none)`: No impls.
+///
 /// ## Use with `trait_variant`
 ///
-/// You can use dynosaur with the trait_variant macro like this. The
-/// trait_variant attribute must go first.
+/// You can use dynosaur with the [trait_variant] macro like this:
 ///
 /// ```rust
 /// # pub mod dynosaur { pub use dynosaur_derive::dynosaur; }
+/// # fn main() {}
 /// #[trait_variant::make(SendNext: Send)]
 /// #[dynosaur::dynosaur(DynNext = dyn Next, bridge(dyn))]
 /// #[dynosaur::dynosaur(DynSendNext = dyn SendNext, bridge(dyn))]
@@ -167,12 +209,40 @@ impl Parse for Bridge {
 ///     type Item;
 ///     async fn next(&mut self) -> Option<Self::Item>;
 /// }
-/// # // This is necessary to prevent weird scoping errors in the doctets:
-/// # fn main() {}
 /// ```
 ///
-/// The `DynNext = dyn Next` is a more explicit form of the macro invocation
-/// that allows you to select a particular trait.
+/// The `#[trait_variant::make]` attribute must go first, and `bridge(dyn)` is
+/// necessary to prevent compiler errors.
+///
+/// Note: The `DynNext = dyn Next` is a more explicit form of the macro
+/// invocation that allows you to select a particular trait.
+///
+/// [trait_variant]: https://docs.rs/trait-variant/latest/trait_variant/
+///
+/// ## Argument-position `impl Trait` support
+///
+/// Dynosaur has basic support for dyn-compatible `impl Trait` in argument
+/// position. Traits that use dynosaur themselves are not yet supported (see
+/// [this issue][#63]).
+///
+/// In order to use this, the trait used in argument position needs a bridge
+/// impl such that `Box<dyn MyTrait>: MyTrait`, and your trait must use bare
+/// `impl MyTrait` by value in argument position.
+///
+/// ```rust
+/// # mod dynosaur { pub use dynosaur_derive::dynosaur; }
+/// # fn main() {}
+/// trait Foo {}
+///
+/// impl Foo for Box<dyn Foo + '_> {}
+///
+/// #[dynosaur::dynosaur(DynMyTrait)]
+/// trait MyTrait {
+///     fn foo(&self, _: impl Foo) -> i32;
+/// }
+/// ```
+///
+/// [#63]: https://github.com/spastorino/dynosaur/issues/63
 ///
 /// ## Performance
 ///
