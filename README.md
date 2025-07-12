@@ -22,7 +22,7 @@ async fn dyn_dispatch(iter: &mut DynNext<'_, i32>) {
 }
 
 let v = [1, 2, 3];
-dyn_dispatch(&mut DynNext::boxed(my_next_iter).await;
+dyn_dispatch(&mut DynNext::boxed(my_next_iter)).await;
 dyn_dispatch(DynNext::from_mut(&mut my_next_iter)).await;
 ```
 
@@ -53,19 +53,11 @@ async fn do_some_async_work() {
 }
 ```
 
-The general rule is that anywhere you would write `dyn Trait` (which would
-result in a compiler error), you instead write `DynTrait`.
+The general rule is that anywhere you would write `dyn Trait` (which would result in a compiler error), you instead write `DynTrait`. Methods using `impl Trait` box their return types when dispatched dynamically, but not when dispatched statically.
 
-Methods returning `impl Trait` box their return types when dispatched
-dynamically, but not when dispatched statically.
+You can find more details in the [API docs][docs.rs].
 
 For more examples, take a look at [`dynosaur/examples`](dynosaur/examples) and [`dynosaur/tests/pass`](dynosaur/tests/pass). In tests you would find `.rs` files with what the user would write and `.stdout` files with what dynosaur generates.
-
-## APIT Support
-
-Dynosaur supports dyn traits in argument position. In order to use them, the user needs an `impl<T: MyTrait> MyTrait for Box<T> {}` to be able to use impl MyTrait in argument position.
-
-TODO: In a future version, `dynosaur` will provide this impl for any trait with the `#[dynosaur]` attribute on the trait definition.
 
 ## What will it take to implement this support in Rust?
 
