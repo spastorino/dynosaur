@@ -35,7 +35,7 @@ struct Target {
 
 enum Bridge {
     None,
-    Static,
+    Blanket,
     Dyn,
 }
 
@@ -86,16 +86,15 @@ impl Parse for Bridge {
         if input.peek(Token![dyn]) {
             input.parse::<Token![dyn]>()?;
             Ok(Bridge::Dyn)
-        } else if input.peek(Token![static]) {
-            input.parse::<Token![static]>()?;
-            Ok(Bridge::Static)
         } else {
             let opt: Ident = input.parse()?;
-            Ok(if opt == "none" {
-                Bridge::None
+            if opt == "blanket" {
+                Ok(Bridge::Blanket)
+            } else if opt == "none" {
+                Ok(Bridge::None)
             } else {
-                Err(input.error("unknown option"))?
-            })
+                Err(input.error("unknown option"))
+            }
         }
     }
 }
@@ -207,7 +206,7 @@ impl Parse for Bridge {
 ///
 /// The following options are supported for `bridge`:
 ///
-/// * `bridge(static)`: The default impls listed above.
+/// * `bridge(blanket)`: The default impls listed above.
 /// * `bridge(dyn)`: The impls listed above, except `T` is replaced with
 ///   `DynTrait`. This can prevent some cases of overlapping impls.
 /// * `bridge(none)`: No impls.
@@ -297,8 +296,8 @@ pub fn dynosaur(
     let struct_inherent_impl = mk_struct_inherent_impl(struct_ident, &item_trait);
     let box_blanket_impl = match attrs.bridge {
         Some(Bridge::None) => quote!(),
-        Some(Bridge::Static) | None => {
-            mk_box_blanket_impl(&struct_ident, &item_trait, Bridge::Static)
+        Some(Bridge::Blanket) | None => {
+            mk_box_blanket_impl(&struct_ident, &item_trait, Bridge::Blanket)
         }
         Some(Bridge::Dyn) => mk_box_blanket_impl(&struct_ident, &item_trait, Bridge::Dyn),
     };
@@ -530,7 +529,7 @@ fn mk_box_blanket_impl(
             .into_compile_error(),
         TraitItem::Fn(TraitItemFn { sig, .. }) => {
             let self_ = match blanket {
-                Bridge::Static => {
+                Bridge::Blanket => {
                     quote! {
                         <DYNOSAUR as #item_trait_ident #trait_generics>
                     }
@@ -551,7 +550,7 @@ fn mk_box_blanket_impl(
             let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
             let prefix = match blanket {
-                Bridge::Static => {
+                Bridge::Blanket => {
                     quote! {
                         <DYNOSAUR as #item_trait_ident #trait_generics>::
                     }
@@ -576,7 +575,7 @@ fn mk_box_blanket_impl(
         where_bounds,
     ) = match blanket {
         Bridge::None => return quote!(),
-        Bridge::Static => {
+        Bridge::Blanket => {
             let blanket_bound: TypeParam =
                 parse_quote!(DYNOSAUR: #item_trait_ident #trait_generics);
             let blanket = blanket_bound.ident.clone();

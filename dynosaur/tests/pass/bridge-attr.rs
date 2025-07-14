@@ -4,7 +4,7 @@ trait NextNone {
     async fn next(&mut self) -> Option<Self::Item>;
 }
 
-#[dynosaur::dynosaur(DynNextDefault = dyn(box), bridge(static))]
+#[dynosaur::dynosaur(DynNextDefault = dyn(box), bridge(blanket))]
 trait NextDefault {
     type Item;
     async fn next(&mut self) -> Option<Self::Item>;
