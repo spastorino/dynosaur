@@ -96,6 +96,15 @@ mod __dynosaur_macro_dynservice {
                     Error = Error> + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
+        pub const fn from_box(value:
+                Box<impl Service<Request, Response = Response, Error =
+                Error> + 'dynosaur_struct>)
+            -> Box<DynService<'dynosaur_struct, Request, Response, Error>> {
+            let value:
+                    Box<dyn ErasedService<Request, Response = Response, Error =
+                    Error> + 'dynosaur_struct> = value;
+            unsafe { ::core::mem::transmute(value) }
+        }
         pub const fn from_ref(value:
                 &(impl Service<Request, Response = Response, Error = Error> +
                 'dynosaur_struct))

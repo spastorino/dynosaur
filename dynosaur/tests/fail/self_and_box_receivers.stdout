@@ -108,6 +108,11 @@ mod __dynosaur_macro_dynall {
             let value: std::rc::Rc<dyn ErasedAll + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
+        pub const fn from_box(value: Box<impl All + 'dynosaur_struct>)
+            -> Box<DynAll<'dynosaur_struct>> {
+            let value: Box<dyn ErasedAll + 'dynosaur_struct> = value;
+            unsafe { ::core::mem::transmute(value) }
+        }
         pub const fn from_ref(value: &(impl All + 'dynosaur_struct))
             -> &DynAll<'dynosaur_struct> {
             let value: &(dyn ErasedAll + 'dynosaur_struct) = &*value;

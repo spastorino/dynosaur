@@ -69,6 +69,11 @@ mod __dynosaur_macro_dynjobqueue {
                 value;
             unsafe { ::core::mem::transmute(value) }
         }
+        pub const fn from_box(value: Box<impl JobQueue + 'dynosaur_struct>)
+            -> Box<DynJobQueue<'dynosaur_struct>> {
+            let value: Box<dyn ErasedJobQueue + 'dynosaur_struct> = value;
+            unsafe { ::core::mem::transmute(value) }
+        }
         pub const fn from_ref(value: &(impl JobQueue + 'dynosaur_struct))
             -> &DynJobQueue<'dynosaur_struct> {
             let value: &(dyn ErasedJobQueue + 'dynosaur_struct) = &*value;
