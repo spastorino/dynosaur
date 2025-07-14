@@ -93,7 +93,9 @@ impl Parse for Bridge {
 ///
 /// ```
 /// # mod dynosaur { pub use dynosaur_derive::dynosaur; }
-/// #[dynosaur::dynosaur(pub DynNext)]
+/// use dynosaur::dynosaur;
+///
+/// #[dynosaur(pub DynNext)]
 /// pub trait Next {
 ///     type Item;
 ///     async fn next(&self) -> Option<Self::Item>;
@@ -106,7 +108,8 @@ impl Parse for Bridge {
 ///
 /// ```
 /// # mod dynosaur { pub use dynosaur_derive::dynosaur; }
-/// # #[dynosaur::dynosaur(DynNext)]
+/// # use dynosaur::dynosaur;
+/// # #[dynosaur(DynNext)]
 /// # trait Next {
 /// #     type Item;
 /// #     async fn next(&self) -> Option<Self::Item>;
@@ -174,7 +177,8 @@ impl Parse for Bridge {
 /// ```
 /// # mod dynosaur { pub use dynosaur_derive::dynosaur; }
 /// # fn main() {}
-/// #[dynosaur::dynosaur(pub DynNext, bridge(none))]
+/// # use dynosaur::dynosaur;
+/// #[dynosaur(pub DynNext, bridge(none))]
 /// pub trait Next {
 ///     type Item;
 ///     async fn next(&self) -> Option<Self::Item>;
@@ -202,9 +206,10 @@ impl Parse for Bridge {
 /// ```rust
 /// # pub mod dynosaur { pub use dynosaur_derive::dynosaur; }
 /// # fn main() {}
+/// # use dynosaur::dynosaur;
 /// #[trait_variant::make(SendNext: Send)]
-/// #[dynosaur::dynosaur(DynNext = dyn Next, bridge(dyn))]
-/// #[dynosaur::dynosaur(DynSendNext = dyn SendNext, bridge(dyn))]
+/// #[dynosaur(DynNext = dyn Next, bridge(dyn))]
+/// #[dynosaur(DynSendNext = dyn SendNext, bridge(dyn))]
 /// trait Next {
 ///     type Item;
 ///     async fn next(&mut self) -> Option<Self::Item>;
@@ -232,11 +237,12 @@ impl Parse for Bridge {
 /// ```rust
 /// # mod dynosaur { pub use dynosaur_derive::dynosaur; }
 /// # fn main() {}
+/// # use dynosaur::dynosaur;
 /// trait Foo {}
 ///
 /// impl Foo for Box<dyn Foo + '_> {}
 ///
-/// #[dynosaur::dynosaur(DynMyTrait)]
+/// #[dynosaur(DynMyTrait)]
 /// trait MyTrait {
 ///     fn foo(&self, _: impl Foo) -> i32;
 /// }
