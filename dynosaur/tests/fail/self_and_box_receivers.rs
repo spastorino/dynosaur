@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-#[dynosaur::dynosaur(DynAll = dyn(box))]
+#[dynosaur::dynosaur(DynAll = dyn(box) All)]
 trait All {
     fn ref_mut(&mut self);
     fn ref_(&self) -> impl Send;

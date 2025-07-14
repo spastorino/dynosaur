@@ -25,7 +25,7 @@ mod where_clauses;
 struct Attrs {
     vis: Visibility,
     ident: Ident,
-    target: Option<Target>,
+    target: Target,
     bridge: Option<Bridge>,
 }
 
@@ -46,7 +46,9 @@ impl Parse for Attrs {
             ident: input.parse()?,
             target: {
                 if input.parse::<Token![=]>().is_err() {
-                    return Err(input.error("expected `= dyn(box)`; dynosaur 0.3 requires this"));
+                    return Err(
+                        input.error("expected `= dyn(box) TraitName`; dynosaur 0.3 requires this")
+                    );
                 }
                 let dyn_token = input.parse::<Token![dyn]>()?;
                 let Ok(strategy) = (|| {
@@ -57,12 +59,10 @@ impl Parse for Attrs {
                     return Err(syn::Error::new(dyn_token.span, "expected `dyn(box)`"));
                 };
                 strategy.parse::<Token![box]>()?;
-                if input.peek(syn::Ident) {
-                    Some(Target {
-                        trait_name: input.parse()?,
-                    })
-                } else {
-                    None
+                Target {
+                    trait_name: input
+                        .parse()
+                        .map_err(|_| input.error("expected trait name after `dyn(box)`"))?,
                 }
             },
             bridge: if input.peek(Token![,]) {
@@ -106,7 +106,7 @@ impl Parse for Bridge {
 /// # mod dynosaur { pub use dynosaur_derive::dynosaur; }
 /// use dynosaur::dynosaur;
 ///
-/// #[dynosaur(pub DynNext = dyn(box))]
+/// #[dynosaur(pub DynNext = dyn(box) Next)]
 /// pub trait Next {
 ///     type Item;
 ///     async fn next(&self) -> Option<Self::Item>;
@@ -120,7 +120,7 @@ impl Parse for Bridge {
 /// ```
 /// # mod dynosaur { pub use dynosaur_derive::dynosaur; }
 /// # use dynosaur::dynosaur;
-/// # #[dynosaur(DynNext = dyn(box))]
+/// # #[dynosaur(DynNext = dyn(box) Next)]
 /// # trait Next {
 /// #     type Item;
 /// #     async fn next(&self) -> Option<Self::Item>;
@@ -191,7 +191,7 @@ impl Parse for Bridge {
 /// # mod dynosaur { pub use dynosaur_derive::dynosaur; }
 /// # fn main() {}
 /// # use dynosaur::dynosaur;
-/// #[dynosaur(pub DynNext = dyn(box), bridge(none))]
+/// #[dynosaur(pub DynNext = dyn(box) Next, bridge(none))]
 /// pub trait Next {
 ///     type Item;
 ///     async fn next(&self) -> Option<Self::Item>;
@@ -233,9 +233,6 @@ impl Parse for Bridge {
 /// The `#[trait_variant::make]` attribute must go first, and `bridge(dyn)` is
 /// necessary to prevent compiler errors.
 ///
-/// Note: The `DynNext = dyn(box) Next` is a more explicit form of the macro
-/// invocation that allows you to select a particular trait.
-///
 /// [trait_variant]: https://docs.rs/trait-variant/latest/trait_variant/
 ///
 /// ## Argument-position `impl Trait` support
@@ -256,7 +253,7 @@ impl Parse for Bridge {
 ///
 /// impl Foo for Box<dyn Foo + '_> {}
 ///
-/// #[dynosaur(DynMyTrait = dyn(box))]
+/// #[dynosaur(DynMyTrait = dyn(box) MyTrait)]
 /// trait MyTrait {
 ///     fn foo(&self, _: impl Foo) -> i32;
 /// }
@@ -279,13 +276,11 @@ pub fn dynosaur(
 ) -> proc_macro::TokenStream {
     let attrs = parse_macro_input!(attr as Attrs);
     let item_trait = parse_macro_input!(item as ItemTrait);
-    if let Some(target) = attrs.target {
+    if attrs.target.trait_name != item_trait.ident {
         // This attribute is being applied to a different trait than the one
         // named (possibly one created by trait_variant).
         // TODO: Add checking in case a trait is missing or misspelled.
-        if target.trait_name != item_trait.ident {
-            return quote! { #item_trait }.into();
-        }
+        return quote! { #item_trait }.into();
     }
 
     let vis = &attrs.vis;

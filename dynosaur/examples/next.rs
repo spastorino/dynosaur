@@ -1,4 +1,4 @@
-#[dynosaur::dynosaur(DynNext = dyn(box))]
+#[dynosaur::dynosaur(DynNext = dyn(box) Next)]
 trait Next {
     type Item;
     async fn next(&mut self) -> Option<Self::Item>;

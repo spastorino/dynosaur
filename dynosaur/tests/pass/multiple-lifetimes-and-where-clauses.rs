@@ -1,4 +1,4 @@
-#[dynosaur::dynosaur(DynSomeTrait = dyn(box))]
+#[dynosaur::dynosaur(DynSomeTrait = dyn(box) SomeTrait)]
 trait SomeTrait<'a, 'b> {
     async fn lotsa_lifetimes<'d, 'e, 'f>(&self, a: &'d u32, b: &'e u32, c: &'f u32) -> &'a u32
     where

@@ -10,4 +10,9 @@ trait MyTrait2 {
     async fn foo(&self) -> i32;
 }
 
+#[dynosaur(DynMyTrait3 = dyn(box))]
+trait MyTrait3 {
+    async fn foo(&self) -> i32;
+}
+
 fn main() {}
