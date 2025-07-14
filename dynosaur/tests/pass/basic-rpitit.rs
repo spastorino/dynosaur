@@ -1,6 +1,6 @@
 use dynosaur::dynosaur;
 
-#[dynosaur(DynMyTrait)]
+#[dynosaur(DynMyTrait = dyn(box))]
 trait MyTrait {
     fn foo(&self) -> impl Send;
 }

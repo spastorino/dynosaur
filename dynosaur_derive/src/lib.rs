@@ -44,14 +44,26 @@ impl Parse for Attrs {
         Ok(Attrs {
             vis: input.parse()?,
             ident: input.parse()?,
-            target: if input.peek(Token![=]) {
-                input.parse::<Token![=]>()?;
-                input.parse::<Token![dyn]>()?;
-                Some(Target {
-                    trait_name: input.parse()?,
-                })
-            } else {
-                None
+            target: {
+                if input.parse::<Token![=]>().is_err() {
+                    return Err(input.error("expected `= dyn(box)`; dynosaur 0.3 requires this"));
+                }
+                let dyn_token = input.parse::<Token![dyn]>()?;
+                let Ok(strategy) = (|| {
+                    let strategy;
+                    _ = parenthesized!(strategy in input);
+                    Ok(strategy)
+                })() else {
+                    return Err(syn::Error::new(dyn_token.span, "expected `dyn(box)`"));
+                };
+                strategy.parse::<Token![box]>()?;
+                if input.peek(syn::Ident) {
+                    Some(Target {
+                        trait_name: input.parse()?,
+                    })
+                } else {
+                    None
+                }
             },
             bridge: if input.peek(Token![,]) {
                 input.parse::<Token![,]>()?;
@@ -95,7 +107,7 @@ impl Parse for Bridge {
 /// # mod dynosaur { pub use dynosaur_derive::dynosaur; }
 /// use dynosaur::dynosaur;
 ///
-/// #[dynosaur(pub DynNext)]
+/// #[dynosaur(pub DynNext = dyn(box))]
 /// pub trait Next {
 ///     type Item;
 ///     async fn next(&self) -> Option<Self::Item>;
@@ -109,7 +121,7 @@ impl Parse for Bridge {
 /// ```
 /// # mod dynosaur { pub use dynosaur_derive::dynosaur; }
 /// # use dynosaur::dynosaur;
-/// # #[dynosaur(DynNext)]
+/// # #[dynosaur(DynNext = dyn(box))]
 /// # trait Next {
 /// #     type Item;
 /// #     async fn next(&self) -> Option<Self::Item>;
@@ -178,7 +190,7 @@ impl Parse for Bridge {
 /// # mod dynosaur { pub use dynosaur_derive::dynosaur; }
 /// # fn main() {}
 /// # use dynosaur::dynosaur;
-/// #[dynosaur(pub DynNext, bridge(none))]
+/// #[dynosaur(pub DynNext = dyn(box), bridge(none))]
 /// pub trait Next {
 ///     type Item;
 ///     async fn next(&self) -> Option<Self::Item>;
@@ -196,7 +208,8 @@ impl Parse for Bridge {
 /// The following options are supported for `bridge`:
 ///
 /// * `bridge(static)`: The default impls listed above.
-/// * `bridge(dyn)`: The impls listed above, except with `T` replaced with `DynTrait`. This can prevent some cases of overlapping impls.
+/// * `bridge(dyn)`: The impls listed above, except `T` is replaced with
+///   `DynTrait`. This can prevent some cases of overlapping impls.
 /// * `bridge(none)`: No impls.
 ///
 /// ## Use with `trait_variant`
@@ -208,8 +221,8 @@ impl Parse for Bridge {
 /// # fn main() {}
 /// # use dynosaur::dynosaur;
 /// #[trait_variant::make(SendNext: Send)]
-/// #[dynosaur(DynNext = dyn Next, bridge(dyn))]
-/// #[dynosaur(DynSendNext = dyn SendNext, bridge(dyn))]
+/// #[dynosaur(DynNext = dyn(box) Next, bridge(dyn))]
+/// #[dynosaur(DynSendNext = dyn(box) SendNext, bridge(dyn))]
 /// trait Next {
 ///     type Item;
 ///     async fn next(&mut self) -> Option<Self::Item>;
@@ -219,7 +232,7 @@ impl Parse for Bridge {
 /// The `#[trait_variant::make]` attribute must go first, and `bridge(dyn)` is
 /// necessary to prevent compiler errors.
 ///
-/// Note: The `DynNext = dyn Next` is a more explicit form of the macro
+/// Note: The `DynNext = dyn(box) Next` is a more explicit form of the macro
 /// invocation that allows you to select a particular trait.
 ///
 /// [trait_variant]: https://docs.rs/trait-variant/latest/trait_variant/
@@ -242,7 +255,7 @@ impl Parse for Bridge {
 ///
 /// impl Foo for Box<dyn Foo + '_> {}
 ///
-/// #[dynosaur(DynMyTrait)]
+/// #[dynosaur(DynMyTrait = dyn(box))]
 /// trait MyTrait {
 ///     fn foo(&self, _: impl Foo) -> i32;
 /// }

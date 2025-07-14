@@ -1,6 +1,6 @@
 use std::future::Future;
 
-#[dynosaur::dynosaur(DynService)]
+#[dynosaur::dynosaur(DynService = dyn(box))]
 pub trait Service<Request> {
     type Response;
     type Error;

@@ -1,15 +1,15 @@
-#[dynosaur::dynosaur(DynRefOnly)]
+#[dynosaur::dynosaur(DynRefOnly = dyn(box))]
 trait RefOnly {
     fn ref_(&self);
 }
 
-#[dynosaur::dynosaur(DynMutAndRef)]
+#[dynosaur::dynosaur(DynMutAndRef = dyn(box))]
 trait MutAndRef {
     fn ref_mut(&mut self);
     fn ref_(&self) -> impl Send;
 }
 
-#[dynosaur::dynosaur(DynAll)]
+#[dynosaur::dynosaur(DynAll = dyn(box))]
 trait All {
     fn ref_mut(&mut self);
     fn ref_(&self) -> impl Send;

@@ -1,4 +1,4 @@
-#[dynosaur::dynosaur(DynFoo)]
+#[dynosaur::dynosaur(DynFoo = dyn(box))]
 trait Foo {
     const BAR: i32;
 
