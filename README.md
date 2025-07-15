@@ -5,7 +5,7 @@ Currently Rust does not support dynamic dispatch on traits that use `async fn` o
 This removes the need for the use of the `async_trait` proc macro, giving users the performance benefits of static dispatch without giving up the flexibility of dynamic dispatch.
 
 ```rust,ignore
-#[dynosaur::dynosaur(DynNext)]
+#[dynosaur::dynosaur(DynNext = dyn(box) Next)]
 trait Next {
     type Item;
     async fn next(&mut self) -> Option<Self::Item>;

@@ -62,6 +62,11 @@ mod __dynosaur_macro_dynmytrait {
                 value;
             unsafe { ::core::mem::transmute(value) }
         }
+        pub const fn from_box(value: Box<impl MyTrait + 'dynosaur_struct>)
+            -> Box<DynMyTrait<'dynosaur_struct>> {
+            let value: Box<dyn ErasedMyTrait + 'dynosaur_struct> = value;
+            unsafe { ::core::mem::transmute(value) }
+        }
         pub const fn from_ref(value: &(impl MyTrait + 'dynosaur_struct))
             -> &DynMyTrait<'dynosaur_struct> {
             let value: &(dyn ErasedMyTrait + 'dynosaur_struct) = &*value;

@@ -1,6 +1,6 @@
 use std::future::Future;
 
-#[dynosaur::dynosaur(DynFoo)]
+#[dynosaur::dynosaur(DynFoo = dyn(box) Foo)]
 trait Foo: Send {
     fn foo(&self) -> impl Future<Output = i32> + Send;
 }

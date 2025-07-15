@@ -74,6 +74,14 @@ mod __dynosaur_macro_dynnextnone {
                     'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
+        pub const fn from_box(value:
+                Box<impl NextNone<Item = Item> + 'dynosaur_struct>)
+            -> Box<DynNextNone<'dynosaur_struct, Item>> {
+            let value:
+                    Box<dyn ErasedNextNone<Item = Item> + 'dynosaur_struct> =
+                value;
+            unsafe { ::core::mem::transmute(value) }
+        }
         pub const fn from_ref(value:
                 &(impl NextNone<Item = Item> + 'dynosaur_struct))
             -> &DynNextNone<'dynosaur_struct, Item> {
@@ -164,6 +172,14 @@ mod __dynosaur_macro_dynnextdefault {
             let value:
                     std::rc::Rc<dyn ErasedNextDefault<Item = Item> +
                     'dynosaur_struct> = value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub const fn from_box(value:
+                Box<impl NextDefault<Item = Item> + 'dynosaur_struct>)
+            -> Box<DynNextDefault<'dynosaur_struct, Item>> {
+            let value:
+                    Box<dyn ErasedNextDefault<Item = Item> + 'dynosaur_struct> =
+                value;
             unsafe { ::core::mem::transmute(value) }
         }
         pub const fn from_ref(value:
@@ -271,6 +287,14 @@ mod __dynosaur_macro_dynnextdyn {
             let value:
                     std::rc::Rc<dyn ErasedNextDyn<Item = Item> +
                     'dynosaur_struct> = value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub const fn from_box(value:
+                Box<impl NextDyn<Item = Item> + 'dynosaur_struct>)
+            -> Box<DynNextDyn<'dynosaur_struct, Item>> {
+            let value:
+                    Box<dyn ErasedNextDyn<Item = Item> + 'dynosaur_struct> =
+                value;
             unsafe { ::core::mem::transmute(value) }
         }
         pub const fn from_ref(value:

@@ -1,6 +1,6 @@
 trait Baz {}
 
-#[dynosaur::dynosaur(DynFoo)]
+#[dynosaur::dynosaur(DynFoo = dyn(box) Foo)]
 trait Foo {
     type Bar: Baz;
 

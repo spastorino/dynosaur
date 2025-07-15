@@ -42,6 +42,11 @@ mod __dynosaur_macro_dynrefonly {
                 value;
             unsafe { ::core::mem::transmute(value) }
         }
+        pub const fn from_box(value: Box<impl RefOnly + 'dynosaur_struct>)
+            -> Box<DynRefOnly<'dynosaur_struct>> {
+            let value: Box<dyn ErasedRefOnly + 'dynosaur_struct> = value;
+            unsafe { ::core::mem::transmute(value) }
+        }
         pub const fn from_ref(value: &(impl RefOnly + 'dynosaur_struct))
             -> &DynRefOnly<'dynosaur_struct> {
             let value: &(dyn ErasedRefOnly + 'dynosaur_struct) = &*value;
@@ -121,6 +126,11 @@ mod __dynosaur_macro_dynmutandref {
             let value = std::rc::Rc::new(value);
             let value: std::rc::Rc<dyn ErasedMutAndRef + 'dynosaur_struct> =
                 value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub const fn from_box(value: Box<impl MutAndRef + 'dynosaur_struct>)
+            -> Box<DynMutAndRef<'dynosaur_struct>> {
+            let value: Box<dyn ErasedMutAndRef + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
         pub const fn from_ref(value: &(impl MutAndRef + 'dynosaur_struct))
@@ -203,6 +213,11 @@ mod __dynosaur_macro_dynall {
             -> std::rc::Rc<DynAll<'dynosaur_struct>> {
             let value = std::rc::Rc::new(value);
             let value: std::rc::Rc<dyn ErasedAll + 'dynosaur_struct> = value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub const fn from_box(value: Box<impl All + 'dynosaur_struct>)
+            -> Box<DynAll<'dynosaur_struct>> {
+            let value: Box<dyn ErasedAll + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
         pub const fn from_ref(value: &(impl All + 'dynosaur_struct))

@@ -1,4 +1,4 @@
-#[dynosaur::dynosaur(DynSomeTrait)]
+#[dynosaur::dynosaur(DynSomeTrait = dyn(box) SomeTrait)]
 trait SomeTrait {
     fn get_iter(&mut self) -> impl Iterator<Item = u8> + '_;
 }

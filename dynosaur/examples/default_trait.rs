@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-#[dynosaur::dynosaur(DynFoo)]
+#[dynosaur::dynosaur(DynFoo = dyn(box) Foo)]
 trait Foo {
     fn foo(&self) -> impl Display {
         1

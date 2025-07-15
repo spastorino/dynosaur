@@ -1,0 +1,22 @@
+error: expected `dyn(box)`
+ --> tests/fail/missing-strategy.rs:3:25
+  |
+3 | #[dynosaur(DynMyTrait = dyn)]
+  |                         ^^^
+
+error: expected `dyn(box)`
+ --> tests/fail/missing-strategy.rs:8:26
+  |
+8 | #[dynosaur(DynMyTrait2 = dyn MyTrait2)]
+  |                          ^^^
+
+error: unexpected end of input, expected trait name after `dyn(box)`
+  --> tests/fail/missing-strategy.rs:13:1
+   |
+13 | #[dynosaur(DynMyTrait3 = dyn(box))]
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: this error originates in the attribute macro `dynosaur` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: aborting due to 3 previous errors
+

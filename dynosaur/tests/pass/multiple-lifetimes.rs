@@ -1,4 +1,4 @@
-#[dynosaur::dynosaur(DynSomeTrait)]
+#[dynosaur::dynosaur(DynSomeTrait = dyn(box) SomeTrait)]
 trait SomeTrait {
     async fn multiple_elided_lifetimes(&self, a: &u8, b: &u8);
     async fn multiple_named_lifetimes<'a, 'b: 'a>(&self, a: &'a u8, b: &'b u8, c: &u8);

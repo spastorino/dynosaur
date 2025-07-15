@@ -25,7 +25,7 @@ mod where_clauses;
 struct Attrs {
     vis: Visibility,
     ident: Ident,
-    target: Option<Target>,
+    target: Target,
     bridge: Option<Bridge>,
 }
 
@@ -35,7 +35,7 @@ struct Target {
 
 enum Bridge {
     None,
-    Static,
+    Blanket,
     Dyn,
 }
 
@@ -44,14 +44,26 @@ impl Parse for Attrs {
         Ok(Attrs {
             vis: input.parse()?,
             ident: input.parse()?,
-            target: if input.peek(Token![=]) {
-                input.parse::<Token![=]>()?;
-                input.parse::<Token![dyn]>()?;
-                Some(Target {
-                    trait_name: input.parse()?,
-                })
-            } else {
-                None
+            target: {
+                if input.parse::<Token![=]>().is_err() {
+                    return Err(
+                        input.error("expected `= dyn(box) TraitName`; dynosaur 0.3 requires this")
+                    );
+                }
+                let dyn_token = input.parse::<Token![dyn]>()?;
+                let Ok(strategy) = (|| {
+                    let strategy;
+                    _ = parenthesized!(strategy in input);
+                    Ok(strategy)
+                })() else {
+                    return Err(syn::Error::new(dyn_token.span, "expected `dyn(box)`"));
+                };
+                strategy.parse::<Token![box]>()?;
+                Target {
+                    trait_name: input
+                        .parse()
+                        .map_err(|_| input.error("expected trait name after `dyn(box)`"))?,
+                }
             },
             bridge: if input.peek(Token![,]) {
                 input.parse::<Token![,]>()?;
@@ -74,16 +86,15 @@ impl Parse for Bridge {
         if input.peek(Token![dyn]) {
             input.parse::<Token![dyn]>()?;
             Ok(Bridge::Dyn)
-        } else if input.peek(Token![static]) {
-            input.parse::<Token![static]>()?;
-            Ok(Bridge::Static)
         } else {
             let opt: Ident = input.parse()?;
-            Ok(if opt == "none" {
-                Bridge::None
+            if opt == "blanket" {
+                Ok(Bridge::Blanket)
+            } else if opt == "none" {
+                Ok(Bridge::None)
             } else {
-                Err(input.error("unknown option"))?
-            })
+                Err(input.error("unknown option"))
+            }
         }
     }
 }
@@ -93,7 +104,9 @@ impl Parse for Bridge {
 ///
 /// ```
 /// # mod dynosaur { pub use dynosaur_derive::dynosaur; }
-/// #[dynosaur::dynosaur(pub DynNext)]
+/// use dynosaur::dynosaur;
+///
+/// #[dynosaur(pub DynNext = dyn(box) Next)]
 /// pub trait Next {
 ///     type Item;
 ///     async fn next(&self) -> Option<Self::Item>;
@@ -106,7 +119,8 @@ impl Parse for Bridge {
 ///
 /// ```
 /// # mod dynosaur { pub use dynosaur_derive::dynosaur; }
-/// # #[dynosaur::dynosaur(DynNext)]
+/// # use dynosaur::dynosaur;
+/// # #[dynosaur(DynNext = dyn(box) Next)]
 /// # trait Next {
 /// #     type Item;
 /// #     async fn next(&self) -> Option<Self::Item>;
@@ -146,6 +160,8 @@ impl Parse for Bridge {
 ///     fn new_box(from: impl Trait) -> Box<Self> { todo!() }
 ///     fn new_arc(from: impl Trait) -> std::sync::Arc<Self> { todo!() }
 ///     fn new_rc(from: impl Trait) -> std::rc::Rc<Self> { todo!() }
+///
+///     fn from_box(from: Box<impl Trait + 'a>) -> Box<Self> { todo!() }
 ///     fn from_ref(from: &'a impl Trait) -> &'a Self { todo!() }
 ///     fn from_mut(from: &'a mut impl Trait) -> &'a mut Self { todo!() }
 /// }
@@ -174,7 +190,8 @@ impl Parse for Bridge {
 /// ```
 /// # mod dynosaur { pub use dynosaur_derive::dynosaur; }
 /// # fn main() {}
-/// #[dynosaur::dynosaur(pub DynNext, bridge(none))]
+/// # use dynosaur::dynosaur;
+/// #[dynosaur(pub DynNext = dyn(box) Next, bridge(none))]
 /// pub trait Next {
 ///     type Item;
 ///     async fn next(&self) -> Option<Self::Item>;
@@ -191,8 +208,9 @@ impl Parse for Bridge {
 ///
 /// The following options are supported for `bridge`:
 ///
-/// * `bridge(static)`: The default impls listed above.
-/// * `bridge(dyn)`: The impls listed above, except with `T` replaced with `DynTrait`. This can prevent some cases of overlapping impls.
+/// * `bridge(blanket)`: The default impls listed above.
+/// * `bridge(dyn)`: The impls listed above, except `T` is replaced with
+///   `DynTrait`. This can prevent some cases of overlapping impls.
 /// * `bridge(none)`: No impls.
 ///
 /// ## Use with `trait_variant`
@@ -202,9 +220,10 @@ impl Parse for Bridge {
 /// ```rust
 /// # pub mod dynosaur { pub use dynosaur_derive::dynosaur; }
 /// # fn main() {}
+/// # use dynosaur::dynosaur;
 /// #[trait_variant::make(SendNext: Send)]
-/// #[dynosaur::dynosaur(DynNext = dyn Next, bridge(dyn))]
-/// #[dynosaur::dynosaur(DynSendNext = dyn SendNext, bridge(dyn))]
+/// #[dynosaur(DynNext = dyn(box) Next, bridge(dyn))]
+/// #[dynosaur(DynSendNext = dyn(box) SendNext, bridge(dyn))]
 /// trait Next {
 ///     type Item;
 ///     async fn next(&mut self) -> Option<Self::Item>;
@@ -213,9 +232,6 @@ impl Parse for Bridge {
 ///
 /// The `#[trait_variant::make]` attribute must go first, and `bridge(dyn)` is
 /// necessary to prevent compiler errors.
-///
-/// Note: The `DynNext = dyn Next` is a more explicit form of the macro
-/// invocation that allows you to select a particular trait.
 ///
 /// [trait_variant]: https://docs.rs/trait-variant/latest/trait_variant/
 ///
@@ -232,11 +248,12 @@ impl Parse for Bridge {
 /// ```rust
 /// # mod dynosaur { pub use dynosaur_derive::dynosaur; }
 /// # fn main() {}
+/// # use dynosaur::dynosaur;
 /// trait Foo {}
 ///
 /// impl Foo for Box<dyn Foo + '_> {}
 ///
-/// #[dynosaur::dynosaur(DynMyTrait)]
+/// #[dynosaur(DynMyTrait = dyn(box) MyTrait)]
 /// trait MyTrait {
 ///     fn foo(&self, _: impl Foo) -> i32;
 /// }
@@ -259,13 +276,11 @@ pub fn dynosaur(
 ) -> proc_macro::TokenStream {
     let attrs = parse_macro_input!(attr as Attrs);
     let item_trait = parse_macro_input!(item as ItemTrait);
-    if let Some(target) = attrs.target {
+    if attrs.target.trait_name != item_trait.ident {
         // This attribute is being applied to a different trait than the one
         // named (possibly one created by trait_variant).
         // TODO: Add checking in case a trait is missing or misspelled.
-        if target.trait_name != item_trait.ident {
-            return quote! { #item_trait }.into();
-        }
+        return quote! { #item_trait }.into();
     }
 
     let vis = &attrs.vis;
@@ -278,8 +293,8 @@ pub fn dynosaur(
     let struct_inherent_impl = mk_struct_inherent_impl(struct_ident, &item_trait);
     let box_blanket_impl = match attrs.bridge {
         Some(Bridge::None) => quote!(),
-        Some(Bridge::Static) | None => {
-            mk_box_blanket_impl(&struct_ident, &item_trait, Bridge::Static)
+        Some(Bridge::Blanket) | None => {
+            mk_box_blanket_impl(&struct_ident, &item_trait, Bridge::Blanket)
         }
         Some(Bridge::Dyn) => mk_box_blanket_impl(&struct_ident, &item_trait, Bridge::Dyn),
     };
@@ -485,6 +500,11 @@ fn mk_struct_inherent_impl(struct_ident: &Ident, item_trait: &ItemTrait) -> Toke
                 unsafe { ::core::mem::transmute(value) }
             }
 
+            pub const fn from_box(value: Box<impl #trait_ident #trait_params + 'dynosaur_struct>) -> Box<#struct_ident #struct_params> {
+                let value: Box<dyn #erased_trait_ident #trait_params + 'dynosaur_struct> = value;
+                unsafe { ::core::mem::transmute(value) }
+            }
+
             pub const fn from_ref(value: &(impl #trait_ident #trait_params + 'dynosaur_struct)) -> & #struct_ident #struct_params {
                 let value: &(dyn #erased_trait_ident #trait_params + 'dynosaur_struct) = &*value;
                 unsafe { ::core::mem::transmute(value) }
@@ -511,7 +531,7 @@ fn mk_box_blanket_impl(
             .into_compile_error(),
         TraitItem::Fn(TraitItemFn { sig, .. }) => {
             let self_ = match blanket {
-                Bridge::Static => {
+                Bridge::Blanket => {
                     quote! {
                         <DYNOSAUR as #item_trait_ident #trait_generics>
                     }
@@ -532,7 +552,7 @@ fn mk_box_blanket_impl(
             let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
             let prefix = match blanket {
-                Bridge::Static => {
+                Bridge::Blanket => {
                     quote! {
                         <DYNOSAUR as #item_trait_ident #trait_generics>::
                     }
@@ -557,7 +577,7 @@ fn mk_box_blanket_impl(
         where_bounds,
     ) = match blanket {
         Bridge::None => return quote!(),
-        Bridge::Static => {
+        Bridge::Blanket => {
             let blanket_bound: TypeParam =
                 parse_quote!(DYNOSAUR: #item_trait_ident #trait_generics);
             let blanket = blanket_bound.ident.clone();

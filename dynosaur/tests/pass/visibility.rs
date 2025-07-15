@@ -1,6 +1,6 @@
 use dynosaur::dynosaur;
 
-#[dynosaur(pub(crate) DynMyTrait)]
+#[dynosaur(pub(crate) DynMyTrait = dyn(box) MyTrait)]
 trait MyTrait {
     async fn foo(&self) -> i32;
 }
