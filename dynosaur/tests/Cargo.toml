@@ -4,12 +4,12 @@
 
 [package]
 name = "dynosaur_ui_tests"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 
 [lib]
 path = "lib.rs"
 
 [dependencies]
-dynosaur = { version = "0.2", path = "../" }
+dynosaur = { version = "0.3", path = "../" }
 trait-variant = { workspace = true }
