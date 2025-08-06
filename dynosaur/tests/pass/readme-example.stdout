@@ -1,0 +1,180 @@
+#![feature(prelude_import)]
+extern crate std;
+#[prelude_import]
+use std::prelude::rust_2021::*;
+// This file should match the code in "README.md"
+
+trait Next {
+    type Item;
+    async fn next(&mut self)
+    -> Option<Self::Item>;
+}
+mod __dynosaur_macro_dynnext {
+    extern crate alloc as __dynosaur_alloc;
+    use __dynosaur_alloc::boxed::Box as _Box;
+    use __dynosaur_alloc::rc::Rc as _Rc;
+    use __dynosaur_alloc::sync::Arc as _Arc;
+    use ::core::pin::Pin as _Pin;
+    use super::*;
+    trait ErasedNext {
+        type Item;
+        fn next<'life0, 'dynosaur>(&'life0 mut self)
+        ->
+            _Pin<_Box<dyn ::core::future::Future<Output =
+            Option<Self::Item>> + 'dynosaur>>
+        where
+        'life0: 'dynosaur,
+        Self: 'dynosaur;
+    }
+    impl<DYNOSAUR: Next> ErasedNext for DYNOSAUR {
+        type Item = <Self as Next>::Item;
+        fn next<'life0, 'dynosaur>(&'life0 mut self)
+            ->
+                _Pin<_Box<dyn ::core::future::Future<Output =
+                Option<Self::Item>> + 'dynosaur>> where 'life0: 'dynosaur,
+            Self: 'dynosaur {
+            _Box::pin(<Self as Next>::next(self))
+        }
+    }
+    #[repr(transparent)]
+    pub struct DynNext<'dynosaur_struct, Item> {
+        ptr: dyn ErasedNext<Item = Item> + 'dynosaur_struct,
+    }
+    impl<'dynosaur_struct, Item> Next for DynNext<'dynosaur_struct, Item> {
+        type Item = Item;
+        fn next(&mut self)
+            -> impl ::core::future::Future<Output = Option<Self::Item>> {
+            let ret:
+                    _Pin<_Box<dyn ::core::future::Future<Output =
+                    Option<Self::Item>> + '_>> = self.ptr.next();
+            let ret:
+                    _Pin<_Box<dyn ::core::future::Future<Output =
+                    Option<Self::Item>> + 'static>> =
+                unsafe { ::core::mem::transmute(ret) };
+            ret
+        }
+    }
+    impl<'dynosaur_struct, Item> DynNext<'dynosaur_struct, Item> {
+        pub fn new_box(value: impl Next<Item = Item> + 'dynosaur_struct)
+            -> _Box<DynNext<'dynosaur_struct, Item>> {
+            let value = _Box::new(value);
+            let value: _Box<dyn ErasedNext<Item = Item> + 'dynosaur_struct> =
+                value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub fn new_arc(value: impl Next<Item = Item> + 'dynosaur_struct)
+            -> _Arc<DynNext<'dynosaur_struct, Item>> {
+            let value = _Arc::new(value);
+            let value: _Arc<dyn ErasedNext<Item = Item> + 'dynosaur_struct> =
+                value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub fn new_rc(value: impl Next<Item = Item> + 'dynosaur_struct)
+            -> _Rc<DynNext<'dynosaur_struct, Item>> {
+            let value = _Rc::new(value);
+            let value: _Rc<dyn ErasedNext<Item = Item> + 'dynosaur_struct> =
+                value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub const fn from_box(value:
+                _Box<impl Next<Item = Item> + 'dynosaur_struct>)
+            -> _Box<DynNext<'dynosaur_struct, Item>> {
+            let value: _Box<dyn ErasedNext<Item = Item> + 'dynosaur_struct> =
+                value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub const fn from_arc(value:
+                _Arc<impl Next<Item = Item> + 'dynosaur_struct>)
+            -> _Arc<DynNext<'dynosaur_struct, Item>> {
+            let value: _Arc<dyn ErasedNext<Item = Item> + 'dynosaur_struct> =
+                value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub const fn from_rc(value:
+                _Rc<impl Next<Item = Item> + 'dynosaur_struct>)
+            -> _Rc<DynNext<'dynosaur_struct, Item>> {
+            let value: _Rc<dyn ErasedNext<Item = Item> + 'dynosaur_struct> =
+                value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub const fn from_ref(value:
+                &(impl Next<Item = Item> + 'dynosaur_struct))
+            -> &DynNext<'dynosaur_struct, Item> {
+            let value: &(dyn ErasedNext<Item = Item> + 'dynosaur_struct) =
+                &*value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub const fn from_mut(value:
+                &mut (impl Next<Item = Item> + 'dynosaur_struct))
+            -> &mut DynNext<'dynosaur_struct, Item> {
+            let value: &mut (dyn ErasedNext<Item = Item> + 'dynosaur_struct) =
+                &mut *value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+    }
+    impl<DYNOSAUR: Next> Next for &mut DYNOSAUR where DYNOSAUR: ?Sized {
+        type Item = <DYNOSAUR as Next>::Item;
+        fn next(&mut self)
+            -> impl ::core::future::Future<Output = Option<Self::Item>> {
+            <DYNOSAUR as Next>::next(self)
+        }
+    }
+    impl<DYNOSAUR: Next> Next for _Box<DYNOSAUR> where DYNOSAUR: ?Sized {
+        type Item = <DYNOSAUR as Next>::Item;
+        fn next(&mut self)
+            -> impl ::core::future::Future<Output = Option<Self::Item>> {
+            <DYNOSAUR as Next>::next(self)
+        }
+    }
+}
+use __dynosaur_macro_dynnext::DynNext;
+
+async fn dyn_dispatch(iter: &mut DynNext<'_, i32>) {
+    while let Some(item) = iter.next().await {
+
+
+
+
+
+
+        // do something :)
+
+        { ::std::io::_print(format_args!("- {0}\n", item)); };
+    }
+}
+async fn _main() {
+    let mut my_next_iter =
+        MyNextIter::new(::alloc::boxed::box_assume_init_into_vec_unsafe(::alloc::intrinsics::write_box_via_move(::alloc::boxed::Box::new_uninit(),
+                    [1, 2, 3])));
+    dyn_dispatch(&mut DynNext::new_box(my_next_iter.clone())).await;
+    dyn_dispatch(DynNext::from_mut(&mut my_next_iter)).await;
+}
+struct MyNextIter<T: Copy> {
+    v: Vec<T>,
+    i: usize,
+}
+#[automatically_derived]
+impl<T: ::core::clone::Clone + Copy> ::core::clone::Clone for MyNextIter<T> {
+    #[inline]
+    fn clone(&self) -> MyNextIter<T> {
+        MyNextIter {
+            v: ::core::clone::Clone::clone(&self.v),
+            i: ::core::clone::Clone::clone(&self.i),
+        }
+    }
+}
+impl<T: Copy> MyNextIter<T> {
+    fn new(v: Vec<T>) -> Self { Self { v, i: 0 } }
+}
+impl<T: Copy> Next for MyNextIter<T> {
+    type Item = T;
+    async fn next(&mut self) -> Option<Self::Item> {
+        if self.i >= self.v.len() { return None; }
+        do_some_async_work().await;
+        let item = self.v[self.i];
+        self.i += 1;
+        Some(item)
+    }
+}
+async fn do_some_async_work() {}
+fn main() {}
