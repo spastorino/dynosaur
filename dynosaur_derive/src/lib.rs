@@ -405,6 +405,7 @@ fn mk_erased_trait_blanket_impl(item_trait: &ItemTrait) -> TokenStream {
 }
 
 fn mk_dyn_struct(struct_ident: &Ident, item_trait: &ItemTrait) -> TokenStream {
+    let trait_ident = &item_trait.ident;
     let erased_trait = mk_erased_trait(&item_trait);
     let erased_trait_ident = &erased_trait.ident;
     let StructTraitParams {
@@ -413,7 +414,10 @@ fn mk_dyn_struct(struct_ident: &Ident, item_trait: &ItemTrait) -> TokenStream {
         ..
     } = struct_trait_params(&erased_trait);
 
+    let doc = format!("Dyn-compatible wrapper for [`{trait_ident}`].");
+
     quote! {
+        #[doc = #doc]
         #[repr(transparent)]
         pub struct #struct_ident #struct_with_bounds_params {
             ptr: dyn #erased_trait_ident #trait_params + 'dynosaur_struct
@@ -485,47 +489,67 @@ fn mk_struct_inherent_impl(struct_ident: &Ident, item_trait: &ItemTrait) -> Toke
         _ => {}
     });
 
+    let doc_new_box =
+        format!("Create `Box<{struct_ident}>` from a value implementing [`{trait_ident}`].");
+    let doc_new_arc =
+        format!("Create `Arc<{struct_ident}>` from a value implementing [`{trait_ident}`].");
+    let doc_new_rc =
+        format!("Create `Rc<{struct_ident}>` from a value implementing [`{trait_ident}`].");
+    let doc_from_box = format!("Convert `Box<impl {trait_ident}>` to `Box<{struct_ident}>`.");
+    let doc_from_arc = format!("Convert `Arc<impl {trait_ident}>` to `Arc<{struct_ident}>`.");
+    let doc_from_rc = format!("Convert `Rc<impl {trait_ident}>` to `Rc<{struct_ident}>`.");
+    let doc_from_ref = format!("Convert `&impl {trait_ident}` to `&{struct_ident}`.");
+    let doc_from_mut = format!("Convert `&mut impl {trait_ident}` to `&mut {struct_ident}`.");
+
     quote! {
         impl #struct_with_bounds_params #struct_ident #struct_params
         {
+            #[doc = #doc_new_box]
             pub fn new_box(value: impl #trait_ident #trait_params + 'dynosaur_struct) -> _Box<#struct_ident #struct_params> {
                 let value = _Box::new(value);
                 let value: _Box<dyn #erased_trait_ident #trait_params + 'dynosaur_struct> = value;
                 unsafe { ::core::mem::transmute(value) }
             }
 
+            #[doc = #doc_new_arc]
             pub fn new_arc(value: impl #trait_ident #trait_params + 'dynosaur_struct) -> _Arc<#struct_ident #struct_params> {
                 let value = _Arc::new(value);
                 let value: _Arc<dyn #erased_trait_ident #trait_params + 'dynosaur_struct> = value;
                 unsafe { ::core::mem::transmute(value) }
             }
 
+            #[doc = #doc_new_rc]
             pub fn new_rc(value: impl #trait_ident #trait_params + 'dynosaur_struct) -> _Rc<#struct_ident #struct_params> {
                 let value = _Rc::new(value);
                 let value: _Rc<dyn #erased_trait_ident #trait_params + 'dynosaur_struct> = value;
                 unsafe { ::core::mem::transmute(value) }
             }
 
+            #[doc = #doc_from_box]
             pub const fn from_box(value: _Box<impl #trait_ident #trait_params + 'dynosaur_struct>) -> _Box<#struct_ident #struct_params> {
                 let value: _Box<dyn #erased_trait_ident #trait_params + 'dynosaur_struct> = value;
                 unsafe { ::core::mem::transmute(value) }
             }
 
+            #[doc = #doc_from_arc]
             pub const fn from_arc(value: _Arc<impl #trait_ident #trait_params + 'dynosaur_struct>) -> _Arc<#struct_ident #struct_params> {
                 let value: _Arc<dyn #erased_trait_ident #trait_params + 'dynosaur_struct> = value;
                 unsafe { ::core::mem::transmute(value) }
             }
 
+            #[doc = #doc_from_rc]
             pub const fn from_rc(value: _Rc<impl #trait_ident #trait_params + 'dynosaur_struct>) -> _Rc<#struct_ident #struct_params> {
                 let value: _Rc<dyn #erased_trait_ident #trait_params + 'dynosaur_struct> = value;
                 unsafe { ::core::mem::transmute(value) }
             }
 
+            #[doc = #doc_from_ref]
             pub const fn from_ref(value: &(impl #trait_ident #trait_params + 'dynosaur_struct)) -> & #struct_ident #struct_params {
                 let value: &(dyn #erased_trait_ident #trait_params + 'dynosaur_struct) = &*value;
                 unsafe { ::core::mem::transmute(value) }
             }
 
+            #[doc = #doc_from_mut]
             pub const fn from_mut(value: &mut (impl #trait_ident #trait_params + 'dynosaur_struct)) -> &mut #struct_ident #struct_params {
                 let value: &mut (dyn #erased_trait_ident #trait_params + 'dynosaur_struct) = &mut *value;
                 unsafe { ::core::mem::transmute(value) }

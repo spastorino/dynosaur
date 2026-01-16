@@ -36,6 +36,7 @@ mod __dynosaur_macro_dynnext {
             _Box::pin(<Self as Next>::next(self))
         }
     }
+    #[doc = "Dyn-compatible wrapper for [`Next`]."]
     #[repr(transparent)]
     pub struct DynNext<'dynosaur_struct, Item> {
         ptr: dyn ErasedNext<Item = Item> + 'dynosaur_struct,
@@ -55,6 +56,7 @@ mod __dynosaur_macro_dynnext {
         }
     }
     impl<'dynosaur_struct, Item> DynNext<'dynosaur_struct, Item> {
+        #[doc = "Create `Box<DynNext>` from a value implementing [`Next`]."]
         pub fn new_box(value: impl Next<Item = Item> + 'dynosaur_struct)
             -> _Box<DynNext<'dynosaur_struct, Item>> {
             let value = _Box::new(value);
@@ -62,6 +64,7 @@ mod __dynosaur_macro_dynnext {
                 value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Create `Arc<DynNext>` from a value implementing [`Next`]."]
         pub fn new_arc(value: impl Next<Item = Item> + 'dynosaur_struct)
             -> _Arc<DynNext<'dynosaur_struct, Item>> {
             let value = _Arc::new(value);
@@ -69,6 +72,7 @@ mod __dynosaur_macro_dynnext {
                 value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Create `Rc<DynNext>` from a value implementing [`Next`]."]
         pub fn new_rc(value: impl Next<Item = Item> + 'dynosaur_struct)
             -> _Rc<DynNext<'dynosaur_struct, Item>> {
             let value = _Rc::new(value);
@@ -76,6 +80,7 @@ mod __dynosaur_macro_dynnext {
                 value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Convert `Box<impl Next>` to `Box<DynNext>`."]
         pub const fn from_box(value:
                 _Box<impl Next<Item = Item> + 'dynosaur_struct>)
             -> _Box<DynNext<'dynosaur_struct, Item>> {
@@ -83,6 +88,7 @@ mod __dynosaur_macro_dynnext {
                 value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Convert `Arc<impl Next>` to `Arc<DynNext>`."]
         pub const fn from_arc(value:
                 _Arc<impl Next<Item = Item> + 'dynosaur_struct>)
             -> _Arc<DynNext<'dynosaur_struct, Item>> {
@@ -90,6 +96,7 @@ mod __dynosaur_macro_dynnext {
                 value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Convert `Rc<impl Next>` to `Rc<DynNext>`."]
         pub const fn from_rc(value:
                 _Rc<impl Next<Item = Item> + 'dynosaur_struct>)
             -> _Rc<DynNext<'dynosaur_struct, Item>> {
@@ -97,6 +104,7 @@ mod __dynosaur_macro_dynnext {
                 value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Convert `&impl Next` to `&DynNext`."]
         pub const fn from_ref(value:
                 &(impl Next<Item = Item> + 'dynosaur_struct))
             -> &DynNext<'dynosaur_struct, Item> {
@@ -104,6 +112,7 @@ mod __dynosaur_macro_dynnext {
                 &*value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Convert `&mut impl Next` to `&mut DynNext`."]
         pub const fn from_mut(value:
                 &mut (impl Next<Item = Item> + 'dynosaur_struct))
             -> &mut DynNext<'dynosaur_struct, Item> {

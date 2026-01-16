@@ -36,6 +36,7 @@ mod __dynosaur_macro_dynfoo {
             _Box::pin(<Self as Foo>::foo(self))
         }
     }
+    #[doc = "Dyn-compatible wrapper for [`Foo`]."]
     #[repr(transparent)]
     pub struct DynFoo<'dynosaur_struct, Bar: Baz> {
         ptr: dyn ErasedFoo<Bar = Bar> + 'dynosaur_struct,
@@ -53,6 +54,7 @@ mod __dynosaur_macro_dynfoo {
         }
     }
     impl<'dynosaur_struct, Bar: Baz> DynFoo<'dynosaur_struct, Bar> {
+        #[doc = "Create `Box<DynFoo>` from a value implementing [`Foo`]."]
         pub fn new_box(value: impl Foo<Bar = Bar> + 'dynosaur_struct)
             -> _Box<DynFoo<'dynosaur_struct, Bar>> {
             let value = _Box::new(value);
@@ -60,6 +62,7 @@ mod __dynosaur_macro_dynfoo {
                 value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Create `Arc<DynFoo>` from a value implementing [`Foo`]."]
         pub fn new_arc(value: impl Foo<Bar = Bar> + 'dynosaur_struct)
             -> _Arc<DynFoo<'dynosaur_struct, Bar>> {
             let value = _Arc::new(value);
@@ -67,6 +70,7 @@ mod __dynosaur_macro_dynfoo {
                 value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Create `Rc<DynFoo>` from a value implementing [`Foo`]."]
         pub fn new_rc(value: impl Foo<Bar = Bar> + 'dynosaur_struct)
             -> _Rc<DynFoo<'dynosaur_struct, Bar>> {
             let value = _Rc::new(value);
@@ -74,6 +78,7 @@ mod __dynosaur_macro_dynfoo {
                 value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Convert `Box<impl Foo>` to `Box<DynFoo>`."]
         pub const fn from_box(value:
                 _Box<impl Foo<Bar = Bar> + 'dynosaur_struct>)
             -> _Box<DynFoo<'dynosaur_struct, Bar>> {
@@ -81,6 +86,7 @@ mod __dynosaur_macro_dynfoo {
                 value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Convert `Arc<impl Foo>` to `Arc<DynFoo>`."]
         pub const fn from_arc(value:
                 _Arc<impl Foo<Bar = Bar> + 'dynosaur_struct>)
             -> _Arc<DynFoo<'dynosaur_struct, Bar>> {
@@ -88,6 +94,7 @@ mod __dynosaur_macro_dynfoo {
                 value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Convert `Rc<impl Foo>` to `Rc<DynFoo>`."]
         pub const fn from_rc(value:
                 _Rc<impl Foo<Bar = Bar> + 'dynosaur_struct>)
             -> _Rc<DynFoo<'dynosaur_struct, Bar>> {
@@ -95,6 +102,7 @@ mod __dynosaur_macro_dynfoo {
                 value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Convert `&impl Foo` to `&DynFoo`."]
         pub const fn from_ref(value:
                 &(impl Foo<Bar = Bar> + 'dynosaur_struct))
             -> &DynFoo<'dynosaur_struct, Bar> {
@@ -102,6 +110,7 @@ mod __dynosaur_macro_dynfoo {
                 &*value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Convert `&mut impl Foo` to `&mut DynFoo`."]
         pub const fn from_mut(value:
                 &mut (impl Foo<Bar = Bar> + 'dynosaur_struct))
             -> &mut DynFoo<'dynosaur_struct, Bar> {

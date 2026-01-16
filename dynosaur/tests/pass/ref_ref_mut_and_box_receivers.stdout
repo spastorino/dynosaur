@@ -18,6 +18,7 @@ mod __dynosaur_macro_dynrefonly {
     impl<DYNOSAUR: RefOnly> ErasedRefOnly for DYNOSAUR {
         fn ref_(&self) { <Self as RefOnly>::ref_(self) }
     }
+    #[doc = "Dyn-compatible wrapper for [`RefOnly`]."]
     #[repr(transparent)]
     pub struct DynRefOnly<'dynosaur_struct> {
         ptr: dyn ErasedRefOnly + 'dynosaur_struct,
@@ -26,44 +27,55 @@ mod __dynosaur_macro_dynrefonly {
         fn ref_(&self) { self.ptr.ref_() }
     }
     impl<'dynosaur_struct> DynRefOnly<'dynosaur_struct> {
+        #[doc =
+        "Create `Box<DynRefOnly>` from a value implementing [`RefOnly`]."]
         pub fn new_box(value: impl RefOnly + 'dynosaur_struct)
             -> _Box<DynRefOnly<'dynosaur_struct>> {
             let value = _Box::new(value);
             let value: _Box<dyn ErasedRefOnly + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc =
+        "Create `Arc<DynRefOnly>` from a value implementing [`RefOnly`]."]
         pub fn new_arc(value: impl RefOnly + 'dynosaur_struct)
             -> _Arc<DynRefOnly<'dynosaur_struct>> {
             let value = _Arc::new(value);
             let value: _Arc<dyn ErasedRefOnly + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc =
+        "Create `Rc<DynRefOnly>` from a value implementing [`RefOnly`]."]
         pub fn new_rc(value: impl RefOnly + 'dynosaur_struct)
             -> _Rc<DynRefOnly<'dynosaur_struct>> {
             let value = _Rc::new(value);
             let value: _Rc<dyn ErasedRefOnly + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Convert `Box<impl RefOnly>` to `Box<DynRefOnly>`."]
         pub const fn from_box(value: _Box<impl RefOnly + 'dynosaur_struct>)
             -> _Box<DynRefOnly<'dynosaur_struct>> {
             let value: _Box<dyn ErasedRefOnly + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Convert `Arc<impl RefOnly>` to `Arc<DynRefOnly>`."]
         pub const fn from_arc(value: _Arc<impl RefOnly + 'dynosaur_struct>)
             -> _Arc<DynRefOnly<'dynosaur_struct>> {
             let value: _Arc<dyn ErasedRefOnly + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Convert `Rc<impl RefOnly>` to `Rc<DynRefOnly>`."]
         pub const fn from_rc(value: _Rc<impl RefOnly + 'dynosaur_struct>)
             -> _Rc<DynRefOnly<'dynosaur_struct>> {
             let value: _Rc<dyn ErasedRefOnly + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Convert `&impl RefOnly` to `&DynRefOnly`."]
         pub const fn from_ref(value: &(impl RefOnly + 'dynosaur_struct))
             -> &DynRefOnly<'dynosaur_struct> {
             let value: &(dyn ErasedRefOnly + 'dynosaur_struct) = &*value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Convert `&mut impl RefOnly` to `&mut DynRefOnly`."]
         pub const fn from_mut(value: &mut (impl RefOnly + 'dynosaur_struct))
             -> &mut DynRefOnly<'dynosaur_struct> {
             let value: &mut (dyn ErasedRefOnly + 'dynosaur_struct) =
@@ -111,6 +123,7 @@ mod __dynosaur_macro_dynmutandref {
             _Box::new(<Self as MutAndRef>::ref_(self))
         }
     }
+    #[doc = "Dyn-compatible wrapper for [`MutAndRef`]."]
     #[repr(transparent)]
     pub struct DynMutAndRef<'dynosaur_struct> {
         ptr: dyn ErasedMutAndRef + 'dynosaur_struct,
@@ -125,44 +138,55 @@ mod __dynosaur_macro_dynmutandref {
         }
     }
     impl<'dynosaur_struct> DynMutAndRef<'dynosaur_struct> {
+        #[doc =
+        "Create `Box<DynMutAndRef>` from a value implementing [`MutAndRef`]."]
         pub fn new_box(value: impl MutAndRef + 'dynosaur_struct)
             -> _Box<DynMutAndRef<'dynosaur_struct>> {
             let value = _Box::new(value);
             let value: _Box<dyn ErasedMutAndRef + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc =
+        "Create `Arc<DynMutAndRef>` from a value implementing [`MutAndRef`]."]
         pub fn new_arc(value: impl MutAndRef + 'dynosaur_struct)
             -> _Arc<DynMutAndRef<'dynosaur_struct>> {
             let value = _Arc::new(value);
             let value: _Arc<dyn ErasedMutAndRef + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc =
+        "Create `Rc<DynMutAndRef>` from a value implementing [`MutAndRef`]."]
         pub fn new_rc(value: impl MutAndRef + 'dynosaur_struct)
             -> _Rc<DynMutAndRef<'dynosaur_struct>> {
             let value = _Rc::new(value);
             let value: _Rc<dyn ErasedMutAndRef + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Convert `Box<impl MutAndRef>` to `Box<DynMutAndRef>`."]
         pub const fn from_box(value: _Box<impl MutAndRef + 'dynosaur_struct>)
             -> _Box<DynMutAndRef<'dynosaur_struct>> {
             let value: _Box<dyn ErasedMutAndRef + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Convert `Arc<impl MutAndRef>` to `Arc<DynMutAndRef>`."]
         pub const fn from_arc(value: _Arc<impl MutAndRef + 'dynosaur_struct>)
             -> _Arc<DynMutAndRef<'dynosaur_struct>> {
             let value: _Arc<dyn ErasedMutAndRef + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Convert `Rc<impl MutAndRef>` to `Rc<DynMutAndRef>`."]
         pub const fn from_rc(value: _Rc<impl MutAndRef + 'dynosaur_struct>)
             -> _Rc<DynMutAndRef<'dynosaur_struct>> {
             let value: _Rc<dyn ErasedMutAndRef + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Convert `&impl MutAndRef` to `&DynMutAndRef`."]
         pub const fn from_ref(value: &(impl MutAndRef + 'dynosaur_struct))
             -> &DynMutAndRef<'dynosaur_struct> {
             let value: &(dyn ErasedMutAndRef + 'dynosaur_struct) = &*value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Convert `&mut impl MutAndRef` to `&mut DynMutAndRef`."]
         pub const fn from_mut(value: &mut (impl MutAndRef + 'dynosaur_struct))
             -> &mut DynMutAndRef<'dynosaur_struct> {
             let value: &mut (dyn ErasedMutAndRef + 'dynosaur_struct) =
@@ -212,6 +236,7 @@ mod __dynosaur_macro_dynall {
             _Box::new(<Self as All>::ref_(self))
         }
     }
+    #[doc = "Dyn-compatible wrapper for [`All`]."]
     #[repr(transparent)]
     pub struct DynAll<'dynosaur_struct> {
         ptr: dyn ErasedAll + 'dynosaur_struct,
@@ -226,44 +251,52 @@ mod __dynosaur_macro_dynall {
         }
     }
     impl<'dynosaur_struct> DynAll<'dynosaur_struct> {
+        #[doc = "Create `Box<DynAll>` from a value implementing [`All`]."]
         pub fn new_box(value: impl All + 'dynosaur_struct)
             -> _Box<DynAll<'dynosaur_struct>> {
             let value = _Box::new(value);
             let value: _Box<dyn ErasedAll + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Create `Arc<DynAll>` from a value implementing [`All`]."]
         pub fn new_arc(value: impl All + 'dynosaur_struct)
             -> _Arc<DynAll<'dynosaur_struct>> {
             let value = _Arc::new(value);
             let value: _Arc<dyn ErasedAll + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Create `Rc<DynAll>` from a value implementing [`All`]."]
         pub fn new_rc(value: impl All + 'dynosaur_struct)
             -> _Rc<DynAll<'dynosaur_struct>> {
             let value = _Rc::new(value);
             let value: _Rc<dyn ErasedAll + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Convert `Box<impl All>` to `Box<DynAll>`."]
         pub const fn from_box(value: _Box<impl All + 'dynosaur_struct>)
             -> _Box<DynAll<'dynosaur_struct>> {
             let value: _Box<dyn ErasedAll + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Convert `Arc<impl All>` to `Arc<DynAll>`."]
         pub const fn from_arc(value: _Arc<impl All + 'dynosaur_struct>)
             -> _Arc<DynAll<'dynosaur_struct>> {
             let value: _Arc<dyn ErasedAll + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Convert `Rc<impl All>` to `Rc<DynAll>`."]
         pub const fn from_rc(value: _Rc<impl All + 'dynosaur_struct>)
             -> _Rc<DynAll<'dynosaur_struct>> {
             let value: _Rc<dyn ErasedAll + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Convert `&impl All` to `&DynAll`."]
         pub const fn from_ref(value: &(impl All + 'dynosaur_struct))
             -> &DynAll<'dynosaur_struct> {
             let value: &(dyn ErasedAll + 'dynosaur_struct) = &*value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Convert `&mut impl All` to `&mut DynAll`."]
         pub const fn from_mut(value: &mut (impl All + 'dynosaur_struct))
             -> &mut DynAll<'dynosaur_struct> {
             let value: &mut (dyn ErasedAll + 'dynosaur_struct) = &mut *value;

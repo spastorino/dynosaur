@@ -35,6 +35,7 @@ mod __dynosaur_macro_dynsometrait {
                     __dynosaur_arg2))
         }
     }
+    #[doc = "Dyn-compatible wrapper for [`SomeTrait`]."]
     #[repr(transparent)]
     pub struct DynSomeTrait<'dynosaur_struct> {
         ptr: dyn ErasedSomeTrait + 'dynosaur_struct,
@@ -54,44 +55,55 @@ mod __dynosaur_macro_dynsometrait {
         }
     }
     impl<'dynosaur_struct> DynSomeTrait<'dynosaur_struct> {
+        #[doc =
+        "Create `Box<DynSomeTrait>` from a value implementing [`SomeTrait`]."]
         pub fn new_box(value: impl SomeTrait + 'dynosaur_struct)
             -> _Box<DynSomeTrait<'dynosaur_struct>> {
             let value = _Box::new(value);
             let value: _Box<dyn ErasedSomeTrait + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc =
+        "Create `Arc<DynSomeTrait>` from a value implementing [`SomeTrait`]."]
         pub fn new_arc(value: impl SomeTrait + 'dynosaur_struct)
             -> _Arc<DynSomeTrait<'dynosaur_struct>> {
             let value = _Arc::new(value);
             let value: _Arc<dyn ErasedSomeTrait + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc =
+        "Create `Rc<DynSomeTrait>` from a value implementing [`SomeTrait`]."]
         pub fn new_rc(value: impl SomeTrait + 'dynosaur_struct)
             -> _Rc<DynSomeTrait<'dynosaur_struct>> {
             let value = _Rc::new(value);
             let value: _Rc<dyn ErasedSomeTrait + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Convert `Box<impl SomeTrait>` to `Box<DynSomeTrait>`."]
         pub const fn from_box(value: _Box<impl SomeTrait + 'dynosaur_struct>)
             -> _Box<DynSomeTrait<'dynosaur_struct>> {
             let value: _Box<dyn ErasedSomeTrait + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Convert `Arc<impl SomeTrait>` to `Arc<DynSomeTrait>`."]
         pub const fn from_arc(value: _Arc<impl SomeTrait + 'dynosaur_struct>)
             -> _Arc<DynSomeTrait<'dynosaur_struct>> {
             let value: _Arc<dyn ErasedSomeTrait + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Convert `Rc<impl SomeTrait>` to `Rc<DynSomeTrait>`."]
         pub const fn from_rc(value: _Rc<impl SomeTrait + 'dynosaur_struct>)
             -> _Rc<DynSomeTrait<'dynosaur_struct>> {
             let value: _Rc<dyn ErasedSomeTrait + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Convert `&impl SomeTrait` to `&DynSomeTrait`."]
         pub const fn from_ref(value: &(impl SomeTrait + 'dynosaur_struct))
             -> &DynSomeTrait<'dynosaur_struct> {
             let value: &(dyn ErasedSomeTrait + 'dynosaur_struct) = &*value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Convert `&mut impl SomeTrait` to `&mut DynSomeTrait`."]
         pub const fn from_mut(value: &mut (impl SomeTrait + 'dynosaur_struct))
             -> &mut DynSomeTrait<'dynosaur_struct> {
             let value: &mut (dyn ErasedSomeTrait + 'dynosaur_struct) =
