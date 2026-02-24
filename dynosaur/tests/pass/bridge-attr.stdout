@@ -8,13 +8,14 @@ trait NextNone {
     -> Option<Self::Item>;
 }
 mod __dynosaur_macro_dynnextnone {
+    extern crate alloc as __dynosaur_alloc;
     use super::*;
     trait ErasedNextNone {
         type Item;
         fn next<'life0, 'dynosaur>(&'life0 mut self)
         ->
-            ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
-            Option<Self::Item>> + 'dynosaur>>
+            ::core::pin::Pin<__dynosaur_alloc::boxed::Box<dyn ::core::future::Future<Output
+            = Option<Self::Item>> + 'dynosaur>>
         where
         'life0: 'dynosaur,
         Self: 'dynosaur;
@@ -23,10 +24,10 @@ mod __dynosaur_macro_dynnextnone {
         type Item = <Self as NextNone>::Item;
         fn next<'life0, 'dynosaur>(&'life0 mut self)
             ->
-                ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
-                Option<Self::Item>> + 'dynosaur>> where 'life0: 'dynosaur,
+                ::core::pin::Pin<__dynosaur_alloc::boxed::Box<dyn ::core::future::Future<Output
+                = Option<Self::Item>> + 'dynosaur>> where 'life0: 'dynosaur,
             Self: 'dynosaur {
-            Box::pin(<Self as NextNone>::next(self))
+            __dynosaur_alloc::boxed::Box::pin(<Self as NextNone>::next(self))
         }
     }
     #[repr(transparent)]
@@ -39,46 +40,53 @@ mod __dynosaur_macro_dynnextnone {
         fn next(&mut self)
             -> impl ::core::future::Future<Output = Option<Self::Item>> {
             let ret:
-                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
-                    Option<Self::Item>> + '_>> = self.ptr.next();
+                    ::core::pin::Pin<__dynosaur_alloc::boxed::Box<dyn ::core::future::Future<Output
+                    = Option<Self::Item>> + '_>> = self.ptr.next();
             let ret:
-                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
-                    Option<Self::Item>> + 'static>> =
+                    ::core::pin::Pin<__dynosaur_alloc::boxed::Box<dyn ::core::future::Future<Output
+                    = Option<Self::Item>> + 'static>> =
                 unsafe { ::core::mem::transmute(ret) };
             ret
         }
     }
     impl<'dynosaur_struct, Item> DynNextNone<'dynosaur_struct, Item> {
         pub fn new_box(value: impl NextNone<Item = Item> + 'dynosaur_struct)
-            -> Box<DynNextNone<'dynosaur_struct, Item>> {
-            let value = Box::new(value);
+            ->
+                __dynosaur_alloc::boxed::Box<DynNextNone<'dynosaur_struct,
+                Item>> {
+            let value = __dynosaur_alloc::boxed::Box::new(value);
             let value:
-                    Box<dyn ErasedNextNone<Item = Item> + 'dynosaur_struct> =
-                value;
+                    __dynosaur_alloc::boxed::Box<dyn ErasedNextNone<Item =
+                    Item> + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
         pub fn new_arc(value: impl NextNone<Item = Item> + 'dynosaur_struct)
-            -> std::sync::Arc<DynNextNone<'dynosaur_struct, Item>> {
-            let value = std::sync::Arc::new(value);
+            ->
+                __dynosaur_alloc::sync::Arc<DynNextNone<'dynosaur_struct,
+                Item>> {
+            let value = __dynosaur_alloc::sync::Arc::new(value);
             let value:
-                    std::sync::Arc<dyn ErasedNextNone<Item = Item> +
-                    'dynosaur_struct> = value;
+                    __dynosaur_alloc::sync::Arc<dyn ErasedNextNone<Item =
+                    Item> + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
         pub fn new_rc(value: impl NextNone<Item = Item> + 'dynosaur_struct)
-            -> std::rc::Rc<DynNextNone<'dynosaur_struct, Item>> {
-            let value = std::rc::Rc::new(value);
+            -> __dynosaur_alloc::rc::Rc<DynNextNone<'dynosaur_struct, Item>> {
+            let value = __dynosaur_alloc::rc::Rc::new(value);
             let value:
-                    std::rc::Rc<dyn ErasedNextNone<Item = Item> +
+                    __dynosaur_alloc::rc::Rc<dyn ErasedNextNone<Item = Item> +
                     'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
         pub const fn from_box(value:
-                Box<impl NextNone<Item = Item> + 'dynosaur_struct>)
-            -> Box<DynNextNone<'dynosaur_struct, Item>> {
+                __dynosaur_alloc::boxed::Box<impl NextNone<Item = Item> +
+                'dynosaur_struct>)
+            ->
+                __dynosaur_alloc::boxed::Box<DynNextNone<'dynosaur_struct,
+                Item>> {
             let value:
-                    Box<dyn ErasedNextNone<Item = Item> + 'dynosaur_struct> =
-                value;
+                    __dynosaur_alloc::boxed::Box<dyn ErasedNextNone<Item =
+                    Item> + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
         pub const fn from_ref(value:
@@ -106,13 +114,14 @@ trait NextDefault {
     -> Option<Self::Item>;
 }
 mod __dynosaur_macro_dynnextdefault {
+    extern crate alloc as __dynosaur_alloc;
     use super::*;
     trait ErasedNextDefault {
         type Item;
         fn next<'life0, 'dynosaur>(&'life0 mut self)
         ->
-            ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
-            Option<Self::Item>> + 'dynosaur>>
+            ::core::pin::Pin<__dynosaur_alloc::boxed::Box<dyn ::core::future::Future<Output
+            = Option<Self::Item>> + 'dynosaur>>
         where
         'life0: 'dynosaur,
         Self: 'dynosaur;
@@ -121,10 +130,11 @@ mod __dynosaur_macro_dynnextdefault {
         type Item = <Self as NextDefault>::Item;
         fn next<'life0, 'dynosaur>(&'life0 mut self)
             ->
-                ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
-                Option<Self::Item>> + 'dynosaur>> where 'life0: 'dynosaur,
+                ::core::pin::Pin<__dynosaur_alloc::boxed::Box<dyn ::core::future::Future<Output
+                = Option<Self::Item>> + 'dynosaur>> where 'life0: 'dynosaur,
             Self: 'dynosaur {
-            Box::pin(<Self as NextDefault>::next(self))
+            __dynosaur_alloc::boxed::Box::pin(<Self as
+                        NextDefault>::next(self))
         }
     }
     #[repr(transparent)]
@@ -137,11 +147,11 @@ mod __dynosaur_macro_dynnextdefault {
         fn next(&mut self)
             -> impl ::core::future::Future<Output = Option<Self::Item>> {
             let ret:
-                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
-                    Option<Self::Item>> + '_>> = self.ptr.next();
+                    ::core::pin::Pin<__dynosaur_alloc::boxed::Box<dyn ::core::future::Future<Output
+                    = Option<Self::Item>> + '_>> = self.ptr.next();
             let ret:
-                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
-                    Option<Self::Item>> + 'static>> =
+                    ::core::pin::Pin<__dynosaur_alloc::boxed::Box<dyn ::core::future::Future<Output
+                    = Option<Self::Item>> + 'static>> =
                 unsafe { ::core::mem::transmute(ret) };
             ret
         }
@@ -149,36 +159,45 @@ mod __dynosaur_macro_dynnextdefault {
     impl<'dynosaur_struct, Item> DynNextDefault<'dynosaur_struct, Item> {
         pub fn new_box(value:
                 impl NextDefault<Item = Item> + 'dynosaur_struct)
-            -> Box<DynNextDefault<'dynosaur_struct, Item>> {
-            let value = Box::new(value);
+            ->
+                __dynosaur_alloc::boxed::Box<DynNextDefault<'dynosaur_struct,
+                Item>> {
+            let value = __dynosaur_alloc::boxed::Box::new(value);
             let value:
-                    Box<dyn ErasedNextDefault<Item = Item> + 'dynosaur_struct> =
-                value;
+                    __dynosaur_alloc::boxed::Box<dyn ErasedNextDefault<Item =
+                    Item> + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
         pub fn new_arc(value:
                 impl NextDefault<Item = Item> + 'dynosaur_struct)
-            -> std::sync::Arc<DynNextDefault<'dynosaur_struct, Item>> {
-            let value = std::sync::Arc::new(value);
+            ->
+                __dynosaur_alloc::sync::Arc<DynNextDefault<'dynosaur_struct,
+                Item>> {
+            let value = __dynosaur_alloc::sync::Arc::new(value);
             let value:
-                    std::sync::Arc<dyn ErasedNextDefault<Item = Item> +
-                    'dynosaur_struct> = value;
+                    __dynosaur_alloc::sync::Arc<dyn ErasedNextDefault<Item =
+                    Item> + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
         pub fn new_rc(value: impl NextDefault<Item = Item> + 'dynosaur_struct)
-            -> std::rc::Rc<DynNextDefault<'dynosaur_struct, Item>> {
-            let value = std::rc::Rc::new(value);
+            ->
+                __dynosaur_alloc::rc::Rc<DynNextDefault<'dynosaur_struct,
+                Item>> {
+            let value = __dynosaur_alloc::rc::Rc::new(value);
             let value:
-                    std::rc::Rc<dyn ErasedNextDefault<Item = Item> +
-                    'dynosaur_struct> = value;
+                    __dynosaur_alloc::rc::Rc<dyn ErasedNextDefault<Item =
+                    Item> + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
         pub const fn from_box(value:
-                Box<impl NextDefault<Item = Item> + 'dynosaur_struct>)
-            -> Box<DynNextDefault<'dynosaur_struct, Item>> {
+                __dynosaur_alloc::boxed::Box<impl NextDefault<Item = Item> +
+                'dynosaur_struct>)
+            ->
+                __dynosaur_alloc::boxed::Box<DynNextDefault<'dynosaur_struct,
+                Item>> {
             let value:
-                    Box<dyn ErasedNextDefault<Item = Item> + 'dynosaur_struct> =
-                value;
+                    __dynosaur_alloc::boxed::Box<dyn ErasedNextDefault<Item =
+                    Item> + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
         pub const fn from_ref(value:
@@ -206,8 +225,8 @@ mod __dynosaur_macro_dynnextdefault {
             <DYNOSAUR as NextDefault>::next(self)
         }
     }
-    impl<DYNOSAUR: NextDefault> NextDefault for Box<DYNOSAUR> where
-        DYNOSAUR: ?Sized {
+    impl<DYNOSAUR: NextDefault> NextDefault for
+        __dynosaur_alloc::boxed::Box<DYNOSAUR> where DYNOSAUR: ?Sized {
         type Item = <DYNOSAUR as NextDefault>::Item;
         fn next(&mut self)
             -> impl ::core::future::Future<Output = Option<Self::Item>> {
@@ -223,13 +242,14 @@ trait NextDyn {
     -> Option<Self::Item>;
 }
 mod __dynosaur_macro_dynnextdyn {
+    extern crate alloc as __dynosaur_alloc;
     use super::*;
     trait ErasedNextDyn {
         type Item;
         fn next<'life0, 'dynosaur>(&'life0 mut self)
         ->
-            ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
-            Option<Self::Item>> + 'dynosaur>>
+            ::core::pin::Pin<__dynosaur_alloc::boxed::Box<dyn ::core::future::Future<Output
+            = Option<Self::Item>> + 'dynosaur>>
         where
         'life0: 'dynosaur,
         Self: 'dynosaur;
@@ -238,10 +258,10 @@ mod __dynosaur_macro_dynnextdyn {
         type Item = <Self as NextDyn>::Item;
         fn next<'life0, 'dynosaur>(&'life0 mut self)
             ->
-                ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
-                Option<Self::Item>> + 'dynosaur>> where 'life0: 'dynosaur,
+                ::core::pin::Pin<__dynosaur_alloc::boxed::Box<dyn ::core::future::Future<Output
+                = Option<Self::Item>> + 'dynosaur>> where 'life0: 'dynosaur,
             Self: 'dynosaur {
-            Box::pin(<Self as NextDyn>::next(self))
+            __dynosaur_alloc::boxed::Box::pin(<Self as NextDyn>::next(self))
         }
     }
     #[repr(transparent)]
@@ -254,46 +274,53 @@ mod __dynosaur_macro_dynnextdyn {
         fn next(&mut self)
             -> impl ::core::future::Future<Output = Option<Self::Item>> {
             let ret:
-                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
-                    Option<Self::Item>> + '_>> = self.ptr.next();
+                    ::core::pin::Pin<__dynosaur_alloc::boxed::Box<dyn ::core::future::Future<Output
+                    = Option<Self::Item>> + '_>> = self.ptr.next();
             let ret:
-                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
-                    Option<Self::Item>> + 'static>> =
+                    ::core::pin::Pin<__dynosaur_alloc::boxed::Box<dyn ::core::future::Future<Output
+                    = Option<Self::Item>> + 'static>> =
                 unsafe { ::core::mem::transmute(ret) };
             ret
         }
     }
     impl<'dynosaur_struct, Item> DynNextDyn<'dynosaur_struct, Item> {
         pub fn new_box(value: impl NextDyn<Item = Item> + 'dynosaur_struct)
-            -> Box<DynNextDyn<'dynosaur_struct, Item>> {
-            let value = Box::new(value);
+            ->
+                __dynosaur_alloc::boxed::Box<DynNextDyn<'dynosaur_struct,
+                Item>> {
+            let value = __dynosaur_alloc::boxed::Box::new(value);
             let value:
-                    Box<dyn ErasedNextDyn<Item = Item> + 'dynosaur_struct> =
-                value;
+                    __dynosaur_alloc::boxed::Box<dyn ErasedNextDyn<Item =
+                    Item> + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
         pub fn new_arc(value: impl NextDyn<Item = Item> + 'dynosaur_struct)
-            -> std::sync::Arc<DynNextDyn<'dynosaur_struct, Item>> {
-            let value = std::sync::Arc::new(value);
+            ->
+                __dynosaur_alloc::sync::Arc<DynNextDyn<'dynosaur_struct,
+                Item>> {
+            let value = __dynosaur_alloc::sync::Arc::new(value);
             let value:
-                    std::sync::Arc<dyn ErasedNextDyn<Item = Item> +
+                    __dynosaur_alloc::sync::Arc<dyn ErasedNextDyn<Item = Item> +
                     'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
         pub fn new_rc(value: impl NextDyn<Item = Item> + 'dynosaur_struct)
-            -> std::rc::Rc<DynNextDyn<'dynosaur_struct, Item>> {
-            let value = std::rc::Rc::new(value);
+            -> __dynosaur_alloc::rc::Rc<DynNextDyn<'dynosaur_struct, Item>> {
+            let value = __dynosaur_alloc::rc::Rc::new(value);
             let value:
-                    std::rc::Rc<dyn ErasedNextDyn<Item = Item> +
+                    __dynosaur_alloc::rc::Rc<dyn ErasedNextDyn<Item = Item> +
                     'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
         pub const fn from_box(value:
-                Box<impl NextDyn<Item = Item> + 'dynosaur_struct>)
-            -> Box<DynNextDyn<'dynosaur_struct, Item>> {
+                __dynosaur_alloc::boxed::Box<impl NextDyn<Item = Item> +
+                'dynosaur_struct>)
+            ->
+                __dynosaur_alloc::boxed::Box<DynNextDyn<'dynosaur_struct,
+                Item>> {
             let value:
-                    Box<dyn ErasedNextDyn<Item = Item> + 'dynosaur_struct> =
-                value;
+                    __dynosaur_alloc::boxed::Box<dyn ErasedNextDyn<Item =
+                    Item> + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
         pub const fn from_ref(value:
@@ -321,7 +348,7 @@ mod __dynosaur_macro_dynnextdyn {
         }
     }
     impl<'dynosaur_struct, Item> NextDyn for
-        Box<DynNextDyn<'dynosaur_struct, Item>> {
+        __dynosaur_alloc::boxed::Box<DynNextDyn<'dynosaur_struct, Item>> {
         type Item = Item;
         fn next(&mut self)
             -> impl ::core::future::Future<Output = Option<Self::Item>> {

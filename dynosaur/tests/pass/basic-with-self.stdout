@@ -10,13 +10,14 @@ trait MyTrait {
     -> Self::Item;
 }
 mod __dynosaur_macro_dynmytrait {
+    extern crate alloc as __dynosaur_alloc;
     use super::*;
     trait ErasedMyTrait {
         type Item;
         fn foo<'life0, 'dynosaur>(&'life0 self)
         ->
-            ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
-            Self::Item> + 'dynosaur>>
+            ::core::pin::Pin<__dynosaur_alloc::boxed::Box<dyn ::core::future::Future<Output
+            = Self::Item> + 'dynosaur>>
         where
         'life0: 'dynosaur,
         Self: 'dynosaur;
@@ -25,10 +26,10 @@ mod __dynosaur_macro_dynmytrait {
         type Item = <Self as MyTrait>::Item;
         fn foo<'life0, 'dynosaur>(&'life0 self)
             ->
-                ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
-                Self::Item> + 'dynosaur>> where 'life0: 'dynosaur,
+                ::core::pin::Pin<__dynosaur_alloc::boxed::Box<dyn ::core::future::Future<Output
+                = Self::Item> + 'dynosaur>> where 'life0: 'dynosaur,
             Self: 'dynosaur {
-            Box::pin(<Self as MyTrait>::foo(self))
+            __dynosaur_alloc::boxed::Box::pin(<Self as MyTrait>::foo(self))
         }
     }
     #[repr(transparent)]
@@ -40,46 +41,53 @@ mod __dynosaur_macro_dynmytrait {
         type Item = Item;
         fn foo(&self) -> impl ::core::future::Future<Output = Self::Item> {
             let ret:
-                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
-                    Self::Item> + '_>> = self.ptr.foo();
+                    ::core::pin::Pin<__dynosaur_alloc::boxed::Box<dyn ::core::future::Future<Output
+                    = Self::Item> + '_>> = self.ptr.foo();
             let ret:
-                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
-                    Self::Item> + 'static>> =
+                    ::core::pin::Pin<__dynosaur_alloc::boxed::Box<dyn ::core::future::Future<Output
+                    = Self::Item> + 'static>> =
                 unsafe { ::core::mem::transmute(ret) };
             ret
         }
     }
     impl<'dynosaur_struct, Item> DynMyTrait<'dynosaur_struct, Item> {
         pub fn new_box(value: impl MyTrait<Item = Item> + 'dynosaur_struct)
-            -> Box<DynMyTrait<'dynosaur_struct, Item>> {
-            let value = Box::new(value);
+            ->
+                __dynosaur_alloc::boxed::Box<DynMyTrait<'dynosaur_struct,
+                Item>> {
+            let value = __dynosaur_alloc::boxed::Box::new(value);
             let value:
-                    Box<dyn ErasedMyTrait<Item = Item> + 'dynosaur_struct> =
-                value;
+                    __dynosaur_alloc::boxed::Box<dyn ErasedMyTrait<Item =
+                    Item> + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
         pub fn new_arc(value: impl MyTrait<Item = Item> + 'dynosaur_struct)
-            -> std::sync::Arc<DynMyTrait<'dynosaur_struct, Item>> {
-            let value = std::sync::Arc::new(value);
+            ->
+                __dynosaur_alloc::sync::Arc<DynMyTrait<'dynosaur_struct,
+                Item>> {
+            let value = __dynosaur_alloc::sync::Arc::new(value);
             let value:
-                    std::sync::Arc<dyn ErasedMyTrait<Item = Item> +
+                    __dynosaur_alloc::sync::Arc<dyn ErasedMyTrait<Item = Item> +
                     'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
         pub fn new_rc(value: impl MyTrait<Item = Item> + 'dynosaur_struct)
-            -> std::rc::Rc<DynMyTrait<'dynosaur_struct, Item>> {
-            let value = std::rc::Rc::new(value);
+            -> __dynosaur_alloc::rc::Rc<DynMyTrait<'dynosaur_struct, Item>> {
+            let value = __dynosaur_alloc::rc::Rc::new(value);
             let value:
-                    std::rc::Rc<dyn ErasedMyTrait<Item = Item> +
+                    __dynosaur_alloc::rc::Rc<dyn ErasedMyTrait<Item = Item> +
                     'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
         pub const fn from_box(value:
-                Box<impl MyTrait<Item = Item> + 'dynosaur_struct>)
-            -> Box<DynMyTrait<'dynosaur_struct, Item>> {
+                __dynosaur_alloc::boxed::Box<impl MyTrait<Item = Item> +
+                'dynosaur_struct>)
+            ->
+                __dynosaur_alloc::boxed::Box<DynMyTrait<'dynosaur_struct,
+                Item>> {
             let value:
-                    Box<dyn ErasedMyTrait<Item = Item> + 'dynosaur_struct> =
-                value;
+                    __dynosaur_alloc::boxed::Box<dyn ErasedMyTrait<Item =
+                    Item> + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
         pub const fn from_ref(value:
@@ -110,7 +118,8 @@ mod __dynosaur_macro_dynmytrait {
             <DYNOSAUR as MyTrait>::foo(self)
         }
     }
-    impl<DYNOSAUR: MyTrait> MyTrait for Box<DYNOSAUR> where DYNOSAUR: ?Sized {
+    impl<DYNOSAUR: MyTrait> MyTrait for __dynosaur_alloc::boxed::Box<DYNOSAUR>
+        where DYNOSAUR: ?Sized {
         type Item = <DYNOSAUR as MyTrait>::Item;
         fn foo(&self) -> impl ::core::future::Future<Output = Self::Item> {
             <DYNOSAUR as MyTrait>::foo(self)

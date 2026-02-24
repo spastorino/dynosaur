@@ -11,12 +11,13 @@ trait MyTrait {
     async fn bar(&mut self);
 }
 mod __dynosaur_macro_dynmytrait {
+    extern crate alloc as __dynosaur_alloc;
     use super::*;
     trait ErasedMyTrait {
         fn bar<'life0, 'dynosaur>(&'life0 mut self)
         ->
-            ::core::pin::Pin<Box<dyn ::core::future::Future<Output = ()> +
-            'dynosaur>>
+            ::core::pin::Pin<__dynosaur_alloc::boxed::Box<dyn ::core::future::Future<Output
+            = ()> + 'dynosaur>>
         where
         'life0: 'dynosaur,
         Self: 'dynosaur;
@@ -32,38 +33,45 @@ mod __dynosaur_macro_dynmytrait {
         }
         fn bar(&mut self) -> impl ::core::future::Future<Output = ()> {
             let ret:
-                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
-                    ()> + '_>> = self.ptr.bar();
+                    ::core::pin::Pin<__dynosaur_alloc::boxed::Box<dyn ::core::future::Future<Output
+                    = ()> + '_>> = self.ptr.bar();
             let ret:
-                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
-                    ()> + 'static>> = unsafe { ::core::mem::transmute(ret) };
+                    ::core::pin::Pin<__dynosaur_alloc::boxed::Box<dyn ::core::future::Future<Output
+                    = ()> + 'static>> = unsafe { ::core::mem::transmute(ret) };
             ret
         }
     }
     impl<'dynosaur_struct> DynMyTrait<'dynosaur_struct> {
         pub fn new_box(value: impl MyTrait + 'dynosaur_struct)
-            -> Box<DynMyTrait<'dynosaur_struct>> {
-            let value = Box::new(value);
-            let value: Box<dyn ErasedMyTrait + 'dynosaur_struct> = value;
+            -> __dynosaur_alloc::boxed::Box<DynMyTrait<'dynosaur_struct>> {
+            let value = __dynosaur_alloc::boxed::Box::new(value);
+            let value:
+                    __dynosaur_alloc::boxed::Box<dyn ErasedMyTrait +
+                    'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
         pub fn new_arc(value: impl MyTrait + 'dynosaur_struct)
-            -> std::sync::Arc<DynMyTrait<'dynosaur_struct>> {
-            let value = std::sync::Arc::new(value);
-            let value: std::sync::Arc<dyn ErasedMyTrait + 'dynosaur_struct> =
-                value;
+            -> __dynosaur_alloc::sync::Arc<DynMyTrait<'dynosaur_struct>> {
+            let value = __dynosaur_alloc::sync::Arc::new(value);
+            let value:
+                    __dynosaur_alloc::sync::Arc<dyn ErasedMyTrait +
+                    'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
         pub fn new_rc(value: impl MyTrait + 'dynosaur_struct)
-            -> std::rc::Rc<DynMyTrait<'dynosaur_struct>> {
-            let value = std::rc::Rc::new(value);
-            let value: std::rc::Rc<dyn ErasedMyTrait + 'dynosaur_struct> =
-                value;
+            -> __dynosaur_alloc::rc::Rc<DynMyTrait<'dynosaur_struct>> {
+            let value = __dynosaur_alloc::rc::Rc::new(value);
+            let value:
+                    __dynosaur_alloc::rc::Rc<dyn ErasedMyTrait +
+                    'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
-        pub const fn from_box(value: Box<impl MyTrait + 'dynosaur_struct>)
-            -> Box<DynMyTrait<'dynosaur_struct>> {
-            let value: Box<dyn ErasedMyTrait + 'dynosaur_struct> = value;
+        pub const fn from_box(value:
+                __dynosaur_alloc::boxed::Box<impl MyTrait + 'dynosaur_struct>)
+            -> __dynosaur_alloc::boxed::Box<DynMyTrait<'dynosaur_struct>> {
+            let value:
+                    __dynosaur_alloc::boxed::Box<dyn ErasedMyTrait +
+                    'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
         pub const fn from_ref(value: &(impl MyTrait + 'dynosaur_struct))
@@ -86,7 +94,8 @@ mod __dynosaur_macro_dynmytrait {
             <DYNOSAUR as MyTrait>::bar(self)
         }
     }
-    impl<DYNOSAUR: MyTrait> MyTrait for Box<DYNOSAUR> where DYNOSAUR: ?Sized {
+    impl<DYNOSAUR: MyTrait> MyTrait for __dynosaur_alloc::boxed::Box<DYNOSAUR>
+        where DYNOSAUR: ?Sized {
         async fn foo(&mut self) where Self: Sized {
             ::core::panicking::panic("internal error: entered unreachable code")
         }
