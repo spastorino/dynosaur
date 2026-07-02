@@ -17,8 +17,9 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           profile: default
-          toolchain: nightly
+          toolchain: nightly-2026-03-31
           override: true
+          components: rustfmt
       - name: Check formatting of all crates in the workspace
         uses: actions-rs/cargo@v1
         with:
