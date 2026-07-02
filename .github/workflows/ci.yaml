@@ -17,19 +17,19 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           profile: default
-          toolchain: nightly-2026-03-31
+          toolchain: stable
           override: true
           components: rustfmt
-      - name: Check formatting of all crates in the workspace
+      - name: Check formatting
         uses: actions-rs/cargo@v1
         with:
           command: fmt
           args: --all -- --check
-      - name: Run cargo test --all
+      - name: Run cargo test (excluding golden/ui tests)
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --all --locked
+          args: --workspace --exclude dynosaur_ui_tests --locked
 
   msrv:
     strategy:
@@ -47,3 +47,24 @@ jobs:
         with:
           command: test
           args: --workspace --exclude dynosaur_ui_tests --locked
+
+  ui:
+    strategy:
+      fail-fast: false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read UI toolchain version
+        id: toolchain
+        run: |
+          echo "version=$(cat dynosaur/tests/ui-toolchain.txt)" >> $GITHUB_OUTPUT
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: default
+          toolchain: ${{ steps.toolchain.outputs.version }}
+          override: true
+      - name: Run UI tests
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: -p dynosaur_ui_tests --locked
