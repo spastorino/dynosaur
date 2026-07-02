@@ -13,7 +13,8 @@ documentation = "https://docs.rs/dynosaur"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/spastorino/dynosaur"
 edition = "2021"
-rust-version = "1.75"
+rust-version = "1.84"
+autotests = false
 
 [dependencies]
 dynosaur_derive = { version = "0.3", path = "../dynosaur_derive" }
@@ -21,14 +22,9 @@ dynosaur_derive = { version = "0.3", path = "../dynosaur_derive" }
 [dev-dependencies]
 tokio = { workspace = true }
 trait-variant = { workspace = true }
-ui_test = "0.28"
 
 [[example]]
 name = "next"
 
 [[example]]
 name = "trait_variant"
-
-[[test]]
-name = "ui"
-harness = false

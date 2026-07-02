@@ -45,7 +45,7 @@ fn cfg(path: &Path, mode: Mode) -> Config {
     config.comment_defaults.base().set_custom(
         "dependencies",
         DependencyBuilder {
-            crate_manifest_path: PathBuf::from("tests/Cargo.toml"),
+            crate_manifest_path: PathBuf::from("Cargo.toml"),
             ..DependencyBuilder::default()
         },
     );
@@ -53,7 +53,7 @@ fn cfg(path: &Path, mode: Mode) -> Config {
 }
 
 fn main() -> Result<()> {
-    run_tests(cfg(&Path::new("tests/pass"), Mode::Expand))?;
-    run_tests(cfg(&Path::new("tests/pass"), Mode::Compile))?;
-    run_tests(cfg(&Path::new("tests/fail"), Mode::Panic))
+    run_tests(cfg(&Path::new("pass"), Mode::Expand))?;
+    run_tests(cfg(&Path::new("pass"), Mode::Compile))?;
+    run_tests(cfg(&Path::new("fail"), Mode::Panic))
 }

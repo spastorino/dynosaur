@@ -13,3 +13,11 @@ path = "lib.rs"
 [dependencies]
 dynosaur = { version = "0.3", path = "../" }
 trait-variant = { workspace = true }
+
+[[test]]
+name = "ui"
+path = "ui.rs"
+harness = false
+
+[dev-dependencies]
+ui_test = "0.28"

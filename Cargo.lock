@@ -187,7 +187,6 @@ dependencies = [
  "dynosaur_derive",
  "tokio",
  "trait-variant",
- "ui_test",
 ]
 
 [[package]]
@@ -207,6 +206,7 @@ version = "0.3.0"
 dependencies = [
  "dynosaur",
  "trait-variant",
+ "ui_test",
 ]
 
 [[package]]

@@ -30,3 +30,20 @@ jobs:
         with:
           command: test
           args: --all --locked
+
+  msrv:
+    strategy:
+      fail-fast: false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: default
+          toolchain: 1.84.0
+          override: true
+      - name: Run cargo test (excluding golden/ui tests)
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --workspace --exclude dynosaur_ui_tests --locked
