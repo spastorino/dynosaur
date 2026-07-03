@@ -25,10 +25,13 @@ use syn::{
 /// into:
 ///
 /// ```rust
+/// # extern crate alloc as __dynosaur_alloc;
+/// # use __dynosaur_alloc::boxed::Box as _Box;
+/// # use std::pin::Pin as _Pin;
 /// trait ErasedMyTrait {
 ///     fn foo<'life0, 'dynosaur>(&'life0 self)
 ///     ->
-///         ::core::pin::Pin<Box<dyn ::core::future::Future<Output = i32> +
+///         _Pin<_Box<dyn ::core::future::Future<Output = i32> +
 ///         'dynosaur>>
 ///     where
 ///     'life0: 'dynosaur,
@@ -58,9 +61,9 @@ fn expand_apits(sig: &mut Signature) {
                 let bounds = expand_bounds(&type_impl_trait.bounds, Some(lifetime_ident));
 
                 arg.ty = if is_future(type_impl_trait) {
-                    parse_quote! { ::core::pin::Pin<Box<dyn #bounds>> }
+                    parse_quote! { _Pin<_Box<dyn #bounds>> }
                 } else {
-                    parse_quote! { Box<dyn #bounds> }
+                    parse_quote! { _Box<dyn #bounds> }
                 };
             }
         }
@@ -184,9 +187,9 @@ pub(crate) fn expand_sig_ret_ty(sig: &Signature, lifetime_ident: &str) -> Type {
         let bounds = expand_ret_bounds(sig, Some(lifetime_ident));
 
         if is_async {
-            parse_quote! { ::core::pin::Pin<Box<dyn #bounds>> }
+            parse_quote! { _Pin<_Box<dyn #bounds>> }
         } else {
-            parse_quote! { Box<dyn #bounds> }
+            parse_quote! { _Box<dyn #bounds> }
         }
     } else {
         match &sig.output {
@@ -291,9 +294,9 @@ fn expand_invoke_args(sig: &Signature, mode: &InvokeArgsMode) -> Vec<TokenStream
                     } else {
                         if let Type::ImplTrait(type_impl_trait) = &*pat_type.ty {
                             if is_future(type_impl_trait) {
-                                args.push(quote! { Box::pin(#arg) });
+                                args.push(quote! { _Box::pin(#arg) });
                             } else {
-                                args.push(quote! { Box::new(#arg) });
+                                args.push(quote! { _Box::new(#arg) });
                             }
                         } else {
                             args.push(quote! { #arg });
@@ -330,11 +333,11 @@ pub(crate) fn expand_blanket_impl_fn(item_trait: &ItemTrait, sig: &mut Signature
 
     let value = if is_async {
         quote! {
-            Box::pin(#value)
+            _Box::pin(#value)
         }
     } else if is_rpit {
         quote! {
-            Box::new(#value)
+            _Box::new(#value)
         }
     } else {
         value

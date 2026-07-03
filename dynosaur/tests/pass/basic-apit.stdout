@@ -18,37 +18,40 @@ trait MyTrait {
     -> i32;
 }
 mod __dynosaur_macro_dynmytrait {
+    extern crate alloc as __dynosaur_alloc;
+    use __dynosaur_alloc::boxed::Box as _Box;
+    use __dynosaur_alloc::rc::Rc as _Rc;
+    use __dynosaur_alloc::sync::Arc as _Arc;
+    use ::core::pin::Pin as _Pin;
     use super::*;
     trait ErasedMyTrait {
-        fn foo(&self, __dynosaur_arg1: Box<dyn Foo + '_>)
+        fn foo(&self, __dynosaur_arg1: _Box<dyn Foo + '_>)
         -> i32;
         fn bar<'life0,
-        'dynosaur>(&'life0 self, __dynosaur_arg1: Box<dyn Foo + 'dynosaur>)
-        ->
-            ::core::pin::Pin<Box<dyn ::core::future::Future<Output = i32> +
-            'dynosaur>>
+        'dynosaur>(&'life0 self, __dynosaur_arg1: _Box<dyn Foo + 'dynosaur>)
+        -> _Pin<_Box<dyn ::core::future::Future<Output = i32> + 'dynosaur>>
         where
         'life0: 'dynosaur,
         Self: 'dynosaur;
         fn baz(&self,
-        __dynosaur_arg1: ::core::pin::Pin<Box<dyn Future<Output = i32> + '_>>)
+        __dynosaur_arg1: _Pin<_Box<dyn Future<Output = i32> + '_>>)
         -> i32;
     }
     impl<DYNOSAUR: MyTrait> ErasedMyTrait for DYNOSAUR {
-        fn foo(&self, __dynosaur_arg1: Box<dyn Foo + '_>) -> i32 {
+        fn foo(&self, __dynosaur_arg1: _Box<dyn Foo + '_>) -> i32 {
             <Self as MyTrait>::foo(self, __dynosaur_arg1)
         }
         fn bar<'life0,
             'dynosaur>(&'life0 self,
-            __dynosaur_arg1: Box<dyn Foo + 'dynosaur>)
+            __dynosaur_arg1: _Box<dyn Foo + 'dynosaur>)
             ->
-                ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
-                i32> + 'dynosaur>> where 'life0: 'dynosaur, Self: 'dynosaur {
-            Box::pin(<Self as MyTrait>::bar(self, __dynosaur_arg1))
+                _Pin<_Box<dyn ::core::future::Future<Output = i32> +
+                'dynosaur>> where 'life0: 'dynosaur, Self: 'dynosaur {
+            _Box::pin(<Self as MyTrait>::bar(self, __dynosaur_arg1))
         }
         fn baz(&self,
-            __dynosaur_arg1:
-                ::core::pin::Pin<Box<dyn Future<Output = i32> + '_>>) -> i32 {
+            __dynosaur_arg1: _Pin<_Box<dyn Future<Output = i32> + '_>>)
+            -> i32 {
             <Self as MyTrait>::baz(self, __dynosaur_arg1)
         }
     }
@@ -58,46 +61,44 @@ mod __dynosaur_macro_dynmytrait {
     }
     impl<'dynosaur_struct> MyTrait for DynMyTrait<'dynosaur_struct> {
         fn foo(&self, __dynosaur_arg1: impl Foo) -> i32 {
-            self.ptr.foo(Box::new(__dynosaur_arg1))
+            self.ptr.foo(_Box::new(__dynosaur_arg1))
         }
         fn bar(&self, __dynosaur_arg1: impl Foo)
             -> impl ::core::future::Future<Output = i32> {
             let ret:
-                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
-                    i32> + '_>> = self.ptr.bar(Box::new(__dynosaur_arg1));
+                    _Pin<_Box<dyn ::core::future::Future<Output = i32> + '_>> =
+                self.ptr.bar(_Box::new(__dynosaur_arg1));
             let ret:
-                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
-                    i32> + 'static>> = unsafe { ::core::mem::transmute(ret) };
+                    _Pin<_Box<dyn ::core::future::Future<Output = i32> +
+                    'static>> = unsafe { ::core::mem::transmute(ret) };
             ret
         }
         fn baz(&self, __dynosaur_arg1: impl Future<Output = i32>) -> i32 {
-            self.ptr.baz(Box::pin(__dynosaur_arg1))
+            self.ptr.baz(_Box::pin(__dynosaur_arg1))
         }
     }
     impl<'dynosaur_struct> DynMyTrait<'dynosaur_struct> {
         pub fn new_box(value: impl MyTrait + 'dynosaur_struct)
-            -> Box<DynMyTrait<'dynosaur_struct>> {
-            let value = Box::new(value);
-            let value: Box<dyn ErasedMyTrait + 'dynosaur_struct> = value;
+            -> _Box<DynMyTrait<'dynosaur_struct>> {
+            let value = _Box::new(value);
+            let value: _Box<dyn ErasedMyTrait + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
         pub fn new_arc(value: impl MyTrait + 'dynosaur_struct)
-            -> std::sync::Arc<DynMyTrait<'dynosaur_struct>> {
-            let value = std::sync::Arc::new(value);
-            let value: std::sync::Arc<dyn ErasedMyTrait + 'dynosaur_struct> =
-                value;
+            -> _Arc<DynMyTrait<'dynosaur_struct>> {
+            let value = _Arc::new(value);
+            let value: _Arc<dyn ErasedMyTrait + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
         pub fn new_rc(value: impl MyTrait + 'dynosaur_struct)
-            -> std::rc::Rc<DynMyTrait<'dynosaur_struct>> {
-            let value = std::rc::Rc::new(value);
-            let value: std::rc::Rc<dyn ErasedMyTrait + 'dynosaur_struct> =
-                value;
+            -> _Rc<DynMyTrait<'dynosaur_struct>> {
+            let value = _Rc::new(value);
+            let value: _Rc<dyn ErasedMyTrait + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
-        pub const fn from_box(value: Box<impl MyTrait + 'dynosaur_struct>)
-            -> Box<DynMyTrait<'dynosaur_struct>> {
-            let value: Box<dyn ErasedMyTrait + 'dynosaur_struct> = value;
+        pub const fn from_box(value: _Box<impl MyTrait + 'dynosaur_struct>)
+            -> _Box<DynMyTrait<'dynosaur_struct>> {
+            let value: _Box<dyn ErasedMyTrait + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
         pub const fn from_ref(value: &(impl MyTrait + 'dynosaur_struct))
@@ -136,7 +137,8 @@ mod __dynosaur_macro_dynmytrait {
             <DYNOSAUR as MyTrait>::baz(self, __dynosaur_arg1)
         }
     }
-    impl<DYNOSAUR: MyTrait> MyTrait for Box<DYNOSAUR> where DYNOSAUR: ?Sized {
+    impl<DYNOSAUR: MyTrait> MyTrait for _Box<DYNOSAUR> where DYNOSAUR: ?Sized
+        {
         fn foo(&self, __dynosaur_arg1: impl Foo) -> i32 {
             <DYNOSAUR as MyTrait>::foo(self, __dynosaur_arg1)
         }

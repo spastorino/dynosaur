@@ -10,14 +10,17 @@ pub trait JobQueue {
     async fn dispatch(&self);
 }
 mod __dynosaur_macro_dynjobqueue {
+    extern crate alloc as __dynosaur_alloc;
+    use __dynosaur_alloc::boxed::Box as _Box;
+    use __dynosaur_alloc::rc::Rc as _Rc;
+    use __dynosaur_alloc::sync::Arc as _Arc;
+    use ::core::pin::Pin as _Pin;
     use super::*;
     pub trait ErasedJobQueue {
         fn len(&self)
         -> usize;
         fn dispatch<'life0, 'dynosaur>(&'life0 self)
-        ->
-            ::core::pin::Pin<Box<dyn ::core::future::Future<Output = ()> +
-            'dynosaur>>
+        -> _Pin<_Box<dyn ::core::future::Future<Output = ()> + 'dynosaur>>
         where
         'life0: 'dynosaur,
         Self: 'dynosaur;
@@ -25,10 +28,9 @@ mod __dynosaur_macro_dynjobqueue {
     impl<DYNOSAUR: JobQueue> ErasedJobQueue for DYNOSAUR {
         fn len(&self) -> usize { <Self as JobQueue>::len(self) }
         fn dispatch<'life0, 'dynosaur>(&'life0 self)
-            ->
-                ::core::pin::Pin<Box<dyn ::core::future::Future<Output = ()> +
-                'dynosaur>> where 'life0: 'dynosaur, Self: 'dynosaur {
-            Box::pin(<Self as JobQueue>::dispatch(self))
+            -> _Pin<_Box<dyn ::core::future::Future<Output = ()> + 'dynosaur>>
+            where 'life0: 'dynosaur, Self: 'dynosaur {
+            _Box::pin(<Self as JobQueue>::dispatch(self))
         }
     }
     #[repr(transparent)]
@@ -39,38 +41,36 @@ mod __dynosaur_macro_dynjobqueue {
         fn len(&self) -> usize { self.ptr.len() }
         fn dispatch(&self) -> impl ::core::future::Future<Output = ()> {
             let ret:
-                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
-                    ()> + '_>> = self.ptr.dispatch();
+                    _Pin<_Box<dyn ::core::future::Future<Output = ()> + '_>> =
+                self.ptr.dispatch();
             let ret:
-                    ::core::pin::Pin<Box<dyn ::core::future::Future<Output =
-                    ()> + 'static>> = unsafe { ::core::mem::transmute(ret) };
+                    _Pin<_Box<dyn ::core::future::Future<Output = ()> +
+                    'static>> = unsafe { ::core::mem::transmute(ret) };
             ret
         }
     }
     impl<'dynosaur_struct> DynJobQueue<'dynosaur_struct> {
         pub fn new_box(value: impl JobQueue + 'dynosaur_struct)
-            -> Box<DynJobQueue<'dynosaur_struct>> {
-            let value = Box::new(value);
-            let value: Box<dyn ErasedJobQueue + 'dynosaur_struct> = value;
+            -> _Box<DynJobQueue<'dynosaur_struct>> {
+            let value = _Box::new(value);
+            let value: _Box<dyn ErasedJobQueue + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
         pub fn new_arc(value: impl JobQueue + 'dynosaur_struct)
-            -> std::sync::Arc<DynJobQueue<'dynosaur_struct>> {
-            let value = std::sync::Arc::new(value);
-            let value: std::sync::Arc<dyn ErasedJobQueue + 'dynosaur_struct> =
-                value;
+            -> _Arc<DynJobQueue<'dynosaur_struct>> {
+            let value = _Arc::new(value);
+            let value: _Arc<dyn ErasedJobQueue + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
         pub fn new_rc(value: impl JobQueue + 'dynosaur_struct)
-            -> std::rc::Rc<DynJobQueue<'dynosaur_struct>> {
-            let value = std::rc::Rc::new(value);
-            let value: std::rc::Rc<dyn ErasedJobQueue + 'dynosaur_struct> =
-                value;
+            -> _Rc<DynJobQueue<'dynosaur_struct>> {
+            let value = _Rc::new(value);
+            let value: _Rc<dyn ErasedJobQueue + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
-        pub const fn from_box(value: Box<impl JobQueue + 'dynosaur_struct>)
-            -> Box<DynJobQueue<'dynosaur_struct>> {
-            let value: Box<dyn ErasedJobQueue + 'dynosaur_struct> = value;
+        pub const fn from_box(value: _Box<impl JobQueue + 'dynosaur_struct>)
+            -> _Box<DynJobQueue<'dynosaur_struct>> {
+            let value: _Box<dyn ErasedJobQueue + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
         pub const fn from_ref(value: &(impl JobQueue + 'dynosaur_struct))
@@ -98,8 +98,8 @@ mod __dynosaur_macro_dynjobqueue {
             <DYNOSAUR as JobQueue>::dispatch(self)
         }
     }
-    impl<DYNOSAUR: JobQueue> JobQueue for Box<DYNOSAUR> where DYNOSAUR: ?Sized
-        {
+    impl<DYNOSAUR: JobQueue> JobQueue for _Box<DYNOSAUR> where
+        DYNOSAUR: ?Sized {
         fn len(&self) -> usize { <DYNOSAUR as JobQueue>::len(self) }
         fn dispatch(&self) -> impl ::core::future::Future<Output = ()> {
             <DYNOSAUR as JobQueue>::dispatch(self)

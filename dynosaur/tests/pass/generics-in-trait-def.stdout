@@ -12,13 +12,18 @@ pub trait Service<Request> {
     -> impl Future<Output = Result<Self::Response, Self::Error>>;
 }
 mod __dynosaur_macro_dynservice {
+    extern crate alloc as __dynosaur_alloc;
+    use __dynosaur_alloc::boxed::Box as _Box;
+    use __dynosaur_alloc::rc::Rc as _Rc;
+    use __dynosaur_alloc::sync::Arc as _Arc;
+    use ::core::pin::Pin as _Pin;
     use super::*;
     pub trait ErasedService<Request> {
         type Response;
         type Error;
         fn call<'life0, 'dynosaur>(&'life0 self, req: Request)
         ->
-            ::core::pin::Pin<Box<dyn Future<Output =
+            _Pin<_Box<dyn Future<Output =
             Result<Self::Response, Self::Error>> + 'dynosaur>>
         where
         Request: 'dynosaur,
@@ -31,10 +36,10 @@ mod __dynosaur_macro_dynservice {
         type Error = <Self as Service<Request>>::Error;
         fn call<'life0, 'dynosaur>(&'life0 self, req: Request)
             ->
-                ::core::pin::Pin<Box<dyn Future<Output =
+                _Pin<_Box<dyn Future<Output =
                 Result<Self::Response, Self::Error>> + 'dynosaur>> where
             Request: 'dynosaur, 'life0: 'dynosaur, Self: 'dynosaur {
-            Box::pin(<Self as Service<Request>>::call(self, req))
+            _Box::pin(<Self as Service<Request>>::call(self, req))
         }
     }
     #[repr(transparent)]
@@ -49,11 +54,11 @@ mod __dynosaur_macro_dynservice {
         fn call(&self, req: Request)
             -> impl Future<Output = Result<Self::Response, Self::Error>> {
             let ret:
-                    ::core::pin::Pin<Box<dyn Future<Output =
+                    _Pin<_Box<dyn Future<Output =
                     Result<Self::Response, Self::Error>> + '_>> =
                 self.ptr.call(req);
             let ret:
-                    ::core::pin::Pin<Box<dyn Future<Output =
+                    _Pin<_Box<dyn Future<Output =
                     Result<Self::Response, Self::Error>> + 'static>> =
                 unsafe { ::core::mem::transmute(ret) };
             ret
@@ -64,43 +69,39 @@ mod __dynosaur_macro_dynservice {
         pub fn new_box(value:
                 impl Service<Request, Response = Response, Error = Error> +
                 'dynosaur_struct)
-            -> Box<DynService<'dynosaur_struct, Request, Response, Error>> {
-            let value = Box::new(value);
+            -> _Box<DynService<'dynosaur_struct, Request, Response, Error>> {
+            let value = _Box::new(value);
             let value:
-                    Box<dyn ErasedService<Request, Response = Response, Error =
+                    _Box<dyn ErasedService<Request, Response = Response, Error =
                     Error> + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
         pub fn new_arc(value:
                 impl Service<Request, Response = Response, Error = Error> +
                 'dynosaur_struct)
-            ->
-                std::sync::Arc<DynService<'dynosaur_struct, Request, Response,
-                Error>> {
-            let value = std::sync::Arc::new(value);
+            -> _Arc<DynService<'dynosaur_struct, Request, Response, Error>> {
+            let value = _Arc::new(value);
             let value:
-                    std::sync::Arc<dyn ErasedService<Request, Response =
-                    Response, Error = Error> + 'dynosaur_struct> = value;
+                    _Arc<dyn ErasedService<Request, Response = Response, Error =
+                    Error> + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
         pub fn new_rc(value:
                 impl Service<Request, Response = Response, Error = Error> +
                 'dynosaur_struct)
-            ->
-                std::rc::Rc<DynService<'dynosaur_struct, Request, Response,
-                Error>> {
-            let value = std::rc::Rc::new(value);
+            -> _Rc<DynService<'dynosaur_struct, Request, Response, Error>> {
+            let value = _Rc::new(value);
             let value:
-                    std::rc::Rc<dyn ErasedService<Request, Response = Response,
-                    Error = Error> + 'dynosaur_struct> = value;
+                    _Rc<dyn ErasedService<Request, Response = Response, Error =
+                    Error> + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
         pub const fn from_box(value:
-                Box<impl Service<Request, Response = Response, Error =
+                _Box<impl Service<Request, Response = Response, Error =
                 Error> + 'dynosaur_struct>)
-            -> Box<DynService<'dynosaur_struct, Request, Response, Error>> {
+            -> _Box<DynService<'dynosaur_struct, Request, Response, Error>> {
             let value:
-                    Box<dyn ErasedService<Request, Response = Response, Error =
+                    _Box<dyn ErasedService<Request, Response = Response, Error =
                     Error> + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
@@ -142,7 +143,7 @@ mod __dynosaur_macro_dynservice {
         }
     }
     impl<Request, DYNOSAUR: Service<Request>> Service<Request> for
-        Box<DYNOSAUR> where DYNOSAUR: ?Sized {
+        _Box<DYNOSAUR> where DYNOSAUR: ?Sized {
         type Response = <DYNOSAUR as Service<Request>>::Response;
         type Error = <DYNOSAUR as Service<Request>>::Error;
         fn call(&self, req: Request)
