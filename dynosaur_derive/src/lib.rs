@@ -313,6 +313,10 @@ pub fn dynosaur(
 
         mod #dynosaur_mod {
             extern crate alloc as __dynosaur_alloc;
+            use __dynosaur_alloc::boxed::Box as _Box;
+            use __dynosaur_alloc::rc::Rc as _Rc;
+            use __dynosaur_alloc::sync::Arc as _Arc;
+            use ::core::pin::Pin as _Pin;
             use super::*;
             #erased_trait
             #erased_trait_blanket_impl
@@ -484,26 +488,26 @@ fn mk_struct_inherent_impl(struct_ident: &Ident, item_trait: &ItemTrait) -> Toke
     quote! {
         impl #struct_with_bounds_params #struct_ident #struct_params
         {
-            pub fn new_box(value: impl #trait_ident #trait_params + 'dynosaur_struct) -> __dynosaur_alloc::boxed::Box<#struct_ident #struct_params> {
-                let value = __dynosaur_alloc::boxed::Box::new(value);
-                let value: __dynosaur_alloc::boxed::Box<dyn #erased_trait_ident #trait_params + 'dynosaur_struct> = value;
+            pub fn new_box(value: impl #trait_ident #trait_params + 'dynosaur_struct) -> _Box<#struct_ident #struct_params> {
+                let value = _Box::new(value);
+                let value: _Box<dyn #erased_trait_ident #trait_params + 'dynosaur_struct> = value;
                 unsafe { ::core::mem::transmute(value) }
             }
 
-            pub fn new_arc(value: impl #trait_ident #trait_params + 'dynosaur_struct) -> __dynosaur_alloc::sync::Arc<#struct_ident #struct_params> {
-                let value = __dynosaur_alloc::sync::Arc::new(value);
-                let value: __dynosaur_alloc::sync::Arc<dyn #erased_trait_ident #trait_params + 'dynosaur_struct> = value;
+            pub fn new_arc(value: impl #trait_ident #trait_params + 'dynosaur_struct) -> _Arc<#struct_ident #struct_params> {
+                let value = _Arc::new(value);
+                let value: _Arc<dyn #erased_trait_ident #trait_params + 'dynosaur_struct> = value;
                 unsafe { ::core::mem::transmute(value) }
             }
 
-            pub fn new_rc(value: impl #trait_ident #trait_params + 'dynosaur_struct) -> __dynosaur_alloc::rc::Rc<#struct_ident #struct_params> {
-                let value = __dynosaur_alloc::rc::Rc::new(value);
-                let value: __dynosaur_alloc::rc::Rc<dyn #erased_trait_ident #trait_params + 'dynosaur_struct> = value;
+            pub fn new_rc(value: impl #trait_ident #trait_params + 'dynosaur_struct) -> _Rc<#struct_ident #struct_params> {
+                let value = _Rc::new(value);
+                let value: _Rc<dyn #erased_trait_ident #trait_params + 'dynosaur_struct> = value;
                 unsafe { ::core::mem::transmute(value) }
             }
 
-            pub const fn from_box(value: __dynosaur_alloc::boxed::Box<impl #trait_ident #trait_params + 'dynosaur_struct>) -> __dynosaur_alloc::boxed::Box<#struct_ident #struct_params> {
-                let value: __dynosaur_alloc::boxed::Box<dyn #erased_trait_ident #trait_params + 'dynosaur_struct> = value;
+            pub const fn from_box(value: _Box<impl #trait_ident #trait_params + 'dynosaur_struct>) -> _Box<#struct_ident #struct_params> {
+                let value: _Box<dyn #erased_trait_ident #trait_params + 'dynosaur_struct> = value;
                 unsafe { ::core::mem::transmute(value) }
             }
 
@@ -683,7 +687,7 @@ fn mk_box_blanket_impl(
     if self_receiver.should_gen_box_self() {
         result.extend(
             quote! {
-                impl #blanket_impl_generics #item_trait_ident #trait_generics for __dynosaur_alloc::boxed::Box<#blanket #blanket_params #blanket_where_clause> #where_bounds {
+                impl #blanket_impl_generics #item_trait_ident #trait_generics for _Box<#blanket #blanket_params #blanket_where_clause> #where_bounds {
                     #(#items)*
                 }
             }

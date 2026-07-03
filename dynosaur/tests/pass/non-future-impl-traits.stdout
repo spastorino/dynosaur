@@ -8,21 +8,23 @@ trait SomeTrait {
 }
 mod __dynosaur_macro_dynsometrait {
     extern crate alloc as __dynosaur_alloc;
+    use __dynosaur_alloc::boxed::Box as _Box;
+    use __dynosaur_alloc::rc::Rc as _Rc;
+    use __dynosaur_alloc::sync::Arc as _Arc;
+    use ::core::pin::Pin as _Pin;
     use super::*;
     trait ErasedSomeTrait {
         fn get_iter<'life0, 'dynosaur>(&'life0 mut self)
-        -> __dynosaur_alloc::boxed::Box<dyn Iterator<Item = u8> + 'dynosaur>
+        -> _Box<dyn Iterator<Item = u8> + 'dynosaur>
         where
         'life0: 'dynosaur,
         Self: 'dynosaur;
     }
     impl<DYNOSAUR: SomeTrait> ErasedSomeTrait for DYNOSAUR {
         fn get_iter<'life0, 'dynosaur>(&'life0 mut self)
-            ->
-                __dynosaur_alloc::boxed::Box<dyn Iterator<Item = u8> +
-                'dynosaur> where 'life0: 'dynosaur, Self: 'dynosaur {
-            __dynosaur_alloc::boxed::Box::new(<Self as
-                        SomeTrait>::get_iter(self))
+            -> _Box<dyn Iterator<Item = u8> + 'dynosaur> where
+            'life0: 'dynosaur, Self: 'dynosaur {
+            _Box::new(<Self as SomeTrait>::get_iter(self))
         }
     }
     #[repr(transparent)]
@@ -31,47 +33,34 @@ mod __dynosaur_macro_dynsometrait {
     }
     impl<'dynosaur_struct> SomeTrait for DynSomeTrait<'dynosaur_struct> {
         fn get_iter(&mut self) -> impl Iterator<Item = u8> + '_ {
-            let ret:
-                    __dynosaur_alloc::boxed::Box<dyn Iterator<Item = u8> + '_> =
-                self.ptr.get_iter();
-            let ret:
-                    __dynosaur_alloc::boxed::Box<dyn Iterator<Item = u8> + '_> =
+            let ret: _Box<dyn Iterator<Item = u8> + '_> = self.ptr.get_iter();
+            let ret: _Box<dyn Iterator<Item = u8> + '_> =
                 unsafe { ::core::mem::transmute(ret) };
             ret
         }
     }
     impl<'dynosaur_struct> DynSomeTrait<'dynosaur_struct> {
         pub fn new_box(value: impl SomeTrait + 'dynosaur_struct)
-            -> __dynosaur_alloc::boxed::Box<DynSomeTrait<'dynosaur_struct>> {
-            let value = __dynosaur_alloc::boxed::Box::new(value);
-            let value:
-                    __dynosaur_alloc::boxed::Box<dyn ErasedSomeTrait +
-                    'dynosaur_struct> = value;
+            -> _Box<DynSomeTrait<'dynosaur_struct>> {
+            let value = _Box::new(value);
+            let value: _Box<dyn ErasedSomeTrait + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
         pub fn new_arc(value: impl SomeTrait + 'dynosaur_struct)
-            -> __dynosaur_alloc::sync::Arc<DynSomeTrait<'dynosaur_struct>> {
-            let value = __dynosaur_alloc::sync::Arc::new(value);
-            let value:
-                    __dynosaur_alloc::sync::Arc<dyn ErasedSomeTrait +
-                    'dynosaur_struct> = value;
+            -> _Arc<DynSomeTrait<'dynosaur_struct>> {
+            let value = _Arc::new(value);
+            let value: _Arc<dyn ErasedSomeTrait + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
         pub fn new_rc(value: impl SomeTrait + 'dynosaur_struct)
-            -> __dynosaur_alloc::rc::Rc<DynSomeTrait<'dynosaur_struct>> {
-            let value = __dynosaur_alloc::rc::Rc::new(value);
-            let value:
-                    __dynosaur_alloc::rc::Rc<dyn ErasedSomeTrait +
-                    'dynosaur_struct> = value;
+            -> _Rc<DynSomeTrait<'dynosaur_struct>> {
+            let value = _Rc::new(value);
+            let value: _Rc<dyn ErasedSomeTrait + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
-        pub const fn from_box(value:
-                __dynosaur_alloc::boxed::Box<impl SomeTrait +
-                'dynosaur_struct>)
-            -> __dynosaur_alloc::boxed::Box<DynSomeTrait<'dynosaur_struct>> {
-            let value:
-                    __dynosaur_alloc::boxed::Box<dyn ErasedSomeTrait +
-                    'dynosaur_struct> = value;
+        pub const fn from_box(value: _Box<impl SomeTrait + 'dynosaur_struct>)
+            -> _Box<DynSomeTrait<'dynosaur_struct>> {
+            let value: _Box<dyn ErasedSomeTrait + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
         pub const fn from_ref(value: &(impl SomeTrait + 'dynosaur_struct))
@@ -92,8 +81,8 @@ mod __dynosaur_macro_dynsometrait {
             <DYNOSAUR as SomeTrait>::get_iter(self)
         }
     }
-    impl<DYNOSAUR: SomeTrait> SomeTrait for
-        __dynosaur_alloc::boxed::Box<DYNOSAUR> where DYNOSAUR: ?Sized {
+    impl<DYNOSAUR: SomeTrait> SomeTrait for _Box<DYNOSAUR> where
+        DYNOSAUR: ?Sized {
         fn get_iter(&mut self) -> impl Iterator<Item = u8> + '_ {
             <DYNOSAUR as SomeTrait>::get_iter(self)
         }
