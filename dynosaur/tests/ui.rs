@@ -45,7 +45,7 @@ fn cfg(path: &Path, mode: Mode) -> Config {
     config.comment_defaults.base().set_custom(
         "dependencies",
         DependencyBuilder {
-            crate_manifest_path: PathBuf::from("tests/Cargo.toml"),
+            crate_manifest_path: PathBuf::from("Cargo.toml"),
             ..DependencyBuilder::default()
         },
     );
@@ -53,7 +53,13 @@ fn cfg(path: &Path, mode: Mode) -> Config {
 }
 
 fn main() -> Result<()> {
-    run_tests(cfg(&Path::new("tests/pass"), Mode::Expand))?;
-    run_tests(cfg(&Path::new("tests/pass"), Mode::Compile))?;
-    run_tests(cfg(&Path::new("tests/fail"), Mode::Panic))
+    let toolchain = include_str!("ui-toolchain.txt").trim();
+    std::env::remove_var("RUSTC");
+    std::env::remove_var("CARGO");
+    std::env::set_var("RUSTUP_TOOLCHAIN", toolchain);
+    std::env::set_var("RUSTC_BOOTSTRAP", "1");
+
+    run_tests(cfg(&Path::new("pass"), Mode::Expand))?;
+    run_tests(cfg(&Path::new("pass"), Mode::Compile))?;
+    run_tests(cfg(&Path::new("fail"), Mode::Panic))
 }

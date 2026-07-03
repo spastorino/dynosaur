@@ -1,5 +1,5 @@
 error: consts make the trait not dyn compatible
- --> tests/fail/const-attr.rs:3:5
+ --> fail/const-attr.rs:3:5
   |
 3 |     const BAR: i32;
   |     ^^^^^^^^^^^^^^^

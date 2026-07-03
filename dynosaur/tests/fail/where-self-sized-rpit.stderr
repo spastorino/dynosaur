@@ -1,5 +1,5 @@
 error: where Self: Sized is unsupported
- --> tests/fail/where-self-sized-rpit.rs:5:5
+ --> fail/where-self-sized-rpit.rs:5:5
   |
 5 | /     fn foo(&mut self) -> impl ::core::future::Future<Output = ()>
 6 | |     where

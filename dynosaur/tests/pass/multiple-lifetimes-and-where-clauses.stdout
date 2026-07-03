@@ -1,8 +1,7 @@
 #![feature(prelude_import)]
+extern crate std;
 #[prelude_import]
 use std::prelude::rust_2021::*;
-#[macro_use]
-extern crate std;
 trait SomeTrait<'a, 'b> {
     async fn lotsa_lifetimes<'d, 'e,
     'f>(&self, a: &'d u32, b: &'e u32, c: &'f u32)

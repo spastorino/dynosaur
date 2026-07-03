@@ -1,5 +1,5 @@
 error: where Self: Sized is unsupported
- --> tests/fail/where-self-sized.rs:5:5
+ --> fail/where-self-sized.rs:5:5
   |
 5 | /     async fn foo(&mut self)
 6 | |     where

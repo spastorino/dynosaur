@@ -1,8 +1,7 @@
 #![feature(prelude_import)]
+extern crate std;
 #[prelude_import]
 use std::prelude::rust_2021::*;
-#[macro_use]
-extern crate std;
 trait SomeTrait {
     fn get_iter(&mut self)
     -> impl Iterator<Item = u8> + '_;
