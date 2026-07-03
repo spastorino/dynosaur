@@ -21,17 +21,27 @@ async fn dyn_dispatch(iter: &mut DynNext<'_, i32>) {
     }
 }
 
-let v = [1, 2, 3];
-dyn_dispatch(&mut DynNext::boxed(my_next_iter)).await;
+let mut my_next_iter = MyNextIter::new(vec![1, 2, 3]);
+dyn_dispatch(&mut DynNext::new_box(my_next_iter.clone())).await;
 dyn_dispatch(DynNext::from_mut(&mut my_next_iter)).await;
 ```
 
 Where `my_next_iter` is a value of a type that you would create that implements `Next`. For example:
 
 ```rust,ignore
+#[derive(Clone)]
 struct MyNextIter<T: Copy> {
     v: Vec<T>,
     i: usize,
+}
+
+impl<T: Copy> MyNextIter<T> {
+    fn new(v: Vec<T>) -> Self {
+        Self {
+            v,
+            i: 0,
+        }
+    }
 }
 
 impl<T: Copy> Next for MyNextIter<T> {
