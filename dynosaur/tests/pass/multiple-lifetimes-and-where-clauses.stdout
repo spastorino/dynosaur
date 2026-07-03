@@ -45,6 +45,7 @@ mod __dynosaur_macro_dynsometrait {
                         SomeTrait<'a, 'b>>::lotsa_lifetimes(self, a, b, c))
         }
     }
+    #[doc = "Dyn-compatible wrapper for [`SomeTrait`]."]
     #[repr(transparent)]
     pub struct DynSomeTrait<'dynosaur_struct, 'a, 'b> {
         ptr: dyn ErasedSomeTrait<'a, 'b> + 'dynosaur_struct,
@@ -64,6 +65,8 @@ mod __dynosaur_macro_dynsometrait {
         }
     }
     impl<'dynosaur_struct, 'a, 'b> DynSomeTrait<'dynosaur_struct, 'a, 'b> {
+        #[doc =
+        "Create `Box<DynSomeTrait>` from a value implementing [`SomeTrait`]."]
         pub fn new_box(value: impl SomeTrait<'a, 'b> + 'dynosaur_struct)
             -> _Box<DynSomeTrait<'dynosaur_struct, 'a, 'b>> {
             let value = _Box::new(value);
@@ -71,6 +74,8 @@ mod __dynosaur_macro_dynsometrait {
                 value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc =
+        "Create `Arc<DynSomeTrait>` from a value implementing [`SomeTrait`]."]
         pub fn new_arc(value: impl SomeTrait<'a, 'b> + 'dynosaur_struct)
             -> _Arc<DynSomeTrait<'dynosaur_struct, 'a, 'b>> {
             let value = _Arc::new(value);
@@ -78,6 +83,8 @@ mod __dynosaur_macro_dynsometrait {
                 value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc =
+        "Create `Rc<DynSomeTrait>` from a value implementing [`SomeTrait`]."]
         pub fn new_rc(value: impl SomeTrait<'a, 'b> + 'dynosaur_struct)
             -> _Rc<DynSomeTrait<'dynosaur_struct, 'a, 'b>> {
             let value = _Rc::new(value);
@@ -85,6 +92,7 @@ mod __dynosaur_macro_dynsometrait {
                 value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Convert `Box<impl SomeTrait>` to `Box<DynSomeTrait>`."]
         pub const fn from_box(value:
                 _Box<impl SomeTrait<'a, 'b> + 'dynosaur_struct>)
             -> _Box<DynSomeTrait<'dynosaur_struct, 'a, 'b>> {
@@ -92,6 +100,7 @@ mod __dynosaur_macro_dynsometrait {
                 value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Convert `Arc<impl SomeTrait>` to `Arc<DynSomeTrait>`."]
         pub const fn from_arc(value:
                 _Arc<impl SomeTrait<'a, 'b> + 'dynosaur_struct>)
             -> _Arc<DynSomeTrait<'dynosaur_struct, 'a, 'b>> {
@@ -99,6 +108,7 @@ mod __dynosaur_macro_dynsometrait {
                 value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Convert `Rc<impl SomeTrait>` to `Rc<DynSomeTrait>`."]
         pub const fn from_rc(value:
                 _Rc<impl SomeTrait<'a, 'b> + 'dynosaur_struct>)
             -> _Rc<DynSomeTrait<'dynosaur_struct, 'a, 'b>> {
@@ -106,6 +116,7 @@ mod __dynosaur_macro_dynsometrait {
                 value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Convert `&impl SomeTrait` to `&DynSomeTrait`."]
         pub const fn from_ref(value:
                 &(impl SomeTrait<'a, 'b> + 'dynosaur_struct))
             -> &DynSomeTrait<'dynosaur_struct, 'a, 'b> {
@@ -113,6 +124,7 @@ mod __dynosaur_macro_dynsometrait {
                 &*value;
             unsafe { ::core::mem::transmute(value) }
         }
+        #[doc = "Convert `&mut impl SomeTrait` to `&mut DynSomeTrait`."]
         pub const fn from_mut(value:
                 &mut (impl SomeTrait<'a, 'b> + 'dynosaur_struct))
             -> &mut DynSomeTrait<'dynosaur_struct, 'a, 'b> {
