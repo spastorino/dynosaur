@@ -4,7 +4,7 @@
 
 [package]
 name = "dynosaur_ui_tests"
-version = "0.3.0"
+version = "0.0.0"
 edition = "2021"
 
 [lib]
