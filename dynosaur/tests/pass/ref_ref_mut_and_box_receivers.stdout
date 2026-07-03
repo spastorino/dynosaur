@@ -49,6 +49,16 @@ mod __dynosaur_macro_dynrefonly {
             let value: _Box<dyn ErasedRefOnly + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
+        pub const fn from_arc(value: _Arc<impl RefOnly + 'dynosaur_struct>)
+            -> _Arc<DynRefOnly<'dynosaur_struct>> {
+            let value: _Arc<dyn ErasedRefOnly + 'dynosaur_struct> = value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub const fn from_rc(value: _Rc<impl RefOnly + 'dynosaur_struct>)
+            -> _Rc<DynRefOnly<'dynosaur_struct>> {
+            let value: _Rc<dyn ErasedRefOnly + 'dynosaur_struct> = value;
+            unsafe { ::core::mem::transmute(value) }
+        }
         pub const fn from_ref(value: &(impl RefOnly + 'dynosaur_struct))
             -> &DynRefOnly<'dynosaur_struct> {
             let value: &(dyn ErasedRefOnly + 'dynosaur_struct) = &*value;
@@ -136,6 +146,16 @@ mod __dynosaur_macro_dynmutandref {
         pub const fn from_box(value: _Box<impl MutAndRef + 'dynosaur_struct>)
             -> _Box<DynMutAndRef<'dynosaur_struct>> {
             let value: _Box<dyn ErasedMutAndRef + 'dynosaur_struct> = value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub const fn from_arc(value: _Arc<impl MutAndRef + 'dynosaur_struct>)
+            -> _Arc<DynMutAndRef<'dynosaur_struct>> {
+            let value: _Arc<dyn ErasedMutAndRef + 'dynosaur_struct> = value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub const fn from_rc(value: _Rc<impl MutAndRef + 'dynosaur_struct>)
+            -> _Rc<DynMutAndRef<'dynosaur_struct>> {
+            let value: _Rc<dyn ErasedMutAndRef + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
         pub const fn from_ref(value: &(impl MutAndRef + 'dynosaur_struct))
@@ -227,6 +247,16 @@ mod __dynosaur_macro_dynall {
         pub const fn from_box(value: _Box<impl All + 'dynosaur_struct>)
             -> _Box<DynAll<'dynosaur_struct>> {
             let value: _Box<dyn ErasedAll + 'dynosaur_struct> = value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub const fn from_arc(value: _Arc<impl All + 'dynosaur_struct>)
+            -> _Arc<DynAll<'dynosaur_struct>> {
+            let value: _Arc<dyn ErasedAll + 'dynosaur_struct> = value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub const fn from_rc(value: _Rc<impl All + 'dynosaur_struct>)
+            -> _Rc<DynAll<'dynosaur_struct>> {
+            let value: _Rc<dyn ErasedAll + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
         pub const fn from_ref(value: &(impl All + 'dynosaur_struct))

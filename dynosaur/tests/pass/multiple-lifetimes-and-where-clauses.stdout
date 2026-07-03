@@ -92,6 +92,20 @@ mod __dynosaur_macro_dynsometrait {
                 value;
             unsafe { ::core::mem::transmute(value) }
         }
+        pub const fn from_arc(value:
+                _Arc<impl SomeTrait<'a, 'b> + 'dynosaur_struct>)
+            -> _Arc<DynSomeTrait<'dynosaur_struct, 'a, 'b>> {
+            let value: _Arc<dyn ErasedSomeTrait<'a, 'b> + 'dynosaur_struct> =
+                value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub const fn from_rc(value:
+                _Rc<impl SomeTrait<'a, 'b> + 'dynosaur_struct>)
+            -> _Rc<DynSomeTrait<'dynosaur_struct, 'a, 'b>> {
+            let value: _Rc<dyn ErasedSomeTrait<'a, 'b> + 'dynosaur_struct> =
+                value;
+            unsafe { ::core::mem::transmute(value) }
+        }
         pub const fn from_ref(value:
                 &(impl SomeTrait<'a, 'b> + 'dynosaur_struct))
             -> &DynSomeTrait<'dynosaur_struct, 'a, 'b> {

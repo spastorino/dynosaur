@@ -83,6 +83,20 @@ mod __dynosaur_macro_dynnext {
                 value;
             unsafe { ::core::mem::transmute(value) }
         }
+        pub const fn from_arc(value:
+                _Arc<impl Next<Item = Item> + 'dynosaur_struct>)
+            -> _Arc<DynNext<'dynosaur_struct, Item>> {
+            let value: _Arc<dyn ErasedNext<Item = Item> + 'dynosaur_struct> =
+                value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub const fn from_rc(value:
+                _Rc<impl Next<Item = Item> + 'dynosaur_struct>)
+            -> _Rc<DynNext<'dynosaur_struct, Item>> {
+            let value: _Rc<dyn ErasedNext<Item = Item> + 'dynosaur_struct> =
+                value;
+            unsafe { ::core::mem::transmute(value) }
+        }
         pub const fn from_ref(value:
                 &(impl Next<Item = Item> + 'dynosaur_struct))
             -> &DynNext<'dynosaur_struct, Item> {
@@ -199,6 +213,22 @@ mod __dynosaur_macro_dynsendnext {
             -> _Box<DynSendNext<'dynosaur_struct, Item>> {
             let value:
                     _Box<dyn ErasedSendNext<Item = Item> + 'dynosaur_struct> =
+                value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub const fn from_arc(value:
+                _Arc<impl SendNext<Item = Item> + 'dynosaur_struct>)
+            -> _Arc<DynSendNext<'dynosaur_struct, Item>> {
+            let value:
+                    _Arc<dyn ErasedSendNext<Item = Item> + 'dynosaur_struct> =
+                value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub const fn from_rc(value:
+                _Rc<impl SendNext<Item = Item> + 'dynosaur_struct>)
+            -> _Rc<DynSendNext<'dynosaur_struct, Item>> {
+            let value:
+                    _Rc<dyn ErasedSendNext<Item = Item> + 'dynosaur_struct> =
                 value;
             unsafe { ::core::mem::transmute(value) }
         }

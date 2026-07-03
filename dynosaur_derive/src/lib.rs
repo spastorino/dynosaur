@@ -511,6 +511,16 @@ fn mk_struct_inherent_impl(struct_ident: &Ident, item_trait: &ItemTrait) -> Toke
                 unsafe { ::core::mem::transmute(value) }
             }
 
+            pub const fn from_arc(value: _Arc<impl #trait_ident #trait_params + 'dynosaur_struct>) -> _Arc<#struct_ident #struct_params> {
+                let value: _Arc<dyn #erased_trait_ident #trait_params + 'dynosaur_struct> = value;
+                unsafe { ::core::mem::transmute(value) }
+            }
+
+            pub const fn from_rc(value: _Rc<impl #trait_ident #trait_params + 'dynosaur_struct>) -> _Rc<#struct_ident #struct_params> {
+                let value: _Rc<dyn #erased_trait_ident #trait_params + 'dynosaur_struct> = value;
+                unsafe { ::core::mem::transmute(value) }
+            }
+
             pub const fn from_ref(value: &(impl #trait_ident #trait_params + 'dynosaur_struct)) -> & #struct_ident #struct_params {
                 let value: &(dyn #erased_trait_ident #trait_params + 'dynosaur_struct) = &*value;
                 unsafe { ::core::mem::transmute(value) }

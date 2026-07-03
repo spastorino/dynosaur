@@ -66,6 +66,16 @@ mod __dynosaur_macro_dynfoo {
             let value: _Box<dyn ErasedFoo + 'dynosaur_struct> = value;
             unsafe { ::core::mem::transmute(value) }
         }
+        pub const fn from_arc(value: _Arc<impl Foo + 'dynosaur_struct>)
+            -> _Arc<DynFoo<'dynosaur_struct>> {
+            let value: _Arc<dyn ErasedFoo + 'dynosaur_struct> = value;
+            unsafe { ::core::mem::transmute(value) }
+        }
+        pub const fn from_rc(value: _Rc<impl Foo + 'dynosaur_struct>)
+            -> _Rc<DynFoo<'dynosaur_struct>> {
+            let value: _Rc<dyn ErasedFoo + 'dynosaur_struct> = value;
+            unsafe { ::core::mem::transmute(value) }
+        }
         pub const fn from_ref(value: &(impl Foo + 'dynosaur_struct))
             -> &DynFoo<'dynosaur_struct> {
             let value: &(dyn ErasedFoo + 'dynosaur_struct) = &*value;
